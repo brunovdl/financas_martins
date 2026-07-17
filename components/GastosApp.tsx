@@ -128,6 +128,22 @@ export default function GastosApp() {
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
 
+  // Persistir e carregar preferência de tema no localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      setTheme(savedTheme)
+    }
+  }, [])
+
+  const handleToggleTheme = () => {
+    setTheme((t) => {
+      const next = t === 'dark' ? 'light' : 'dark'
+      localStorage.setItem('mai_finance_theme', next)
+      return next
+    })
+  }
+
   // Handlers para gerenciar categorias (adicionar, editar, deletar)
   const handleAddCategory = async (name: string, color: string) => {
     let dbId: string | undefined = undefined
