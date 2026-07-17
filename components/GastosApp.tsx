@@ -186,18 +186,25 @@ export default function GastosApp() {
     let dbId: string | undefined = undefined
     if (isSupabaseActive) {
       const created = await insertSupabaseCategory({ name, color })
-      dbId = created.id
+      dbId = created?.id
     }
+    const newCatId = name.toLowerCase().replace(/\s+/g, '-')
     const newCat: CategoryTheme = {
-      id: name.toLowerCase().replace(/\s+/g, '-'),
+      id: newCatId,
       name,
       dark: color,
       light: color,
       dbId,
     }
-    setCategoriesList((prev) => [...prev, newCat])
+    setCategoriesList((prev) => {
+      const filtered = prev.filter((c) => c.id !== newCatId && c.name.toLowerCase() !== name.toLowerCase())
+      return [...filtered, newCat]
+    })
     if (dbId) {
-      setDbCategories((prev) => [...prev, { id: dbId!, name, color, created_at: new Date().toISOString() }])
+      setDbCategories((prev) => {
+        const filtered = prev.filter((c) => c.id !== dbId && c.name.toLowerCase() !== name.toLowerCase())
+        return [...filtered, { id: dbId!, name, color, created_at: new Date().toISOString() }]
+      })
     }
   }
 

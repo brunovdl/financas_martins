@@ -36,7 +36,7 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function insertCategory(cat: NewCategory): Promise<Category> {
   const { data, error } = await supabase
     .from('categories')
-    .insert(cat)
+    .upsert(cat, { onConflict: 'name' })
     .select()
     .single()
   if (error) throw error
@@ -54,7 +54,16 @@ export async function updateCategory(id: string, patch: Partial<NewCategory>): P
   return data
 }
 
+export async function unlinkExpensesFromCategory(categoryId: string): Promise<void> {
+  const { error } = await supabase
+    .from('expenses')
+    .update({ category_id: null })
+    .eq('category_id', categoryId)
+  if (error) console.warn('Erro ao desvincular despesas da categoria:', error)
+}
+
 export async function deleteCategory(id: string): Promise<void> {
+  await unlinkExpensesFromCategory(id)
   const { error } = await supabase
     .from('categories')
     .delete()
