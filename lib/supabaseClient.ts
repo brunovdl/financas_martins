@@ -43,6 +43,17 @@ export async function insertCategory(cat: NewCategory): Promise<Category> {
   return data
 }
 
+export async function updateCategory(id: string, patch: Partial<NewCategory>): Promise<Category> {
+  const { data, error } = await supabase
+    .from('categories')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteCategory(id: string): Promise<void> {
   const { error } = await supabase
     .from('categories')

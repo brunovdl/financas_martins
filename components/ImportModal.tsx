@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, ChevronDown, X } from 'lucide-react'
-import { CATEGORIES, formatBRL, monthLabel, type ThemeTokens } from '@/lib/theme'
+import { CATEGORIES, formatBRL, monthLabel, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import type { NewExpense } from '@/lib/types'
 
 export interface ParsedImportRow {
@@ -23,6 +23,7 @@ interface ImportModalProps {
   T: ThemeTokens
   theme: 'dark' | 'light'
   monthRef: string
+  categoriesList?: CategoryTheme[]
   onClose: () => void
   onImport: (rows: ParsedImportRow[]) => void
 }
@@ -67,10 +68,10 @@ function parseDateField(raw: unknown, monthRef: string): number {
   return 1
 }
 
-function parseCategory(raw: unknown): string {
+function parseCategory(raw: unknown, categoriesList: CategoryTheme[] = CATEGORIES): string {
   if (!raw) return 'outros'
   const name = String(raw).trim().toLowerCase()
-  const found = CATEGORIES.find((c) => c.name.toLowerCase() === name || c.id === name)
+  const found = categoriesList.find((c) => c.name.toLowerCase() === name || c.id === name)
   return found ? found.id : 'outros'
 }
 
@@ -80,7 +81,7 @@ function parseStatus(raw: unknown): 'pago' | 'pendente' {
   return s === 'pago' || s === 'paid' ? 'pago' : 'pendente'
 }
 
-export function ImportModal({ T, theme, monthRef, onClose, onImport }: ImportModalProps) {
+export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, onClose, onImport }: ImportModalProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<'upload' | 'map' | 'preview'>('upload')
   const [headers, setHeaders] = useState<string[]>([])
@@ -168,7 +169,8 @@ export function ImportModal({ T, theme, monthRef, onClose, onImport }: ImportMod
     let idC = Date.now()
     const built: ParsedImportRow[] = rows.slice(0, 200).map((row) => {
       const dueDay = parseDateField(mapping.due_date !== undefined ? row[mapping.due_date] : null, monthRef)
-      const category = parseCategory(mapping.category !== undefined ? row[mapping.category] : '')
+      const catKey = mapping['category'] ?? -1
+      const category = catKey !== -1 ? parseCategory(row[catKey], categoriesList) : 'outros'
       const description = mapping.description !== undefined ? String(row[mapping.description] || '').trim() : '—'
       const amount = parseAmount(mapping.amount !== undefined ? row[mapping.amount] : 0)
       const paymentDay = mapping.payment_date !== undefined ? String(row[mapping.payment_date] || '').trim() : ''
@@ -370,7 +372,7 @@ export function ImportModal({ T, theme, monthRef, onClose, onImport }: ImportMod
                   </thead>
                   <tbody>
                     {preview.slice(0, 10).map((row, i) => {
-                      const cat = CATEGORIES.find((c) => c.id === row.category)
+                      const cat = categoriesList.find((c) => c.id === row.category)
                       const catColor = theme === 'dark' ? cat?.dark : cat?.light
                       const isPago = row.status === 'pago'
                       return (
@@ -379,8 +381,8 @@ export function ImportModal({ T, theme, monthRef, onClose, onImport }: ImportMod
                             {String(row.dueDay).padStart(2, '0')}
                           </td>
                           <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${catColor}20`, color: catColor }}>
-                              {cat?.name}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${catColor || T.textFaint}20`, color: catColor || T.textFaint }}>
+                              {cat?.name || 'Outros'}
                             </span>
                           </td>
                           <td className="px-3 py-2" style={{ color: T.textPrimary }}>

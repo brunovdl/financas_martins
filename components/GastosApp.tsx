@@ -15,10 +15,12 @@ import {
   Sun,
   Moon,
   Upload,
+  Tag,
 } from 'lucide-react'
-import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, type ThemeTokens } from '@/lib/theme'
+import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import { ProgressRing } from './ProgressRing'
 import { ImportModal, type ParsedImportRow } from './ImportModal'
+import { CategoriesModal } from './CategoriesModal'
 import {
   fetchExpenses as fetchSupabaseExpenses,
   insertExpense as insertSupabaseExpense,
@@ -27,6 +29,9 @@ import {
   bulkInsertExpenses as bulkInsertSupabaseExpenses,
   subscribeToExpenses,
   fetchCategories as fetchSupabaseCategories,
+  insertCategory as insertSupabaseCategory,
+  updateCategory as updateSupabaseCategory,
+  deleteCategory as deleteSupabaseCategory,
 } from '@/lib/supabaseClient'
 import type { Expense as SupabaseExpense, Category as SupabaseCategory } from '@/lib/types'
 
@@ -77,20 +82,19 @@ const seedExpenses: UIExpense[] = [
   { id: nextId(), monthRef: '2026-05', dueDay: 30, category: 'cpfl', description: 'Energia', amount: 310.40, paymentDay: '', status: 'pendente', observation: '' },
 ]
 
-function mapSupabaseToUI(e: SupabaseExpense, categoriesList: SupabaseCategory[]): UIExpense {
+function mapSupabaseToUI(e: SupabaseExpense, categoriesList: CategoryTheme[]): UIExpense {
   const dateObj = new Date(e.due_date + 'T00:00:00')
   const dueDay = isNaN(dateObj.getDate()) ? 1 : dateObj.getDate()
   const monthRef = e.month_ref ? e.month_ref.slice(0, 7) : '2026-04'
 
   let catId = 'outros'
   if (e.category?.name) {
-    const found = CATEGORIES.find((c) => c.name.toLowerCase() === e.category?.name.toLowerCase())
+    const found = categoriesList.find((c) => c.name.toLowerCase() === e.category?.name.toLowerCase())
     if (found) catId = found.id
   } else if (e.category_id) {
-    const foundDb = categoriesList.find((c) => c.id === e.category_id)
+    const foundDb = categoriesList.find((c) => c.dbId === e.category_id || c.id === e.category_id)
     if (foundDb) {
-      const foundLocal = CATEGORIES.find((c) => c.name.toLowerCase() === foundDb.name.toLowerCase())
-      if (foundLocal) catId = foundLocal.id
+      catId = foundDb.id
     }
   }
 
@@ -114,6 +118,8 @@ export default function GastosApp() {
 
   const [expenses, setExpenses] = useState<UIExpense[]>(seedExpenses)
   const [dbCategories, setDbCategories] = useState<SupabaseCategory[]>([])
+  const [categoriesList, setCategoriesList] = useState<CategoryTheme[]>(CATEGORIES)
+  const [showCategoriesModal, setShowCategoriesModal] = useState<boolean>(false)
   const [isSupabaseActive, setIsSupabaseActive] = useState<boolean>(false)
   const [monthRef, setMonthRef] = useState('2026-04')
   const [search, setSearch] = useState('')
@@ -122,20 +128,54 @@ export default function GastosApp() {
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
 
-  // Persistir e carregar preferência de tema no localStorage
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
-    if (savedTheme === 'dark' || savedTheme === 'light') {
-      setTheme(savedTheme)
+  // Handlers para gerenciar categorias (adicionar, editar, deletar)
+  const handleAddCategory = async (name: string, color: string) => {
+    let dbId: string | undefined = undefined
+    if (isSupabaseActive) {
+      const created = await insertSupabaseCategory({ name, color })
+      dbId = created.id
     }
-  }, [])
+    const newCat: CategoryTheme = {
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+      dark: color,
+      light: color,
+      dbId,
+    }
+    setCategoriesList((prev) => [...prev, newCat])
+    if (dbId) {
+      setDbCategories((prev) => [...prev, { id: dbId!, name, color, created_at: new Date().toISOString() }])
+    }
+  }
 
-  const handleToggleTheme = () => {
-    setTheme((t) => {
-      const next = t === 'dark' ? 'light' : 'dark'
-      localStorage.setItem('mai_finance_theme', next)
-      return next
-    })
+  const handleUpdateCategory = async (id: string, name: string, color: string) => {
+    const target = categoriesList.find((c) => c.id === id)
+    if (!target) return
+
+    if (isSupabaseActive && target.dbId) {
+      await updateSupabaseCategory(target.dbId, { name, color })
+    }
+
+    const updatedId = name.toLowerCase().replace(/\s+/g, '-')
+    setCategoriesList((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, id: updatedId, name, dark: color, light: color } : c))
+    )
+
+    if (updatedId !== id) {
+      setExpenses((prev) => prev.map((e) => (e.category === id ? { ...e, category: updatedId } : e)))
+    }
+  }
+
+  const handleDeleteCategory = async (id: string) => {
+    const target = categoriesList.find((c) => c.id === id)
+    if (!target) return
+
+    if (isSupabaseActive && target.dbId) {
+      await deleteSupabaseCategory(target.dbId)
+    }
+
+    setCategoriesList((prev) => prev.filter((c) => c.id !== id))
+    setExpenses((prev) => prev.map((e) => (e.category === id ? { ...e, category: 'outros' } : e)))
   }
 
   // Tentar carregar dados do Supabase
@@ -147,10 +187,29 @@ export default function GastosApp() {
       const cats = await fetchSupabaseCategories().catch(() => [])
       setDbCategories(cats)
 
+      let currentCatsList = CATEGORIES
+      if (cats && cats.length > 0) {
+        const mappedCats: CategoryTheme[] = cats.map((c) => ({
+          id: c.name.toLowerCase().replace(/\s+/g, '-'),
+          name: c.name,
+          dark: c.color,
+          light: c.color,
+          dbId: c.id,
+        }))
+        const mergedCats = [...mappedCats]
+        CATEGORIES.forEach((defaultCat) => {
+          if (!mergedCats.some((c) => c.name.toLowerCase() === defaultCat.name.toLowerCase())) {
+            mergedCats.push(defaultCat)
+          }
+        })
+        currentCatsList = mergedCats
+        setCategoriesList(mergedCats)
+      }
+
       const dbExps = await fetchSupabaseExpenses(monthRef)
       if (dbExps) {
         setIsSupabaseActive(true)
-        const mapped = dbExps.map((e) => mapSupabaseToUI(e, cats))
+        const mapped = dbExps.map((e) => mapSupabaseToUI(e, currentCatsList))
         setExpenses((prev) => {
           const otherMonths = prev.filter((item) => item.monthRef !== monthRef)
           return [...otherMonths, ...mapped]
@@ -185,10 +244,10 @@ export default function GastosApp() {
         (e) =>
           search.trim() === '' ||
           e.description.toLowerCase().includes(search.toLowerCase()) ||
-          CATEGORIES.find((c) => c.id === e.category)?.name.toLowerCase().includes(search.toLowerCase())
+          categoriesList.find((c) => c.id === e.category)?.name.toLowerCase().includes(search.toLowerCase())
       )
       .sort((a, b) => a.dueDay - b.dueDay)
-  }, [expenses, monthRef, search, onlyPending])
+  }, [expenses, monthRef, search, onlyPending, categoriesList])
 
   const totals = useMemo(() => {
     const all = expenses.filter((e) => e.monthRef === monthRef)
@@ -216,8 +275,8 @@ export default function GastosApp() {
         else if (field === 'status') patch.status = value
         else if (field === 'observation') patch.observation = value || null
         else if (field === 'category') {
-          const catObj = CATEGORIES.find((c) => c.id === value)
-          const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase())
+          const catObj = categoriesList.find((c) => c.id === value)
+          const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase()) || (catObj?.dbId ? { id: catObj.dbId } : undefined)
           if (dbCat) patch.category_id = dbCat.id
         }
 
@@ -314,14 +373,14 @@ export default function GastosApp() {
     if (isSupabaseActive) {
       try {
         const payload = parsedRows.map((r) => {
-          const catObj = CATEGORIES.find((c) => c.id === r.category)
-          const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase())
+          const catObj = categoriesList.find((c) => c.id === r.category)
+          const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase()) || (catObj?.dbId ? { id: catObj.dbId } : undefined)
           const newExp = r.toNewExpense()
           newExp.category_id = dbCat ? dbCat.id : null
           return newExp
         })
         const createdList = await bulkInsertSupabaseExpenses(payload)
-        const mapped = createdList.map((e) => mapSupabaseToUI(e, dbCategories))
+        const mapped = createdList.map((e) => mapSupabaseToUI(e, categoriesList))
         setExpenses((prev) => [...mapped, ...prev])
       } catch (e) {
         console.error('Erro na importação em lote do Supabase:', e)
@@ -493,6 +552,13 @@ export default function GastosApp() {
             Só pendentes
           </button>
           <button
+            onClick={() => setShowCategoriesModal(true)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ backgroundColor: T.surface, borderColor: T.border, color: T.textMuted }}
+          >
+            <Tag size={15} strokeWidth={2} /> Categorias
+          </button>
+          <button
             onClick={() => setShowImport(true)}
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:opacity-90 active:scale-[0.98]"
             style={{ backgroundColor: T.surface, borderColor: T.border, color: T.textMuted }}
@@ -540,7 +606,7 @@ export default function GastosApp() {
               </thead>
               <tbody>
                 {monthExpenses.map((e) => {
-                  const cat = CATEGORIES.find((c) => c.id === e.category)
+                  const cat = categoriesList.find((c) => c.id === e.category)
                   const catColor = theme === 'dark' ? cat?.dark : cat?.light
                   const isPago = e.status === 'pago'
                   const stripeColor = isPago ? T.success : T.warning
@@ -573,9 +639,9 @@ export default function GastosApp() {
                           value={e.category}
                           onChange={(ev) => handleUpdateExpense(e.id, 'category', ev.target.value)}
                           className="text-[11px] font-semibold rounded-full px-2.5 py-1 border-0 outline-none cursor-pointer appearance-none"
-                          style={{ backgroundColor: `${catColor}20`, color: catColor }}
+                          style={{ backgroundColor: `${catColor || T.textFaint}20`, color: catColor || T.textFaint }}
                         >
-                          {CATEGORIES.map((c) => (
+                          {categoriesList.map((c) => (
                             <option key={c.id} value={c.id} style={{ backgroundColor: T.surfaceSolid, color: T.textPrimary }}>
                               {c.name}
                             </option>
@@ -702,12 +768,25 @@ export default function GastosApp() {
         </p>
       </div>
 
+      {/* Categories Modal */}
+      {showCategoriesModal && (
+        <CategoriesModal
+          T={T}
+          categories={categoriesList}
+          onClose={() => setShowCategoriesModal(false)}
+          onAddCategory={handleAddCategory}
+          onUpdateCategory={handleUpdateCategory}
+          onDeleteCategory={handleDeleteCategory}
+        />
+      )}
+
       {/* Import Modal */}
       {showImport && (
         <ImportModal
           T={T}
           theme={theme}
           monthRef={monthRef}
+          categoriesList={categoriesList}
           onClose={() => setShowImport(false)}
           onImport={handleImportRows}
         />

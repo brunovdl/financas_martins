@@ -3,6 +3,7 @@ export interface CategoryTheme {
   name: string
   dark: string
   light: string
+  dbId?: string
 }
 
 export const CATEGORIES: CategoryTheme[] = [
