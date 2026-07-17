@@ -205,8 +205,13 @@ export default function GastosApp() {
     const target = categoriesList.find((c) => c.id === id)
     if (!target) return
 
-    if (isSupabaseActive && target.dbId) {
-      await updateSupabaseCategory(target.dbId, { name, color })
+    const dbCategory = dbCategories.find(
+      (c) => c.id === target.dbId || c.name.toLowerCase() === target.name.toLowerCase()
+    )
+    const dbIdToUpdate = target.dbId || dbCategory?.id
+
+    if (isSupabaseActive && dbIdToUpdate) {
+      await updateSupabaseCategory(dbIdToUpdate, { name, color })
     }
 
     const updatedId = name.toLowerCase().replace(/\s+/g, '-')
@@ -223,8 +228,14 @@ export default function GastosApp() {
     const target = categoriesList.find((c) => c.id === id)
     if (!target) return
 
-    if (isSupabaseActive && target.dbId) {
-      await deleteSupabaseCategory(target.dbId)
+    const dbCategory = dbCategories.find(
+      (c) => c.id === target.dbId || c.name.toLowerCase() === target.name.toLowerCase()
+    )
+    const dbIdToDelete = target.dbId || dbCategory?.id
+
+    if (isSupabaseActive && dbIdToDelete) {
+      await deleteSupabaseCategory(dbIdToDelete)
+      setDbCategories((prev) => prev.filter((c) => c.id !== dbIdToDelete))
     }
 
     setCategoriesList((prev) => prev.filter((c) => c.id !== id))
@@ -237,26 +248,30 @@ export default function GastosApp() {
       if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         return
       }
-      const cats = await fetchSupabaseCategories().catch(() => [])
+      let cats = await fetchSupabaseCategories().catch(() => [])
+
+      // Se a tabela de categorias no Supabase estiver vazia, popular com as categorias iniciais
+      if (cats.length === 0) {
+        const seeded = await Promise.all(
+          CATEGORIES.map((c) => insertSupabaseCategory({ name: c.name, color: c.dark }))
+        ).catch(() => [])
+        if (seeded.length > 0) {
+          cats = seeded
+        }
+      }
+
       setDbCategories(cats)
 
       let currentCatsList = CATEGORIES
       if (cats && cats.length > 0) {
-        const mappedCats: CategoryTheme[] = cats.map((c) => ({
+        currentCatsList = cats.map((c) => ({
           id: c.name.toLowerCase().replace(/\s+/g, '-'),
           name: c.name,
           dark: c.color,
           light: c.color,
           dbId: c.id,
         }))
-        const mergedCats = [...mappedCats]
-        CATEGORIES.forEach((defaultCat) => {
-          if (!mergedCats.some((c) => c.name.toLowerCase() === defaultCat.name.toLowerCase())) {
-            mergedCats.push(defaultCat)
-          }
-        })
-        currentCatsList = mergedCats
-        setCategoriesList(mergedCats)
+        setCategoriesList(currentCatsList)
       }
 
       const dbExps = await fetchSupabaseExpenses(monthRef)
