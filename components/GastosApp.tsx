@@ -127,44 +127,6 @@ export default function GastosApp() {
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof UIExpense } | null>(null)
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-
-  const toggleSelectAll = () => {
-    if (monthExpenses.length === 0) return
-    const allCurrentIds = monthExpenses.map((e) => e.id)
-    const allSelected = allCurrentIds.every((id) => selectedIds.includes(id))
-    if (allSelected) {
-      setSelectedIds((prev) => prev.filter((id) => !allCurrentIds.includes(id)))
-    } else {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...allCurrentIds])))
-    }
-  }
-
-  const toggleSelectOne = (id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
-  }
-
-  const removeSelectedExpenses = async () => {
-    if (selectedIds.length === 0) return
-    const idsToRemove = [...selectedIds]
-    const itemsToRemove = expenses.filter((e) => idsToRemove.includes(e.id))
-
-    setExpenses((prev) => prev.filter((e) => !idsToRemove.includes(e.id)))
-    setSelectedIds([])
-
-    if (isSupabaseActive) {
-      try {
-        await Promise.all(
-          itemsToRemove
-            .filter((e) => e.dbId)
-            .map((e) => deleteSupabaseExpense(e.dbId!))
-        )
-      } catch (err) {
-        console.error('Erro ao excluir registros selecionados no Supabase:', err)
-      }
-    }
-  }
-
   // Persistir e carregar preferência de tema no localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
@@ -323,6 +285,44 @@ export default function GastosApp() {
       )
       .sort((a, b) => a.dueDay - b.dueDay)
   }, [expenses, monthRef, search, onlyPending, categoriesList])
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const toggleSelectAll = () => {
+    if (monthExpenses.length === 0) return
+    const allCurrentIds = monthExpenses.map((e) => e.id)
+    const allSelected = allCurrentIds.every((id) => selectedIds.includes(id))
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !allCurrentIds.includes(id)))
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allCurrentIds])))
+    }
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
+  }
+
+  const removeSelectedExpenses = async () => {
+    if (selectedIds.length === 0) return
+    const idsToRemove = [...selectedIds]
+    const itemsToRemove = expenses.filter((e) => idsToRemove.includes(e.id))
+
+    setExpenses((prev) => prev.filter((e) => !idsToRemove.includes(e.id)))
+    setSelectedIds([])
+
+    if (isSupabaseActive) {
+      try {
+        await Promise.all(
+          itemsToRemove
+            .filter((e) => e.dbId)
+            .map((e) => deleteSupabaseExpense(e.dbId!))
+        )
+      } catch (err) {
+        console.error('Erro ao excluir registros selecionados no Supabase:', err)
+      }
+    }
+  }
 
   const totals = useMemo(() => {
     const all = expenses.filter((e) => e.monthRef === monthRef)

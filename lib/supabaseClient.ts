@@ -46,13 +46,23 @@ export async function fetchCategories(): Promise<Category[]> {
     .select('*')
     .order('name')
   if (error) throw error
-  return data ?? []
+  return (data ?? []).map((c) => ({
+    ...c,
+    color: c.color_hex || c.color || '#94A3B8',
+  }))
 }
 
 export async function insertCategory(cat: NewCategory): Promise<Category> {
+  const payload: Record<string, unknown> = {
+    name: cat.name,
+    color_hex: cat.color,
+    type: 'DESPESA',
+    icon: 'tag',
+  }
+
   const { data, error } = await supabase
     .from('categories')
-    .insert(cat)
+    .insert(payload)
     .select()
     .single()
 
@@ -60,27 +70,31 @@ export async function insertCategory(cat: NewCategory): Promise<Category> {
     if (error.code === '23505' || error.message?.includes('duplicate')) {
       const { data: existing, error: fetchErr } = await supabase
         .from('categories')
-        .update({ color: cat.color })
+        .update({ color_hex: cat.color })
         .eq('name', cat.name)
         .select()
         .single()
       if (fetchErr) throw fetchErr
-      return existing
+      return { ...existing, color: existing.color_hex || existing.color || cat.color }
     }
     throw error
   }
-  return data
+  return { ...data, color: data.color_hex || data.color || cat.color }
 }
 
 export async function updateCategory(id: string, patch: Partial<NewCategory>): Promise<Category> {
+  const payload: Record<string, unknown> = {}
+  if (patch.name) payload.name = patch.name
+  if (patch.color) payload.color_hex = patch.color
+
   const { data, error } = await supabase
     .from('categories')
-    .update(patch)
+    .update(payload)
     .eq('id', id)
     .select()
     .single()
   if (error) throw error
-  return data
+  return { ...data, color: data.color_hex || data.color || patch.color }
 }
 
 export async function unlinkExpensesFromCategory(categoryId: string): Promise<void> {

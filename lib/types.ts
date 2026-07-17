@@ -4,6 +4,7 @@ export interface Category {
   id: string
   name: string
   color: string         // hex base — variante claro/escuro resolvida no frontend
+  color_hex?: string
   created_at: string
 }
 
