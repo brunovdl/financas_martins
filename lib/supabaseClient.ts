@@ -7,7 +7,23 @@ import type { Category, Expense, MonthlySummary, NewExpense, NewCategory, PatchE
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
-export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey)
+const globalForSupabase = globalThis as unknown as {
+  supabaseClient?: ReturnType<typeof createSupabaseClient>
+}
+
+export const supabase =
+  globalForSupabase.supabaseClient ??
+  createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForSupabase.supabaseClient = supabase
+}
 
 // ---------------------------------------------------------------------------
 // Helpers de conversão — banco usa ISO date string, frontend usa dueDay (number)
@@ -36,10 +52,23 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function insertCategory(cat: NewCategory): Promise<Category> {
   const { data, error } = await supabase
     .from('categories')
-    .upsert(cat, { onConflict: 'name' })
+    .insert(cat)
     .select()
     .single()
-  if (error) throw error
+
+  if (error) {
+    if (error.code === '23505' || error.message?.includes('duplicate')) {
+      const { data: existing, error: fetchErr } = await supabase
+        .from('categories')
+        .update({ color: cat.color })
+        .eq('name', cat.name)
+        .select()
+        .single()
+      if (fetchErr) throw fetchErr
+      return existing
+    }
+    throw error
+  }
   return data
 }
 
