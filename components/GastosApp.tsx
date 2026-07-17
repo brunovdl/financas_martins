@@ -160,7 +160,7 @@ export default function GastosApp() {
     }
     setCategoriesList((prev) => {
       const filtered = prev.filter((c) => c.id !== newCatId && c.name.toLowerCase() !== name.toLowerCase())
-      return [...filtered, newCat]
+      return [newCat, ...filtered]
     })
     if (dbId) {
       setDbCategories((prev) => {
@@ -233,13 +233,15 @@ export default function GastosApp() {
 
       let currentCatsList = CATEGORIES
       if (cats && cats.length > 0) {
-        currentCatsList = cats.map((c) => ({
-          id: c.name.toLowerCase().replace(/\s+/g, '-'),
-          name: c.name,
-          dark: c.color,
-          light: c.color,
-          dbId: c.id,
-        }))
+        currentCatsList = cats
+          .map((c) => ({
+            id: c.name.toLowerCase().replace(/\s+/g, '-'),
+            name: c.name,
+            dark: c.color,
+            light: c.color,
+            dbId: c.id,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
         setCategoriesList(currentCatsList)
       }
 
@@ -877,7 +879,12 @@ export default function GastosApp() {
         <CategoriesModal
           T={T}
           categories={categoriesList}
-          onClose={() => setShowCategoriesModal(false)}
+          onClose={() => {
+            setCategoriesList((prev) =>
+              [...prev].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+            )
+            setShowCategoriesModal(false)
+          }}
           onAddCategory={handleAddCategory}
           onUpdateCategory={handleUpdateCategory}
           onDeleteCategory={handleDeleteCategory}
