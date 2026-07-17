@@ -127,6 +127,43 @@ export default function GastosApp() {
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof UIExpense } | null>(null)
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const toggleSelectAll = () => {
+    if (monthExpenses.length === 0) return
+    const allCurrentIds = monthExpenses.map((e) => e.id)
+    const allSelected = allCurrentIds.every((id) => selectedIds.includes(id))
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !allCurrentIds.includes(id)))
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allCurrentIds])))
+    }
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
+  }
+
+  const removeSelectedExpenses = async () => {
+    if (selectedIds.length === 0) return
+    const idsToRemove = [...selectedIds]
+    const itemsToRemove = expenses.filter((e) => idsToRemove.includes(e.id))
+
+    setExpenses((prev) => prev.filter((e) => !idsToRemove.includes(e.id)))
+    setSelectedIds([])
+
+    if (isSupabaseActive) {
+      try {
+        await Promise.all(
+          itemsToRemove
+            .filter((e) => e.dbId)
+            .map((e) => deleteSupabaseExpense(e.dbId!))
+        )
+      } catch (err) {
+        console.error('Erro ao excluir registros selecionados no Supabase:', err)
+      }
+    }
+  }
 
   // Persistir e carregar preferência de tema no localStorage
   useEffect(() => {
@@ -567,6 +604,15 @@ export default function GastosApp() {
           >
             Só pendentes
           </button>
+          {selectedIds.length > 0 && (
+            <button
+              onClick={removeSelectedExpenses}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ backgroundColor: `${T.danger}20`, borderColor: `${T.danger}66`, color: T.danger, borderStyle: 'solid', borderWidth: '1px' }}
+            >
+              <Trash2 size={15} strokeWidth={2} /> Excluir ({selectedIds.length})
+            </button>
+          )}
           <button
             onClick={() => setShowCategoriesModal(true)}
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:opacity-90 active:scale-[0.98]"
@@ -596,6 +642,15 @@ export default function GastosApp() {
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: T.textFaint }}>
+                  <th className="px-3 py-3 w-10 text-center" style={{ borderBottom: `1px solid ${T.border}` }}>
+                    <input
+                      type="checkbox"
+                      checked={monthExpenses.length > 0 && monthExpenses.every((e) => selectedIds.includes(e.id))}
+                      onChange={toggleSelectAll}
+                      className="rounded cursor-pointer accent-emerald-500 w-4 h-4 align-middle"
+                      title={selectedIds.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium w-24" style={{ borderBottom: `1px solid ${T.border}` }}>
                     Vencimento
                   </th>
@@ -627,14 +682,25 @@ export default function GastosApp() {
                   const isPago = e.status === 'pago'
                   const stripeColor = isPago ? T.success : T.warning
                   const monthAbbr = monthLabel(monthRef).slice(0, 3).toLowerCase()
+                  const isSelected = selectedIds.includes(e.id)
 
                   return (
                     <tr
                       key={e.id}
                       className="group transition-colors"
-                      onMouseEnter={(ev) => (ev.currentTarget.style.backgroundColor = T.rowHover)}
-                      onMouseLeave={(ev) => (ev.currentTarget.style.backgroundColor = 'transparent')}
+                      style={{ backgroundColor: isSelected ? `${T.accent}12` : 'transparent' }}
+                      onMouseEnter={(ev) => (ev.currentTarget.style.backgroundColor = isSelected ? `${T.accent}20` : T.rowHover)}
+                      onMouseLeave={(ev) => (ev.currentTarget.style.backgroundColor = isSelected ? `${T.accent}12` : 'transparent')}
                     >
+                      {/* Checkbox de Seleção */}
+                      <td className="px-3 py-2.5 text-center relative" style={{ borderBottom: `1px solid ${T.borderSubtle}` }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(e.id)}
+                          className="rounded cursor-pointer accent-emerald-500 w-4 h-4 align-middle"
+                        />
+                      </td>
                       {/* Vencimento — com stripe de status */}
                       <td className="px-4 py-2.5 font-mono text-[13px] relative" style={{ color: T.textMuted, borderBottom: `1px solid ${T.borderSubtle}` }}>
                         <span className="absolute left-0 top-1.5 bottom-1.5 w-[2.5px] rounded-full" style={{ backgroundColor: stripeColor, opacity: 0.8 }} />
@@ -767,7 +833,7 @@ export default function GastosApp() {
                 })}
                 {monthExpenses.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-sm" style={{ color: T.textFaint }}>
+                    <td colSpan={9} className="px-4 py-12 text-center text-sm" style={{ color: T.textFaint }}>
                       Nenhuma despesa encontrada para {monthLabel(monthRef)}.
                     </td>
                   </tr>
