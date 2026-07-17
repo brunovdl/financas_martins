@@ -30,6 +30,7 @@ interface ImportModalProps {
 
 const IMPORT_FIELDS = [
   { key: 'due_date', label: 'Vencimento', required: true, hint: 'Data: 05, 5, 05/04/2026, 2026-04-05' },
+  { key: 'month_ref', label: 'Mês/Ano Ref', required: false, hint: 'ex: 04/2026, 2026-04, Abril/2026' },
   { key: 'description', label: 'Descrição', required: true, hint: 'Texto livre' },
   { key: 'amount', label: 'Valor', required: true, hint: 'Número: 1234.56 ou 1.234,56' },
   { key: 'category', label: 'Categoria', required: false, hint: 'Nome da categoria (Outros, DAAE…)' },
@@ -48,24 +49,119 @@ function parseAmount(raw: unknown): number {
   return parseFloat(cleaned.replace(',', '.')) || 0
 }
 
-function parseDateField(raw: unknown, monthRef: string): number {
-  if (!raw && raw !== 0) return 1
+const MONTH_NAMES: Record<string, string> = {
+  janeiro: '01', jan: '01',
+  fevereiro: '02', fev: '02',
+  marco: '03', março: '03', mar: '03',
+  abril: '04', abr: '04',
+  maio: '05', mai: '05',
+  junho: '06', jun: '06',
+  julho: '07', jul: '07',
+  agosto: '08', ago: '08',
+  setembro: '09', set: '09',
+  outubro: '10', out: '10',
+  novembro: '11', nov: '11',
+  dezembro: '12', dez: '12',
+}
+
+function parseMonthRef(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === '') return null
   const s = String(raw).trim()
-  if (/^\d{1,2}$/.test(s)) {
-    return parseInt(s, 10)
+  if (!s) return null
+
+  // Format: YYYY-MM
+  const isoMatch = s.match(/^(\d{4})[-/.](\d{1,2})$/)
+  if (isoMatch) {
+    const y = isoMatch[1]
+    const m = String(parseInt(isoMatch[2], 10)).padStart(2, '0')
+    if (parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) return `${y}-${m}`
   }
-  const dotMatch = s.match(/^(\d{1,2})\..+/)
-  if (dotMatch) return parseInt(dotMatch[1], 10)
-  const brMatch = s.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/)
-  if (brMatch) return parseInt(brMatch[1], 10)
-  const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/)
-  if (isoMatch) return parseInt(isoMatch[3], 10)
+
+  // Format: MM/YYYY or MM-YYYY
+  const brMatch = s.match(/^(\d{1,2})[-/.](\d{4})$/)
+  if (brMatch) {
+    const m = String(parseInt(brMatch[1], 10)).padStart(2, '0')
+    const y = brMatch[2]
+    if (parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) return `${y}-${m}`
+  }
+
+  // Format: "Abril/2026", "Abr 2026", "Abril 26"
+  const textMatch = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/^([a-z]+)[\s/.-]*(\d{2,4})$/)
+  if (textMatch) {
+    const mName = textMatch[1]
+    let year = textMatch[2]
+    if (year.length === 2) year = `20${year}`
+    const mCode = MONTH_NAMES[mName]
+    if (mCode && year) return `${year}-${mCode}`
+  }
+
+  // Excel serial date check
   const num = parseFloat(s)
-  if (!isNaN(num) && num > 40000) {
+  if (!isNaN(num) && num > 40000 && num < 60000) {
     const d = new Date(Math.round((num - 25569) * 86400 * 1000))
-    return d.getDate()
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      return `${y}-${m}`
+    }
   }
-  return 1
+
+  return null
+}
+
+function parseDateField(raw: unknown, defaultMonthRef: string): { dueDay: number; monthRef: string } {
+  if (raw === null || raw === undefined || raw === '') return { dueDay: 1, monthRef: defaultMonthRef }
+  const s = String(raw).trim()
+  if (!s) return { dueDay: 1, monthRef: defaultMonthRef }
+
+  // Just day number: "5" or "05"
+  if (/^\d{1,2}$/.test(s)) {
+    const day = Math.min(31, Math.max(1, parseInt(s, 10) || 1))
+    return { dueDay: day, monthRef: defaultMonthRef }
+  }
+
+  // "05/10" without year?
+  const dayMonthOnly = s.match(/^(\d{1,2})[\/-](\d{1,2})$/)
+  if (dayMonthOnly) {
+    const day = Math.min(31, Math.max(1, parseInt(dayMonthOnly[1], 10) || 1))
+    const m = String(parseInt(dayMonthOnly[2], 10)).padStart(2, '0')
+    const currentYear = defaultMonthRef.slice(0, 4)
+    if (parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
+      return { dueDay: day, monthRef: `${currentYear}-${m}` }
+    }
+    return { dueDay: day, monthRef: defaultMonthRef }
+  }
+
+  // BR Full Date: DD/MM/YYYY or DD-MM-YYYY
+  const brMatch = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/)
+  if (brMatch) {
+    const day = Math.min(31, Math.max(1, parseInt(brMatch[1], 10) || 1))
+    const m = String(parseInt(brMatch[2], 10)).padStart(2, '0')
+    const y = brMatch[3]
+    return { dueDay: day, monthRef: `${y}-${m}` }
+  }
+
+  // ISO Full Date: YYYY-MM-DD
+  const isoMatch = s.match(/^(\d{4})[-/.](\d{2})[-/.](\d{2})/)
+  if (isoMatch) {
+    const y = isoMatch[1]
+    const m = isoMatch[2]
+    const day = Math.min(31, Math.max(1, parseInt(isoMatch[3], 10) || 1))
+    return { dueDay: day, monthRef: `${y}-${m}` }
+  }
+
+  // Excel serial date
+  const num = parseFloat(s)
+  if (!isNaN(num) && num > 40000 && num < 60000) {
+    const d = new Date(Math.round((num - 25569) * 86400 * 1000))
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      return { dueDay: d.getDate(), monthRef: `${y}-${m}` }
+    }
+  }
+
+  return { dueDay: 1, monthRef: defaultMonthRef }
 }
 
 function parseCategory(raw: unknown, categoriesList: CategoryTheme[] = CATEGORIES): string {
@@ -134,6 +230,7 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
       const autoMap: Record<string, number> = {}
       const aliases: Record<string, string[]> = {
         due_date: ['vencimento', 'due_date', 'due date', 'data vencimento', 'data'],
+        month_ref: ['mes', 'mês', 'mes ref', 'mês ref', 'referencia', 'referência', 'month_ref', 'month ref', 'competencia', 'competência'],
         description: ['descricao', 'descrição', 'description', 'desc', 'nome'],
         amount: ['valor', 'amount', 'value', 'vlr'],
         category: ['categoria', 'category', 'cat'],
@@ -168,7 +265,16 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
   function buildPreview() {
     let idC = Date.now()
     const built: ParsedImportRow[] = rows.slice(0, 200).map((row) => {
-      const dueDay = parseDateField(mapping.due_date !== undefined ? row[mapping.due_date] : null, monthRef)
+      const { dueDay, monthRef: dateMonthRef } = parseDateField(mapping.due_date !== undefined ? row[mapping.due_date] : null, monthRef)
+      
+      let finalMonthRef = dateMonthRef
+      if (mapping.month_ref !== undefined) {
+        const explicitMonthRef = parseMonthRef(row[mapping.month_ref])
+        if (explicitMonthRef) {
+          finalMonthRef = explicitMonthRef
+        }
+      }
+
       const catKey = mapping['category'] ?? -1
       const category = catKey !== -1 ? parseCategory(row[catKey], categoriesList) : 'outros'
       const description = mapping.description !== undefined ? String(row[mapping.description] || '').trim() : '—'
@@ -178,11 +284,11 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
       const observation = mapping.observation !== undefined ? String(row[mapping.observation] || '').trim() : ''
 
       const formattedDay = String(dueDay).padStart(2, '0')
-      const dueDateIso = `${monthRef}-${formattedDay}`
+      const dueDateIso = `${finalMonthRef}-${formattedDay}`
 
       return {
         id: `imp-${idC++}`,
-        monthRef,
+        monthRef: finalMonthRef,
         dueDay,
         category,
         description,
@@ -192,13 +298,13 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
         observation,
         toNewExpense: (): NewExpense => ({
           due_date: dueDateIso,
-          category_id: null, // ser preenchido se houver ID de categoria
+          category_id: null,
           description,
           amount,
           payment_date: paymentDay || null,
           status,
           observation: observation || null,
-          month_ref: monthRef,
+          month_ref: finalMonthRef,
         }),
       }
     })
@@ -355,61 +461,86 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
           {/* STEP 3: Preview */}
           {step === 'preview' && (
             <div className="p-6">
-              <p className="text-sm mb-4" style={{ color: T.textMuted }}>
-                <strong>{preview.length}</strong> {preview.length === 1 ? 'registro' : 'registros'} prontos para importar no mês{' '}
-                <strong>{monthLabel(monthRef)}</strong>. Confira antes de confirmar:
-              </p>
-              <div className="overflow-x-auto rounded-xl border" style={{ borderColor: T.border }}>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr style={{ backgroundColor: `${T.border}60`, color: T.textFaint }}>
-                      {['Dia', 'Categoria', 'Descrição', 'Valor', 'Status'].map((h) => (
-                        <th key={h} className="px-3 py-2 text-left font-medium">
-                          {h}
-                        </th>
+              {(() => {
+                const monthCounts = preview.reduce((acc, row) => {
+                  acc[row.monthRef] = (acc[row.monthRef] || 0) + 1
+                  return acc
+                }, {} as Record<string, number>)
+                const monthRefsList = Object.keys(monthCounts).sort()
+
+                return (
+                  <>
+                    <p className="text-sm mb-3" style={{ color: T.textMuted }}>
+                      <strong>{preview.length}</strong> {preview.length === 1 ? 'registro pronto' : 'registros prontos'} para importar. Confira antes de confirmar:
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {monthRefsList.map((mRef) => (
+                        <span
+                          key={mRef}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium border"
+                          style={{ backgroundColor: `${T.accent}15`, borderColor: `${T.accent}30`, color: T.accent }}
+                        >
+                          {monthLabel(mRef)}: <strong>{monthCounts[mRef]}</strong> {monthCounts[mRef] === 1 ? 'registro' : 'registros'}
+                        </span>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.slice(0, 10).map((row, i) => {
-                      const cat = categoriesList.find((c) => c.id === row.category)
-                      const catColor = theme === 'dark' ? cat?.dark : cat?.light
-                      const isPago = row.status === 'pago'
-                      return (
-                        <tr key={i} style={{ borderTop: `1px solid ${T.borderSubtle}` }}>
-                          <td className="px-3 py-2 font-mono" style={{ color: T.textMuted }}>
-                            {String(row.dueDay).padStart(2, '0')}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${catColor || T.textFaint}20`, color: catColor || T.textFaint }}>
-                              {cat?.name || 'Outros'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2" style={{ color: T.textPrimary }}>
-                            {row.description}
-                          </td>
-                          <td className="px-3 py-2 font-mono" style={{ color: T.textPrimary }}>
-                            {formatBRL(row.amount)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span
-                              className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                              style={isPago ? { backgroundColor: `${T.success}1F`, color: T.successText } : { backgroundColor: `${T.warning}1F`, color: T.warning }}
-                            >
-                              {isPago ? 'Pago' : 'Pendente'}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {preview.length > 10 && (
-                <p className="text-xs mt-2 text-center" style={{ color: T.textFaint }}>
-                  + {preview.length - 10} registros não exibidos
-                </p>
-              )}
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border" style={{ borderColor: T.border }}>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ backgroundColor: `${T.border}60`, color: T.textFaint }}>
+                            {['Dia', 'Mês Ref', 'Categoria', 'Descrição', 'Valor', 'Status'].map((h) => (
+                              <th key={h} className="px-3 py-2 text-left font-medium">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preview.slice(0, 10).map((row, i) => {
+                            const cat = categoriesList.find((c) => c.id === row.category)
+                            const catColor = theme === 'dark' ? cat?.dark : cat?.light
+                            const isPago = row.status === 'pago'
+                            return (
+                              <tr key={i} style={{ borderTop: `1px solid ${T.borderSubtle}` }}>
+                                <td className="px-3 py-2 font-mono" style={{ color: T.textMuted }}>
+                                  {String(row.dueDay).padStart(2, '0')}
+                                </td>
+                                <td className="px-3 py-2 font-mono text-[11px]" style={{ color: T.textMuted }}>
+                                  {monthLabel(row.monthRef)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ backgroundColor: `${catColor || T.textFaint}20`, color: catColor || T.textFaint }}>
+                                    {cat?.name || 'Outros'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2" style={{ color: T.textPrimary }}>
+                                  {row.description}
+                                </td>
+                                <td className="px-3 py-2 font-mono" style={{ color: T.textPrimary }}>
+                                  {formatBRL(row.amount)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span
+                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                    style={isPago ? { backgroundColor: `${T.success}1F`, color: T.successText } : { backgroundColor: `${T.warning}1F`, color: T.warning }}
+                                  >
+                                    {isPago ? 'Pago' : 'Pendente'}
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {preview.length > 10 && (
+                      <p className="text-xs mt-2 text-center" style={{ color: T.textFaint }}>
+                        + {preview.length - 10} registros não exibidos
+                      </p>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
         </div>

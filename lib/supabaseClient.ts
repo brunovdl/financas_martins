@@ -37,16 +37,18 @@ export function dateToMonthRef(isoDate: string): string {
   return isoDate.slice(0, 7) // "2026-04-01" → "2026-04"
 }
 
+// Helper para lidar com tabelas do Supabase sem schema estático gerado
+const fromTable = (tableName: string) => (supabase as any).from(tableName)
+
 // ---------------------------------------------------------------------------
 // Categories
 // ---------------------------------------------------------------------------
 export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from('categories')
+  const { data, error } = await fromTable('categories')
     .select('*')
     .order('name')
   if (error) throw error
-  return (data ?? []).map((c) => ({
+  return (data ?? []).map((c: any) => ({
     ...c,
     color: c.color_hex || c.color || '#94A3B8',
   }))
@@ -60,16 +62,14 @@ export async function insertCategory(cat: NewCategory): Promise<Category> {
     icon: 'tag',
   }
 
-  const { data, error } = await supabase
-    .from('categories')
+  const { data, error } = await fromTable('categories')
     .insert(payload)
     .select()
     .single()
 
   if (error) {
     if (error.code === '23505' || error.message?.includes('duplicate')) {
-      const { data: existing, error: fetchErr } = await supabase
-        .from('categories')
+      const { data: existing, error: fetchErr } = await fromTable('categories')
         .update({ color_hex: cat.color })
         .eq('name', cat.name)
         .select()
@@ -87,8 +87,7 @@ export async function updateCategory(id: string, patch: Partial<NewCategory>): P
   if (patch.name) payload.name = patch.name
   if (patch.color) payload.color_hex = patch.color
 
-  const { data, error } = await supabase
-    .from('categories')
+  const { data, error } = await fromTable('categories')
     .update(payload)
     .eq('id', id)
     .select()
@@ -98,8 +97,7 @@ export async function updateCategory(id: string, patch: Partial<NewCategory>): P
 }
 
 export async function unlinkExpensesFromCategory(categoryId: string): Promise<void> {
-  const { error } = await supabase
-    .from('expenses')
+  const { error } = await fromTable('expenses')
     .update({ category_id: null })
     .eq('category_id', categoryId)
   if (error) console.warn('Erro ao desvincular despesas da categoria:', error)
@@ -107,8 +105,7 @@ export async function unlinkExpensesFromCategory(categoryId: string): Promise<vo
 
 export async function deleteCategory(id: string): Promise<void> {
   await unlinkExpensesFromCategory(id)
-  const { error } = await supabase
-    .from('categories')
+  const { error } = await fromTable('categories')
     .delete()
     .eq('id', id)
   if (error) throw error
@@ -119,8 +116,7 @@ export async function deleteCategory(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 export async function fetchExpenses(monthRef: string): Promise<Expense[]> {
   const monthDate = monthRefToDate(monthRef) // "2026-04-01"
-  const { data, error } = await supabase
-    .from('expenses')
+  const { data, error } = await fromTable('expenses')
     .select('*, category:categories(*)')
     .eq('month_ref', monthDate)
     .order('due_date', { ascending: true })
@@ -133,8 +129,7 @@ export async function insertExpense(expense: NewExpense): Promise<Expense> {
     ...expense,
     month_ref: monthRefToDate(expense.month_ref),
   }
-  const { data, error } = await supabase
-    .from('expenses')
+  const { data, error } = await fromTable('expenses')
     .insert(payload)
     .select('*, category:categories(*)')
     .single()
@@ -147,8 +142,7 @@ export async function updateExpense(id: string, patch: PatchExpense): Promise<Ex
   if (payload.month_ref) {
     payload.month_ref = monthRefToDate(payload.month_ref as string)
   }
-  const { data, error } = await supabase
-    .from('expenses')
+  const { data, error } = await fromTable('expenses')
     .update(payload)
     .eq('id', id)
     .select('*, category:categories(*)')
@@ -158,8 +152,7 @@ export async function updateExpense(id: string, patch: PatchExpense): Promise<Ex
 }
 
 export async function deleteExpense(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('expenses')
+  const { error } = await fromTable('expenses')
     .delete()
     .eq('id', id)
   if (error) throw error
@@ -170,8 +163,7 @@ export async function bulkInsertExpenses(expenses: NewExpense[]): Promise<Expens
     ...e,
     month_ref: monthRefToDate(e.month_ref),
   }))
-  const { data, error } = await supabase
-    .from('expenses')
+  const { data, error } = await fromTable('expenses')
     .insert(payload)
     .select('*, category:categories(*)')
   if (error) throw error

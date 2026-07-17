@@ -127,6 +127,8 @@ export default function GastosApp() {
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof UIExpense } | null>(null)
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
   // Persistir e carregar preferência de tema no localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
@@ -358,8 +360,8 @@ export default function GastosApp() {
         }
 
         await updateSupabaseExpense(item.dbId, patch)
-      } catch (e) {
-        console.error('Erro ao atualizar no Supabase:', e)
+      } catch (err) {
+        console.error('Erro ao atualizar no Supabase:', err)
       }
     }
   }
@@ -447,6 +449,14 @@ export default function GastosApp() {
   }
 
   const handleImportRows = async (parsedRows: ParsedImportRow[]) => {
+    if (parsedRows.length === 0) {
+      setShowImport(false)
+      return
+    }
+
+    const affectedMonths = Array.from(new Set(parsedRows.map((r) => r.monthRef))).sort()
+    const monthNamesFormatted = affectedMonths.map((m) => monthLabel(m)).join(', ')
+
     if (isSupabaseActive) {
       try {
         const payload = parsedRows.map((r) => {
@@ -477,13 +487,36 @@ export default function GastosApp() {
       setExpenses((prev) => [...localRows, ...prev])
     }
     setShowImport(false)
+
+    const msg = `${parsedRows.length} ${parsedRows.length === 1 ? 'despesa importada' : 'despesas importadas'} com sucesso em ${affectedMonths.length} ${affectedMonths.length === 1 ? 'mês' : 'meses'} (${monthNamesFormatted}).`
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 6000)
   }
 
   return (
     <div
-      className="min-h-screen p-4 md:p-10 transition-colors duration-300"
+      className="min-h-screen p-4 md:p-10 transition-colors duration-300 relative"
       style={{ background: T.pageBg, color: T.textPrimary, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className="fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-lg border flex items-center gap-3 animate-in fade-in slide-in-from-top-3 duration-300 max-w-md"
+          style={{ backgroundColor: T.surface, borderColor: `${T.accent}40`, color: T.textPrimary }}
+        >
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: T.accent }} />
+          <p className="text-xs font-medium leading-relaxed" style={{ color: T.textPrimary }}>
+            {toastMessage}
+          </p>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="p-1 text-xs rounded hover:opacity-80 ml-auto"
+            style={{ color: T.textFaint }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-8">
