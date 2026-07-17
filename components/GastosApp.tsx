@@ -17,7 +17,7 @@ import {
   Upload,
   Tag,
 } from 'lucide-react'
-import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
+import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, getCurrentMonthRef, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import { ProgressRing } from './ProgressRing'
 import { ImportModal, type ParsedImportRow } from './ImportModal'
 import { CategoriesModal } from './CategoriesModal'
@@ -85,7 +85,7 @@ const seedExpenses: UIExpense[] = [
 function mapSupabaseToUI(e: SupabaseExpense, categoriesList: CategoryTheme[]): UIExpense {
   const dateObj = new Date(e.due_date + 'T00:00:00')
   const dueDay = isNaN(dateObj.getDate()) ? 1 : dateObj.getDate()
-  const monthRef = e.month_ref ? e.month_ref.slice(0, 7) : '2026-04'
+  const monthRef = e.month_ref ? e.month_ref.slice(0, 7) : getCurrentMonthRef()
 
   let catId = 'outros'
   if (e.category?.name) {
@@ -121,7 +121,7 @@ export default function GastosApp() {
   const [categoriesList, setCategoriesList] = useState<CategoryTheme[]>(CATEGORIES)
   const [showCategoriesModal, setShowCategoriesModal] = useState<boolean>(false)
   const [isSupabaseActive, setIsSupabaseActive] = useState<boolean>(false)
-  const [monthRef, setMonthRef] = useState('2026-04')
+  const [monthRef, setMonthRef] = useState<string>(getCurrentMonthRef)
   const [search, setSearch] = useState('')
   const [onlyPending, setOnlyPending] = useState(false)
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof UIExpense } | null>(null)
