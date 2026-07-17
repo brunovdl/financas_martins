@@ -1,0 +1,31 @@
+# Dependências
+node_modules
+npm-debug.log*
+
+# Next.js build output
+.next
+out
+build
+
+# Arquivos de ambiente (nunca incluir no Docker)
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Dev/Editor
+.DS_Store
+*.pem
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+README.md
+AGENTS.md
+CLAUDE.md
+spec.md
+GastosApp.jsx
