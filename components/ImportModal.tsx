@@ -182,6 +182,9 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
   const [step, setStep] = useState<'upload' | 'map' | 'preview'>('upload')
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<unknown[][]>([])
+  const [sheetNames, setSheetNames] = useState<string[]>([])
+  const [selectedSheet, setSelectedSheet] = useState<string>('__all__')
+  const [sheetsData, setSheetsData] = useState<Record<string, { headers: string[]; rows: unknown[][] }>>({})
   const [mapping, setMapping] = useState<Record<string, number>>({})
   const [preview, setPreview] = useState<ParsedImportRow[]>([])
   const [error, setError] = useState('')
@@ -211,21 +214,45 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
     }
     try {
       const XLSX = (await loadSheetJS()) as {
-        read: (buf: ArrayBuffer, opts: { type: string }) => { Sheets: Record<string, unknown>; SheetNames: string[] }
+        read: (buf: ArrayBuffer, opts: { type: string; cellDates?: boolean }) => { Sheets: Record<string, unknown>; SheetNames: string[] }
         utils: { sheet_to_json: (ws: unknown, opts: { header: number; defval: string }) => unknown[][] }
       }
       const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-      if (data.length < 2) {
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true })
+      
+      const parsedSheets: Record<string, { headers: string[]; rows: unknown[][] }> = {}
+      let firstHeaders: string[] = []
+      let totalRowsCount = 0
+
+      for (const sName of wb.SheetNames) {
+        const ws = wb.Sheets[sName]
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as unknown[][]
+        if (data.length > 0) {
+          const hdrs = data[0].map((h) => String(h).trim())
+          const dataRows = data.slice(1).filter((r) => r.some((c) => c !== '' && c !== null && c !== undefined))
+          if (hdrs.length > 0 && dataRows.length > 0) {
+            parsedSheets[sName] = { headers: hdrs, rows: dataRows }
+            totalRowsCount += dataRows.length
+            if (firstHeaders.length === 0 && hdrs.some((h) => h !== '')) {
+              firstHeaders = hdrs
+            }
+          }
+        }
+      }
+
+      if (Object.keys(parsedSheets).length === 0 || totalRowsCount === 0) {
         setError('Arquivo vazio ou sem dados.')
         return
       }
-      const hdrs = data[0].map((h) => String(h).trim())
-      const dataRows = data.slice(1).filter((r) => r.some((c) => c !== ''))
-      setHeaders(hdrs)
-      setRows(dataRows)
+
+      setSheetNames(wb.SheetNames)
+      setSheetsData(parsedSheets)
+      setSelectedSheet('__all__')
+      setHeaders(firstHeaders)
+
+      const firstAvailableSheet = wb.SheetNames.find((s) => parsedSheets[s]?.rows.length > 0) || wb.SheetNames[0]
+      const sampleRows = parsedSheets[firstAvailableSheet]?.rows || []
+      setRows(sampleRows)
 
       const autoMap: Record<string, number> = {}
       const aliases: Record<string, string[]> = {
@@ -233,13 +260,13 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
         month_ref: ['mes', 'mês', 'mes ref', 'mês ref', 'referencia', 'referência', 'month_ref', 'month ref', 'competencia', 'competência'],
         description: ['descricao', 'descrição', 'description', 'desc', 'nome'],
         amount: ['valor', 'amount', 'value', 'vlr'],
-        category: ['categoria', 'category', 'cat'],
+        category: ['categoria', 'category', 'cat', 'empresa'],
         status: ['status', 'situacao', 'situação'],
         payment_date: ['pagamento', 'data pagamento', 'payment_date', 'payment date', 'pago em'],
         observation: ['observacao', 'observação', 'observation', 'obs', 'nota'],
       }
 
-      hdrs.forEach((h, i) => {
+      firstHeaders.forEach((h, i) => {
         const lower = h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         for (const [field, list] of Object.entries(aliases)) {
           if (list.some((a) => lower.includes(a))) {
@@ -264,50 +291,62 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
 
   function buildPreview() {
     let idC = Date.now()
-    const built: ParsedImportRow[] = rows.slice(0, 200).map((row) => {
-      const { dueDay, monthRef: dateMonthRef } = parseDateField(mapping.due_date !== undefined ? row[mapping.due_date] : null, monthRef)
-      
-      let finalMonthRef = dateMonthRef
-      if (mapping.month_ref !== undefined) {
-        const explicitMonthRef = parseMonthRef(row[mapping.month_ref])
-        if (explicitMonthRef) {
-          finalMonthRef = explicitMonthRef
+    const built: ParsedImportRow[] = []
+
+    const targetSheetNames = selectedSheet === '__all__' ? sheetNames : [selectedSheet]
+
+    for (const sName of targetSheetNames) {
+      const sInfo = sheetsData[sName]
+      if (!sInfo || !sInfo.rows || sInfo.rows.length === 0) continue
+
+      const sheetMonthRef = parseMonthRef(sName) || monthRef
+
+      for (const row of sInfo.rows) {
+        const { dueDay, monthRef: dateMonthRef } = parseDateField(mapping.due_date !== undefined ? row[mapping.due_date] : null, sheetMonthRef)
+        
+        let finalMonthRef = dateMonthRef
+        if (mapping.month_ref !== undefined) {
+          const explicitMonthRef = parseMonthRef(row[mapping.month_ref])
+          if (explicitMonthRef) {
+            finalMonthRef = explicitMonthRef
+          }
         }
-      }
 
-      const catKey = mapping['category'] ?? -1
-      const category = catKey !== -1 ? parseCategory(row[catKey], categoriesList) : 'outros'
-      const description = mapping.description !== undefined ? String(row[mapping.description] || '').trim() : '—'
-      const amount = parseAmount(mapping.amount !== undefined ? row[mapping.amount] : 0)
-      const paymentDay = mapping.payment_date !== undefined ? String(row[mapping.payment_date] || '').trim() : ''
-      const status = parseStatus(mapping.status !== undefined ? row[mapping.status] : '')
-      const observation = mapping.observation !== undefined ? String(row[mapping.observation] || '').trim() : ''
+        const catKey = mapping['category'] ?? -1
+        const category = catKey !== -1 ? parseCategory(row[catKey], categoriesList) : 'outros'
+        const description = mapping.description !== undefined ? String(row[mapping.description] || '').trim() : '—'
+        const amount = parseAmount(mapping.amount !== undefined ? row[mapping.amount] : 0)
+        const paymentDay = mapping.payment_date !== undefined ? String(row[mapping.payment_date] || '').trim() : ''
+        const status = parseStatus(mapping.status !== undefined ? row[mapping.status] : '')
+        const observation = mapping.observation !== undefined ? String(row[mapping.observation] || '').trim() : ''
 
-      const formattedDay = String(dueDay).padStart(2, '0')
-      const dueDateIso = `${finalMonthRef}-${formattedDay}`
+        const formattedDay = String(dueDay).padStart(2, '0')
+        const dueDateIso = `${finalMonthRef}-${formattedDay}`
 
-      return {
-        id: `imp-${idC++}`,
-        monthRef: finalMonthRef,
-        dueDay,
-        category,
-        description,
-        amount,
-        paymentDay,
-        status,
-        observation,
-        toNewExpense: (): NewExpense => ({
-          due_date: dueDateIso,
-          category_id: null,
+        built.push({
+          id: `imp-${idC++}`,
+          monthRef: finalMonthRef,
+          dueDay,
+          category,
           description,
           amount,
-          payment_date: paymentDay || null,
+          paymentDay,
           status,
-          observation: observation || null,
-          month_ref: finalMonthRef,
-        }),
+          observation,
+          toNewExpense: (): NewExpense => ({
+            due_date: dueDateIso,
+            category_id: null,
+            description,
+            amount,
+            payment_date: paymentDay || null,
+            status,
+            observation: observation || null,
+            month_ref: finalMonthRef,
+          }),
+        })
       }
-    })
+    }
+
     setPreview(built)
     setStep('preview')
   }
@@ -398,8 +437,47 @@ export function ImportModal({ T, theme, monthRef, categoriesList = CATEGORIES, o
           {/* STEP 2: Mapping */}
           {step === 'map' && (
             <div className="p-6">
+              {sheetNames.length > 1 && (
+                <div
+                  className="mb-5 p-3.5 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  style={{ backgroundColor: `${T.accent}0A`, borderColor: `${T.accent}30` }}
+                >
+                  <div>
+                    <span className="text-xs font-semibold" style={{ color: T.accent }}>
+                      Arquivo Multi-Abas ({sheetNames.length} abas encontradas)
+                    </span>
+                    <p className="text-[11px]" style={{ color: T.textMuted }}>
+                      Selecione quais abas importar. Por padrão, todas as abas serão combinadas e associadas aos seus respectivos meses.
+                    </p>
+                  </div>
+                  <select
+                    value={selectedSheet}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setSelectedSheet(val)
+                      if (val !== '__all__' && sheetsData[val]?.headers) {
+                        setHeaders(sheetsData[val].headers)
+                        setRows(sheetsData[val].rows)
+                      } else if (sheetNames[0] && sheetsData[sheetNames[0]]?.headers) {
+                        setHeaders(sheetsData[sheetNames[0]].headers)
+                        setRows(sheetsData[sheetNames[0]].rows)
+                      }
+                    }}
+                    className="text-xs border rounded-lg px-3 py-1.5 outline-none font-medium cursor-pointer"
+                    style={{ backgroundColor: T.surfaceSolid, borderColor: T.border, color: T.textPrimary }}
+                  >
+                    <option value="__all__">✨ Todas as abas ({sheetNames.length} meses)</option>
+                    {sheetNames.map((s) => (
+                      <option key={s} value={s}>
+                        Aba: {s} ({sheetsData[s]?.rows.length || 0} linhas)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <p className="text-sm mb-1" style={{ color: T.textMuted }}>
-                Arquivo carregado com <strong>{headers.length}</strong> colunas e <strong>{rows.length}</strong> linhas.
+                Aba visualizada: <strong>{selectedSheet === '__all__' ? 'Todas as abas' : selectedSheet}</strong> ({headers.length} colunas, {rows.length} linhas de amostra).
               </p>
               <p className="text-xs mb-5" style={{ color: T.textFaint }}>
                 Associe cada campo abaixo a uma coluna da sua planilha. Campos marcados com * são obrigatórios.
