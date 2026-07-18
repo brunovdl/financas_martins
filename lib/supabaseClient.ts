@@ -38,7 +38,8 @@ export function dateToMonthRef(isoDate: string): string {
 }
 
 // Helper para lidar com tabelas do Supabase sem schema estático gerado
-const fromTable = (tableName: string) => supabase.from(tableName as unknown as 'categories')
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+const fromTable = (tableName: string) => (supabase as any).from(tableName)
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -48,10 +49,11 @@ export async function fetchCategories(): Promise<Category[]> {
     .select('*')
     .order('name')
   if (error) throw error
-  return ((data ?? []) as Array<Record<string, unknown>>).map((c) => ({
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  return (data ?? []).map((c: any) => ({
     ...c,
-    color: String(c.color_hex || c.color || '#94A3B8'),
-  })) as unknown as Category[]
+    color: c.color_hex || c.color || '#94A3B8',
+  }))
 }
 
 export async function insertCategory(cat: NewCategory): Promise<Category> {
