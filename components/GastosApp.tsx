@@ -235,15 +235,22 @@ export default function GastosApp() {
 
       let currentCatsList = CATEGORIES
       if (cats && cats.length > 0) {
-        currentCatsList = cats
-          .map((c) => ({
-            id: c.name.toLowerCase().replace(/\s+/g, '-'),
-            name: c.name,
-            dark: c.color,
-            light: c.color,
-            dbId: c.id,
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+        const mapped = cats.map((c) => ({
+          id: c.name.toLowerCase().trim().replace(/\s+/g, '-'),
+          name: c.name,
+          dark: c.color,
+          light: c.color,
+          dbId: c.id,
+        }))
+        const seenIds = new Set<string>()
+        const uniqueCats: CategoryTheme[] = []
+        for (const cat of mapped) {
+          if (!seenIds.has(cat.id)) {
+            seenIds.add(cat.id)
+            uniqueCats.push(cat)
+          }
+        }
+        currentCatsList = uniqueCats.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
         setCategoriesList(currentCatsList)
       }
 
@@ -337,6 +344,17 @@ export default function GastosApp() {
     const qtdPendente = all.filter((e) => e.status === 'pendente').length
     return { totalDespesas, totalPendente, totalPago, pctPago, qtdPendente, qtdTotal: all.length }
   }, [expenses, monthRef])
+
+  const selectedTotals = useMemo(() => {
+    const selectedItems = expenses.filter((e) => selectedIds.includes(e.id))
+    const total = selectedItems.reduce((s, e) => s + e.amount, 0)
+    const totalPago = selectedItems.filter((e) => e.status === 'pago').reduce((s, e) => s + e.amount, 0)
+    const totalPendente = selectedItems.filter((e) => e.status === 'pendente').reduce((s, e) => s + e.amount, 0)
+    const countTotal = selectedItems.length
+    const countPago = selectedItems.filter((e) => e.status === 'pago').length
+    const countPendente = selectedItems.filter((e) => e.status === 'pendente').length
+    return { total, totalPago, totalPendente, countTotal, countPago, countPendente }
+  }, [expenses, selectedIds])
 
   const handleUpdateExpense = async (id: string, field: keyof UIExpense, value: unknown) => {
     setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)))
@@ -495,8 +513,13 @@ export default function GastosApp() {
 
   return (
     <div
-      className="min-h-screen p-4 md:p-10 transition-colors duration-300 relative"
-      style={{ background: T.pageBg, color: T.textPrimary, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}
+      className="min-h-screen p-4 md:p-10 transition-all duration-300 relative"
+      style={{
+        background: T.pageBg,
+        color: T.textPrimary,
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        paddingBottom: selectedIds.length > 0 ? '7.5rem' : undefined,
+      }}
     >
       {/* Toast Notification */}
       {toastMessage && (
@@ -780,8 +803,8 @@ export default function GastosApp() {
                           className="text-[11px] font-semibold rounded-full px-2.5 py-1 border-0 outline-none cursor-pointer appearance-none"
                           style={{ backgroundColor: `${catColor || T.textFaint}20`, color: catColor || T.textFaint }}
                         >
-                          {categoriesList.map((c) => (
-                            <option key={c.id} value={c.id} style={{ backgroundColor: T.surfaceSolid, color: T.textPrimary }}>
+                          {categoriesList.map((c, idx) => (
+                            <option key={c.dbId ? `${c.id}-${c.dbId}` : `${c.id}-${idx}`} value={c.id} style={{ backgroundColor: T.surfaceSolid, color: T.textPrimary }}>
                               {c.name}
                             </option>
                           ))}
@@ -906,6 +929,67 @@ export default function GastosApp() {
             : 'Modo demonstração (dados em memória) · clique em qualquer célula para editar'}
         </p>
       </div>
+
+      {/* Floating Selection Bar */}
+      {selectedIds.length > 0 && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 px-5 py-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-4 sm:gap-6 backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 max-w-[92vw] sm:max-w-2xl w-full"
+          style={{
+            backgroundColor: `${T.surface}EE`,
+            borderColor: `${T.accent}60`,
+            boxShadow: `0 16px 40px -8px rgba(0,0,0,0.35), 0 0 20px 0 ${T.accent}20`,
+          }}
+        >
+          {/* Lado esquerdo: Seleção e Soma Total */}
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <span className="text-[11px] uppercase tracking-wider font-semibold font-mono" style={{ color: T.accent }}>
+                {selectedTotals.countTotal} {selectedTotals.countTotal === 1 ? 'item selecionado' : 'itens selecionados'}
+              </span>
+              <span className="font-mono text-lg font-bold" style={{ color: T.textPrimary }}>
+                {formatBRL(selectedTotals.total)}
+              </span>
+            </div>
+
+            {/* Divisora vertical */}
+            <div className="h-8 w-px hidden sm:block" style={{ backgroundColor: T.border }} />
+
+            {/* Sub-totais: Pago e Pendente */}
+            <div className="hidden sm:flex items-center gap-3 text-xs">
+              {selectedTotals.countPago > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono" style={{ borderColor: T.successBorder, backgroundColor: T.successBg, color: T.successText }}>
+                  <CircleCheck size={13} />
+                  <span>Pago: <strong>{formatBRL(selectedTotals.totalPago)}</strong> ({selectedTotals.countPago})</span>
+                </div>
+              )}
+              {selectedTotals.countPendente > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono" style={{ borderColor: T.warningBorder, backgroundColor: T.warningBg, color: T.warning }}>
+                  <CircleDashed size={13} />
+                  <span>Pendente: <strong>{formatBRL(selectedTotals.totalPendente)}</strong> ({selectedTotals.countPendente})</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Lado direito: Ações */}
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 rounded-xl text-xs font-medium border transition-all hover:opacity-80 active:scale-95 cursor-pointer"
+              style={{ backgroundColor: 'transparent', borderColor: T.border, color: T.textMuted }}
+            >
+              Desmarcar todos
+            </button>
+            <button
+              onClick={removeSelectedExpenses}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              style={{ backgroundColor: `${T.danger}20`, borderColor: `${T.danger}66`, color: T.danger }}
+            >
+              <Trash2 size={13} strokeWidth={2} /> Excluir ({selectedIds.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Categories Modal */}
       {showCategoriesModal && (

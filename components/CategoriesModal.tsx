@@ -240,15 +240,16 @@ export function CategoriesModal({
             </div>
 
             <div className="space-y-1.5">
-              {categories.map((cat) => {
+              {categories.map((cat, idx) => {
                 const color = cat.dark || cat.light || COLOR_PALETTE[0]
                 const isEditing = editingId === cat.id
                 const isConfirmingDelete = deletingId === cat.id
+                const catKey = cat.dbId ? `${cat.id}-${cat.dbId}` : `${cat.id}-${idx}`
 
                 if (isEditing) {
                   return (
                     <div
-                      key={cat.id}
+                      key={catKey}
                       className="p-3 rounded-xl border space-y-3"
                       style={{ backgroundColor: T.surface, borderColor: T.accent }}
                     >
@@ -311,7 +312,7 @@ export function CategoriesModal({
                 if (isConfirmingDelete) {
                   return (
                     <div
-                      key={cat.id}
+                      key={catKey}
                       className="p-3 rounded-xl border flex items-center justify-between gap-3 text-xs"
                       style={{
                         backgroundColor: `${T.danger}10`,
@@ -344,7 +345,7 @@ export function CategoriesModal({
 
                 return (
                   <div
-                    key={cat.id}
+                    key={catKey}
                     className="flex items-center justify-between p-3 rounded-xl border transition-colors group"
                     style={{
                       backgroundColor: T.surface,
