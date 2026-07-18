@@ -16,11 +16,13 @@ import {
   Moon,
   Upload,
   Tag,
+  Copy,
 } from 'lucide-react'
 import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, getCurrentMonthRef, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import { ProgressRing } from './ProgressRing'
 import { ImportModal, type ParsedImportRow } from './ImportModal'
 import { CategoriesModal } from './CategoriesModal'
+import { CloneMonthModal } from './CloneMonthModal'
 import {
   fetchExpenses as fetchSupabaseExpenses,
   insertExpense as insertSupabaseExpense,
@@ -165,6 +167,7 @@ export default function GastosApp() {
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof UIExpense } | null>(null)
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [showCloneModal, setShowCloneModal] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const handleToggleTheme = () => {
@@ -576,6 +579,72 @@ export default function GastosApp() {
     setTimeout(() => setToastMessage(null), 6000)
   }
 
+  const handleCloneMonth = async (fromMonth: string, toMonth: string) => {
+    const sourceExpenses = expenses.filter((e) => e.monthRef === fromMonth)
+    if (sourceExpenses.length === 0) return
+
+    if (isSupabaseActive) {
+      try {
+        const payloadList = sourceExpenses.map((e) => {
+          const catObj = categoriesList.find((c) => c.id === e.category)
+          const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase()) || (catObj?.dbId ? { id: catObj.dbId } : undefined)
+          return {
+            month_ref: `${toMonth}-01`,
+            due_date: `${toMonth}-${String(e.dueDay).padStart(2, '0')}`,
+            category_id: dbCat ? dbCat.id : null,
+            description: e.description,
+            amount: e.amount,
+            payment_date: null,
+            status: 'pendente' as const,
+            observation: e.observation || null,
+          }
+        })
+
+        const createdList = await bulkInsertSupabaseExpenses(payloadList)
+        if (createdList && createdList.length > 0) {
+          const mapped = createdList.map((item) => mapSupabaseToUI(item, categoriesList))
+          setExpenses((prev) => [...mapped, ...prev])
+        } else {
+          const localCloned: UIExpense[] = sourceExpenses.map((e) => ({
+            ...e,
+            id: nextId(),
+            dbId: undefined,
+            monthRef: toMonth,
+            status: 'pendente',
+            paymentDay: '',
+          }))
+          setExpenses((prev) => [...localCloned, ...prev])
+        }
+      } catch (err) {
+        console.error('Erro ao clonar despesas no Supabase:', err)
+        const localCloned: UIExpense[] = sourceExpenses.map((e) => ({
+          ...e,
+          id: nextId(),
+          dbId: undefined,
+          monthRef: toMonth,
+          status: 'pendente',
+          paymentDay: '',
+        }))
+        setExpenses((prev) => [...localCloned, ...prev])
+      }
+    } else {
+      const localCloned: UIExpense[] = sourceExpenses.map((e) => ({
+        ...e,
+        id: nextId(),
+        dbId: undefined,
+        monthRef: toMonth,
+        status: 'pendente',
+        paymentDay: '',
+      }))
+      setExpenses((prev) => [...localCloned, ...prev])
+    }
+
+    setMonthRef(toMonth)
+    const msg = `${sourceExpenses.length} ${sourceExpenses.length === 1 ? 'despesa clonada' : 'despesas clonadas'} com sucesso para ${monthLabel(toMonth)}.`
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 6000)
+  }
+
   return (
     <div
       className="min-h-screen p-4 md:p-10 transition-all duration-300 relative"
@@ -638,31 +707,42 @@ export default function GastosApp() {
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
-            {/* Seletor de mês */}
-            <div
-              className="flex items-center gap-1 backdrop-blur border rounded-full px-1.5 py-1.5"
-              style={{ backgroundColor: T.surface, borderColor: T.border }}
-            >
-              <button
-                onClick={() => setMonthRef((m) => shiftMonth(m, -1))}
-                className="p-2 rounded-full active:scale-95 transition-all"
-                style={{ color: T.textPrimary }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = T.rowHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                aria-label="Mês anterior"
+            {/* Seletor de mês com botão de clonar */}
+            <div className="flex items-center gap-1.5">
+              <div
+                className="flex items-center gap-1 backdrop-blur border rounded-full px-1.5 py-1.5"
+                style={{ backgroundColor: T.surface, borderColor: T.border }}
               >
-                <ChevronLeft size={16} />
-              </button>
-              <div className="w-40 text-center font-display text-sm font-medium">{monthLabel(monthRef)}</div>
+                <button
+                  onClick={() => setMonthRef((m) => shiftMonth(m, -1))}
+                  className="p-2 rounded-full active:scale-95 transition-all cursor-pointer"
+                  style={{ color: T.textPrimary }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = T.rowHover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  aria-label="Mês anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div className="w-40 text-center font-display text-sm font-medium">{monthLabel(monthRef)}</div>
+                <button
+                  onClick={() => setMonthRef((m) => shiftMonth(m, 1))}
+                  className="p-2 rounded-full active:scale-95 transition-all cursor-pointer"
+                  style={{ color: T.textPrimary }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = T.rowHover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  aria-label="Próximo mês"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
               <button
-                onClick={() => setMonthRef((m) => shiftMonth(m, 1))}
-                className="p-2 rounded-full active:scale-95 transition-all"
-                style={{ color: T.textPrimary }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = T.rowHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                aria-label="Próximo mês"
+                onClick={() => setShowCloneModal(true)}
+                className="p-2.5 rounded-full border transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                style={{ backgroundColor: `${T.surface}`, borderColor: T.border, color: T.textPrimary }}
+                aria-label="Clonar despesas deste mês"
+                title="Clonar despesas de um mês para outro"
               >
-                <ChevronRight size={16} />
+                <Copy size={16} />
               </button>
             </div>
           </div>
@@ -1082,6 +1162,17 @@ export default function GastosApp() {
           categoriesList={categoriesList}
           onClose={() => setShowImport(false)}
           onImport={handleImportRows}
+        />
+      )}
+
+      {/* Clone Month Modal */}
+      {showCloneModal && (
+        <CloneMonthModal
+          T={T}
+          currentMonthRef={monthRef}
+          allExpenses={expenses}
+          onClose={() => setShowCloneModal(false)}
+          onClone={handleCloneMonth}
         />
       )}
     </div>
