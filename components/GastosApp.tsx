@@ -53,6 +53,38 @@ export interface UIExpense {
 let idCounter = 1000
 const nextId = () => `exp-${idCounter++}`
 
+const MONTH_ABBRS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+export function getTodayPaymentDay(): string {
+  const d = new Date()
+  const day = d.getDate()
+  const monthAbbr = MONTH_ABBRS[d.getMonth()]
+  return `${day}.${monthAbbr}`
+}
+
+export function getTodayIsoDate(): string {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function formatPaymentDateToUI(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      const day = parseInt(parts[2], 10)
+      const month = parseInt(parts[1], 10)
+      if (!isNaN(day) && !isNaN(month) && month >= 1 && month <= 12) {
+        return `${day}.${MONTH_ABBRS[month - 1]}`
+      }
+    }
+  }
+  return dateStr
+}
+
 const seedExpenses: UIExpense[] = [
   { id: nextId(), monthRef: '2026-04', dueDay: 5, category: 'outros', description: 'Empréstimo Rato (niver Miguel)', amount: 4350.00, paymentDay: '2.abr', status: 'pago', observation: '' },
   { id: nextId(), monthRef: '2026-04', dueDay: 6, category: 'daae', description: 'Água 03.2026 Araraquara', amount: 82.44, paymentDay: '2.abr', status: 'pago', observation: 'Matrícula: 1200534 Link: DAAE' },
@@ -106,7 +138,7 @@ function mapSupabaseToUI(e: SupabaseExpense, categoriesList: CategoryTheme[]): U
     category: catId,
     description: e.description || '',
     amount: typeof e.amount === 'number' ? e.amount : parseFloat(String(e.amount)) || 0,
-    paymentDay: e.payment_date || '',
+    paymentDay: formatPaymentDateToUI(e.payment_date),
     status: e.status,
     observation: e.observation || '',
   }
@@ -368,7 +400,18 @@ export default function GastosApp() {
           patch.due_date = `${monthRef}-${String(dayNum).padStart(2, '0')}`
         } else if (field === 'description') patch.description = value
         else if (field === 'amount') patch.amount = value
-        else if (field === 'paymentDay') patch.payment_date = value || null
+        else if (field === 'paymentDay') {
+          let patchVal: string | null = null
+          if (typeof value === 'string' && value.trim()) {
+            const val = value.trim()
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+              patchVal = val
+            } else {
+              patchVal = getTodayIsoDate()
+            }
+          }
+          patch.payment_date = patchVal
+        }
         else if (field === 'status') patch.status = value
         else if (field === 'observation') patch.observation = value || null
         else if (field === 'category') {
@@ -384,11 +427,27 @@ export default function GastosApp() {
     }
   }
 
-  const toggleStatus = (id: string) => {
+  const toggleStatus = async (id: string) => {
     const item = expenses.find((e) => e.id === id)
     if (!item) return
     const nextStatus = item.status === 'pago' ? 'pendente' : 'pago'
-    handleUpdateExpense(id, 'status', nextStatus)
+
+    if (nextStatus === 'pago') {
+      const todayPaymentDay = getTodayPaymentDay()
+      const todayIsoDate = getTodayIsoDate()
+      setExpenses((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status: 'pago', paymentDay: todayPaymentDay } : e))
+      )
+      if (isSupabaseActive && item.dbId) {
+        try {
+          await updateSupabaseExpense(item.dbId, { status: 'pago', payment_date: todayIsoDate })
+        } catch (err) {
+          console.error('Erro ao atualizar no Supabase:', err)
+        }
+      }
+    } else {
+      handleUpdateExpense(id, 'status', nextStatus)
+    }
   }
 
   const removeExpense = async (id: string) => {
