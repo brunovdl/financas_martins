@@ -145,7 +145,13 @@ function mapSupabaseToUI(e: SupabaseExpense, categoriesList: CategoryTheme[]): U
 }
 
 export default function GastosApp() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
+      if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme
+    }
+    return 'dark'
+  })
   const T: ThemeTokens = THEMES[theme]
 
   const [expenses, setExpenses] = useState<UIExpense[]>(seedExpenses)
@@ -160,14 +166,6 @@ export default function GastosApp() {
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  // Persistir e carregar preferência de tema no localStorage
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('mai_finance_theme') as 'dark' | 'light' | null
-    if (savedTheme === 'dark' || savedTheme === 'light') {
-      setTheme(savedTheme)
-    }
-  }, [])
 
   const handleToggleTheme = () => {
     setTheme((t) => {
@@ -302,7 +300,15 @@ export default function GastosApp() {
   }, [monthRef])
 
   useEffect(() => {
-    loadSupabaseData()
+    let active = true
+    Promise.resolve().then(() => {
+      if (active) {
+        loadSupabaseData()
+      }
+    })
+    return () => {
+      active = false
+    }
   }, [loadSupabaseData])
 
   // Inscrever no Supabase Realtime se ativo
