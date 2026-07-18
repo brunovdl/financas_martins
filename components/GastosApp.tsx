@@ -18,7 +18,7 @@ import {
   Tag,
   Copy,
 } from 'lucide-react'
-import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, getCurrentMonthRef, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
+import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, getCurrentMonthRef, getMaxDaysInMonth, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import { ProgressRing } from './ProgressRing'
 import { ImportModal, type ParsedImportRow } from './ImportModal'
 import { CategoriesModal } from './CategoriesModal'
@@ -580,18 +580,34 @@ export default function GastosApp() {
   }
 
   const handleCloneMonth = async (fromMonth: string, toMonth: string) => {
-    const sourceExpenses = expenses.filter((e) => e.monthRef === fromMonth)
+    let sourceExpenses = expenses.filter((e) => e.monthRef === fromMonth)
+
+    if (isSupabaseActive) {
+      try {
+        const dbSource = await fetchSupabaseExpenses(fromMonth)
+        if (dbSource && dbSource.length > 0) {
+          sourceExpenses = dbSource.map((e) => mapSupabaseToUI(e, categoriesList))
+        }
+      } catch (err) {
+        console.error('Erro ao carregar despesas do mês de origem do Supabase:', err)
+      }
+    }
+
     if (sourceExpenses.length === 0) return
+
+    const maxDaysInTargetMonth = getMaxDaysInMonth(toMonth)
 
     if (isSupabaseActive) {
       try {
         const payloadList = sourceExpenses.map((e) => {
           const catObj = categoriesList.find((c) => c.id === e.category)
           const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase()) || (catObj?.dbId ? { id: catObj.dbId } : undefined)
+          const validDueDay = Math.min(e.dueDay || 1, maxDaysInTargetMonth)
+
           return {
-            month_ref: `${toMonth}-01`,
-            due_date: `${toMonth}-${String(e.dueDay).padStart(2, '0')}`,
-            category_id: dbCat ? dbCat.id : null,
+            month_ref: toMonth,
+            due_date: `${toMonth}-${String(validDueDay).padStart(2, '0')}`,
+            category_id: dbCat ? dbCat.id : (catObj?.dbId || null),
             description: e.description,
             amount: e.amount,
             payment_date: null,
@@ -610,6 +626,7 @@ export default function GastosApp() {
             id: nextId(),
             dbId: undefined,
             monthRef: toMonth,
+            dueDay: Math.min(e.dueDay || 1, maxDaysInTargetMonth),
             status: 'pendente',
             paymentDay: '',
           }))
@@ -622,6 +639,7 @@ export default function GastosApp() {
           id: nextId(),
           dbId: undefined,
           monthRef: toMonth,
+          dueDay: Math.min(e.dueDay || 1, maxDaysInTargetMonth),
           status: 'pendente',
           paymentDay: '',
         }))
@@ -633,6 +651,7 @@ export default function GastosApp() {
         id: nextId(),
         dbId: undefined,
         monthRef: toMonth,
+        dueDay: Math.min(e.dueDay || 1, maxDaysInTargetMonth),
         status: 'pendente',
         paymentDay: '',
       }))

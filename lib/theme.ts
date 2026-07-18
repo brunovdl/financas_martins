@@ -129,3 +129,8 @@ export function getCurrentMonthRef(): string {
   const month = String(d.getMonth() + 1).padStart(2, '0')
   return `${year}-${month}`
 }
+
+export function getMaxDaysInMonth(monthRef: string): number {
+  const [y, m] = monthRef.split('-').map(Number)
+  return new Date(y, m, 0).getDate()
+}
