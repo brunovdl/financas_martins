@@ -78,10 +78,78 @@ GROUP BY month_ref
 ORDER BY month_ref DESC;
 
 -- -------------------------------------------------------------
+-- backups
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.backups (
+  id               uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  type             text          NOT NULL DEFAULT 'automatico', -- 'automatico' | 'manual'
+  categories_count integer       NOT NULL DEFAULT 0,
+  expenses_count   integer       NOT NULL DEFAULT 0,
+  total_amount     numeric(12,2) NOT NULL DEFAULT 0,
+  data             jsonb         NOT NULL, -- snapshot completo de categorias e despesas
+  created_at       timestamptz   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_backups_created_at ON public.backups(created_at DESC);
+ALTER TABLE public.backups DISABLE ROW LEVEL SECURITY;
+
+-- Stored Function para gerar backup no servidor com retenção dos 3 últimos
+CREATE OR REPLACE FUNCTION public.create_backup(backup_type text DEFAULT 'automatico')
+RETURNS uuid LANGUAGE plpgsql AS $$
+DECLARE
+  v_backup_id uuid;
+  v_cats jsonb;
+  v_exps jsonb;
+  v_cats_cnt int;
+  v_exps_cnt int;
+  v_total numeric(12,2);
+BEGIN
+  SELECT jsonb_agg(to_jsonb(c)), count(*) INTO v_cats, v_cats_cnt FROM public.categories c;
+  SELECT jsonb_agg(to_jsonb(e)), count(*), COALESCE(sum(amount), 0) INTO v_exps, v_exps_cnt, v_total FROM public.expenses e;
+
+  INSERT INTO public.backups (type, categories_count, expenses_count, total_amount, data)
+  VALUES (
+    backup_type,
+    COALESCE(v_cats_cnt, 0),
+    COALESCE(v_exps_cnt, 0),
+    COALESCE(v_total, 0),
+    jsonb_build_object(
+      'categories', COALESCE(v_cats, '[]'::jsonb),
+      'expenses', COALESCE(v_exps, '[]'::jsonb)
+    )
+  )
+  RETURNING id INTO v_backup_id;
+
+  -- Retenção: apagar backups excedentes mantendo apenas os 3 mais recentes
+  DELETE FROM public.backups
+  WHERE id NOT IN (
+    SELECT id FROM public.backups
+    ORDER BY created_at DESC
+    LIMIT 3
+  );
+
+  RETURN v_backup_id;
+END;
+$$;
+
+-- Agendamento pg_cron (Executa todo dia 1 e 15 de cada mês à meia-noite)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.schedule(
+      'auto-backup-biweekly',
+      '0 0 1,15 * *',
+      $$ SELECT public.create_backup('automatico'); $$
+    );
+  END IF;
+END $$;
+
+-- -------------------------------------------------------------
 -- RLS - Para habilitar em producao, executar:
 -- -------------------------------------------------------------
 -- ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE public.expenses   ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.backups    ENABLE ROW LEVEL SECURITY;
 --
 -- CREATE POLICY "authenticated full access on categories"
 --   ON public.categories FOR ALL
@@ -89,4 +157,8 @@ ORDER BY month_ref DESC;
 --
 -- CREATE POLICY "authenticated full access on expenses"
 --   ON public.expenses FOR ALL
+--   TO authenticated USING (true) WITH CHECK (true);
+--
+-- CREATE POLICY "authenticated full access on backups"
+--   ON public.backups FOR ALL
 --   TO authenticated USING (true) WITH CHECK (true);

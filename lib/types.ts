@@ -36,3 +36,16 @@ export type NewExpense = Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'cat
 export type PatchExpense = Partial<Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'category'>>
 
 export type NewCategory = Pick<Category, 'name' | 'color'>
+
+export interface BackupRecord {
+  id: string
+  type: 'automatico' | 'manual'
+  categories_count: number
+  expenses_count: number
+  total_amount: number
+  data: {
+    categories: Category[]
+    expenses: Expense[]
+  }
+  created_at: string
+}

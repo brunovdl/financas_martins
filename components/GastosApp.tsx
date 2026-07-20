@@ -17,12 +17,15 @@ import {
   Upload,
   Tag,
   Copy,
+  Bell,
+  Database,
 } from 'lucide-react'
 import { CATEGORIES, THEMES, formatBRL, monthLabel, shiftMonth, getCurrentMonthRef, getMaxDaysInMonth, type ThemeTokens, type CategoryTheme } from '@/lib/theme'
 import { ProgressRing } from './ProgressRing'
 import { ImportModal, type ParsedImportRow } from './ImportModal'
 import { CategoriesModal } from './CategoriesModal'
 import { CloneMonthModal } from './CloneMonthModal'
+import { BackupModal } from './BackupModal'
 import {
   fetchExpenses as fetchSupabaseExpenses,
   insertExpense as insertSupabaseExpense,
@@ -34,6 +37,7 @@ import {
   insertCategory as insertSupabaseCategory,
   updateCategory as updateSupabaseCategory,
   deleteCategory as deleteSupabaseCategory,
+  ensureBiweeklyBackup,
 } from '@/lib/supabaseClient'
 import type { Expense as SupabaseExpense, Category as SupabaseCategory } from '@/lib/types'
 
@@ -168,6 +172,8 @@ export default function GastosApp() {
   const [draft, setDraft] = useState('')
   const [showImport, setShowImport] = useState(false)
   const [showCloneModal, setShowCloneModal] = useState(false)
+  const [showPrevMonthPanel, setShowPrevMonthPanel] = useState(false)
+  const [showBackupModal, setShowBackupModal] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const handleToggleTheme = () => {
@@ -287,19 +293,29 @@ export default function GastosApp() {
         setCategoriesList(currentCatsList)
       }
 
-      const dbExps = await fetchSupabaseExpenses(monthRef)
+      const prevRef = shiftMonth(monthRef, -1)
+      const [dbExps, prevDbExps] = await Promise.all([
+        fetchSupabaseExpenses(monthRef),
+        fetchSupabaseExpenses(prevRef).catch(() => []),
+      ])
+
       if (dbExps) {
         setIsSupabaseActive(true)
-        const mapped = dbExps.map((e) => mapSupabaseToUI(e, currentCatsList))
+        const mappedCurrent = dbExps.map((e) => mapSupabaseToUI(e, currentCatsList))
+        const mappedPrev = (prevDbExps || []).map((e) => mapSupabaseToUI(e, currentCatsList))
         setExpenses((prev) => {
-          const otherMonths = prev.filter((item) => item.monthRef !== monthRef)
-          return [...otherMonths, ...mapped]
+          const filtered = prev.filter((item) => item.monthRef !== monthRef && item.monthRef !== prevRef)
+          return [...filtered, ...mappedCurrent, ...mappedPrev]
         })
       }
     } catch (e) {
       console.warn('Operando com dados locais (Supabase indisponível ou sem credenciais)', e)
       setIsSupabaseActive(false)
     }
+  }, [monthRef])
+
+  useEffect(() => {
+    setShowPrevMonthPanel(false)
   }, [monthRef])
 
   useEffect(() => {
@@ -317,6 +333,7 @@ export default function GastosApp() {
   // Inscrever no Supabase Realtime se ativo
   useEffect(() => {
     if (!isSupabaseActive) return
+    ensureBiweeklyBackup().catch(() => {})
     const unsubscribe = subscribeToExpenses(monthRef, () => {
       loadSupabaseData()
     })
@@ -375,6 +392,18 @@ export default function GastosApp() {
       }
     }
   }
+
+  const prevMonthRef = useMemo(() => shiftMonth(monthRef, -1), [monthRef])
+
+  const prevMonthPendingExpenses = useMemo(() => {
+    return expenses
+      .filter((e) => e.monthRef === prevMonthRef && e.status === 'pendente')
+      .sort((a, b) => a.dueDay - b.dueDay)
+  }, [expenses, prevMonthRef])
+
+  const prevMonthPendingTotal = useMemo(() => {
+    return prevMonthPendingExpenses.reduce((s, e) => s + e.amount, 0)
+  }, [prevMonthPendingExpenses])
 
   const totals = useMemo(() => {
     const all = expenses.filter((e) => e.monthRef === monthRef)
@@ -686,11 +715,101 @@ export default function GastosApp() {
           </p>
           <button
             onClick={() => setToastMessage(null)}
-            className="p-1 text-xs rounded hover:opacity-80 ml-auto"
+            className="p-1 text-xs rounded hover:opacity-80 ml-auto cursor-pointer"
             style={{ color: T.textFaint }}
           >
             <X size={14} />
           </button>
+        </div>
+      )}
+
+      {/* Painel Notificação Mês Anterior */}
+      {showPrevMonthPanel && prevMonthPendingExpenses.length > 0 && (
+        <div
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl rounded-2xl border shadow-2xl backdrop-blur-xl p-5 transition-all duration-300 animate-in fade-in slide-in-from-top-4"
+          style={{
+            backgroundColor: T.surface,
+            borderColor: `${T.warning}55`,
+            boxShadow: `0 20px 40px -12px rgba(0,0,0,0.5), 0 0 0 1px ${T.warning}22`,
+          }}
+        >
+          <div className="flex items-center justify-between border-b pb-3 mb-3.5" style={{ borderColor: T.border }}>
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold font-mono"
+                style={{ backgroundColor: `${T.warning}20`, color: T.warning, border: `1px solid ${T.warning}40` }}
+              >
+                !
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold tracking-tight" style={{ color: T.textPrimary }}>
+                  Despesas pendentes de {monthLabel(prevMonthRef)}
+                </h3>
+                <p className="text-[11px]" style={{ color: T.textFaint }}>
+                  {prevMonthPendingExpenses.length} {prevMonthPendingExpenses.length === 1 ? 'pendência' : 'pendências'} • Total em aberto: <span className="font-mono font-medium" style={{ color: T.warning }}>{formatBRL(prevMonthPendingTotal)}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPrevMonthPanel(false)}
+              className="p-1.5 rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+              style={{ color: T.textFaint }}
+              aria-label="Fechar notificação"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Lista das despesas pendentes do mês anterior */}
+          <div className="max-h-48 overflow-y-auto space-y-2 pr-1 mb-4">
+            {prevMonthPendingExpenses.map((exp) => {
+              const catObj = categoriesList.find((c) => c.id === exp.category)
+              const catColor = catObj ? (theme === 'dark' ? catObj.dark : catObj.light) : T.textFaint
+              return (
+                <div
+                  key={exp.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl border transition-colors text-xs"
+                  style={{ backgroundColor: T.rowHover, borderColor: T.border }}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: catColor }}
+                    />
+                    <div className="truncate">
+                      <p className="font-medium truncate" style={{ color: T.textPrimary }}>
+                        {exp.description}
+                      </p>
+                      <p className="text-[10px]" style={{ color: T.textFaint }}>
+                        Vencimento: Dia {exp.dueDay} • {catObj?.name || 'Outros'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-mono font-semibold flex-shrink-0 ml-3" style={{ color: T.warning }}>
+                    {formatBRL(exp.amount)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Botão de ação */}
+          <div className="flex items-center justify-end pt-2 border-t" style={{ borderColor: T.border }}>
+            <button
+              onClick={() => {
+                setMonthRef(prevMonthRef)
+                setShowPrevMonthPanel(false)
+              }}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-md"
+              style={{
+                backgroundColor: T.warning,
+                color: '#000000',
+              }}
+            >
+              <span>Ver despesas de {monthLabel(prevMonthRef)}</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       )}
       <div className="max-w-6xl mx-auto">
@@ -718,12 +837,54 @@ export default function GastosApp() {
             {/* Toggle de tema */}
             <button
               onClick={handleToggleTheme}
-              className="p-2.5 rounded-full border transition-all active:scale-95"
+              className="p-2.5 rounded-full border transition-all active:scale-95 cursor-pointer"
               style={{ backgroundColor: `${T.surface}`, borderColor: T.border, color: T.textPrimary }}
               aria-label="Alternar tema"
               title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            {/* Ícone de notificação de pendências do mês anterior */}
+            <button
+              onClick={() => setShowPrevMonthPanel((v) => !v)}
+              className="p-2.5 rounded-full border transition-all active:scale-95 flex items-center justify-center cursor-pointer relative"
+              style={{
+                backgroundColor: `${T.surface}`,
+                borderColor: prevMonthPendingExpenses.length > 0 ? `${T.warning}88` : T.border,
+                color: prevMonthPendingExpenses.length > 0 ? T.warning : T.textMuted,
+              }}
+              aria-label="Despesas pendentes do mês anterior"
+              title={
+                prevMonthPendingExpenses.length > 0
+                  ? `${prevMonthPendingExpenses.length} ${prevMonthPendingExpenses.length === 1 ? 'despesa pendente' : 'despesas pendentes'} em ${monthLabel(prevMonthRef)}`
+                  : `Nenhuma pendência em ${monthLabel(prevMonthRef)}`
+              }
+            >
+              <Bell size={16} />
+              {prevMonthPendingExpenses.length > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold font-mono flex items-center justify-center border shadow-sm"
+                  style={{
+                    backgroundColor: T.warning,
+                    color: '#000000',
+                    borderColor: T.surface,
+                  }}
+                >
+                  {prevMonthPendingExpenses.length}
+                </span>
+              )}
+            </button>
+
+            {/* Ícone de Backups & Restauração */}
+            <button
+              onClick={() => setShowBackupModal(true)}
+              className="p-2.5 rounded-full border transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+              style={{ backgroundColor: `${T.surface}`, borderColor: T.border, color: T.textPrimary }}
+              aria-label="Backups e Restauração"
+              title="Gerenciar backups e restauração de dados"
+            >
+              <Database size={16} />
             </button>
 
             {/* Seletor de mês com botão de clonar */}
@@ -1192,6 +1353,19 @@ export default function GastosApp() {
           allExpenses={expenses}
           onClose={() => setShowCloneModal(false)}
           onClone={handleCloneMonth}
+        />
+      )}
+
+      {showBackupModal && (
+        <BackupModal
+          T={T}
+          onClose={() => setShowBackupModal(false)}
+          onRestored={async () => {
+            await loadSupabaseData()
+            const msg = 'Dados do banco de dados restaurados com sucesso!'
+            setToastMessage(msg)
+            setTimeout(() => setToastMessage(null), 6000)
+          }}
         />
       )}
     </div>
