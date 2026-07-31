@@ -500,23 +500,19 @@ export function ChatWidget({
         }
       </button>
 
-      {/* Chat panel — slide in from right */}
-      <div
-        className="fixed right-0 top-0 h-full z-40 flex flex-col transition-all duration-300 ease-out"
-        style={{
-          width: isOpen ? 'min(420px, 100vw)' : '0',
-          overflow: 'hidden',
-          boxShadow: isOpen ? `-8px 0 32px -4px rgba(0,0,0,0.4)` : 'none',
-        }}
-      >
-        {isOpen && (
-          <div
-            className="flex flex-col h-full w-[min(420px,100vw)]"
-            style={{
-              backgroundColor: theme === 'dark' ? '#0E1220' : '#F8F9FC',
-              borderLeft: `1px solid ${T.border}`,
-            }}
-          >
+      {/* Floating Chat Popover Modal */}
+      {isOpen && (
+        <div
+          className="fixed z-40 flex flex-col transition-all duration-300 ease-out shadow-2xl rounded-2xl border overflow-hidden bottom-24 right-3 left-3 sm:left-auto sm:right-6 sm:w-[400px] h-[560px] max-h-[calc(100vh-120px)]"
+          style={{
+            backgroundColor: theme === 'dark' ? '#0E1220' : '#F8F9FC',
+            borderColor: T.border,
+            boxShadow: theme === 'dark'
+              ? `0 20px 50px -10px rgba(0,0,0,0.8), 0 0 1px 1px ${T.border}`
+              : `0 20px 40px -10px rgba(0,0,0,0.15), 0 0 1px 1px ${T.border}`,
+          }}
+        >
+          <div className="flex flex-col h-full w-full">
             {/* Header */}
             <div
               className="flex items-center justify-between px-4 py-3.5 border-b flex-shrink-0"
@@ -773,16 +769,7 @@ export function ChatWidget({
               </p>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Backdrop on mobile */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-30 md:hidden"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setIsOpen(false)}
-        />
+        </div>
       )}
     </>
   )
