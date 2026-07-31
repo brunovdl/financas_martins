@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { saveChatSession } from '@/lib/chatCache'
+import { getCataCentavoClient } from '@/lib/cataCentavo'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key_for_build' })
+
+// Map bank_* tools to cata-centavo MCP tool names
+const BANK_TOOL_MAP: Record<string, string> = {
+  bank_get_accounts: 'get_accounts',
+  bank_get_balance: 'get_balance',
+  bank_get_transactions: 'get_transactions',
+  bank_list_transactions: 'list_transactions',
+  bank_get_bill_summary: 'get_bill_summary',
+  bank_list_sources: 'list_sources',
+  bank_set_transaction_category: 'set_transaction_category',
+}
 
 // ---------------------------------------------------------------------------
 // Tool definitions (Groq tool-calling)
@@ -124,6 +136,82 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  // ---------------------------------------------------------------------------
+  // Open Finance / Bank Tools (cata-centavo MCP)
+  // ---------------------------------------------------------------------------
+  {
+    type: 'function',
+    function: {
+      name: 'bank_get_accounts',
+      description: 'Lista todas as contas bancárias e cartões de crédito reais conectados via Open Finance (Pluggy), com saldos e limites. Use quando o usuário perguntar sobre extrato bancário, contas do banco, cartões reais ou saldo nas contas.',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_get_balance',
+      description: 'Retorna o saldo consolidado em conta corrente e limite de crédito utilizado nas contas reais do banco. Use quando perguntarem "quanto tenho no banco", saldo bancário real ou visão geral do extrato.',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_get_transactions',
+      description: 'Retorna o total gasto e recebido no banco num período de datas, agrupado por categoria. Use para relatórios do extrato bancário real.',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Data inicial no formato YYYY-MM-DD' },
+          to: { type: 'string', description: 'Data final no formato YYYY-MM-DD' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_list_transactions',
+      description: 'Lista transações bancárias individuais do extrato real (paginado). Use para listar lançamentos do extrato do banco.',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Data inicial no formato YYYY-MM-DD' },
+          to: { type: 'string', description: 'Data final no formato YYYY-MM-DD' },
+          page: { type: 'number', description: 'Número da página (padrão: 1)' },
+          pageSize: { type: 'number', description: 'Tamanho da página (padrão: 20)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_get_bill_summary',
+      description: 'Retorna a estimativa da fatura atual dos cartões de crédito nas contas reais do banco.',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_list_sources',
+      description: 'Lista o status de sincronização das conexões bancárias da Pluggy (PicPay, Nubank, Neon, Itaú).',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'bank_set_transaction_category',
+      description: 'Corrige a categoria de uma transação do extrato bancário real. Requer confirmação do usuário antes de executar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'string', description: 'ID da transação bancária' },
+          category: { type: 'string', description: 'Nova categoria a ser atribuída' },
+        },
+        required: ['transactionId', 'category'],
+      },
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -157,12 +245,18 @@ export async function POST(req: NextRequest) {
       saveChatSession(sessionId, { messages })
     }
 
-    // System prompt com contexto completo e instrução do fluxo passo a passo
-    const systemPrompt = `Você é o MAI Finance AI, assistente financeiro pessoal inteligente integrado ao sistema de controle de gastos MAI Finance.
+    // System prompt com distinção estrita entre despesas de planilha e extrato bancário
+    const systemPrompt = `Você é o MAI Finance AI, assistente financeiro pessoal inteligente integrado ao sistema de controle de gastos e ao Open Finance (Pluggy / cata-centavo).
 
 ## Contexto atual
 - **Mês exibido na tela**: ${currentMonthRef || 'desconhecido'}
 - **Data/hora atual**: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+
+## DISTINÇÃO IMPORTANTE DE FONTES DE DADOS
+1. **Despesas Cadastradas (Planilha/Supabase)**: Lançamentos manuais feitos pelo usuário. Manipuladas via ferramentas de despesas (\`get_current_expenses\`, \`create_expense\`, etc.).
+2. **Extrato Bancário Real (Open Finance / Pluggy / cata-centavo)**: Movimentação real de contas e cartões de crédito (Nubank, Itaú, Neon, PicPay). Manipuladas via ferramentas \`bank_*\` (\`bank_get_accounts\`, \`bank_get_balance\`, etc.).
+
+Deixe SEMPRE claro na sua resposta de qual fonte os dados estão vindo (ex: "No seu extrato bancário real..." vs "Nas suas despesas cadastradas no app...").
 
 ## Despesas do mês atual (${currentMonthRef})
 ${currentExpenses && currentExpenses.length > 0
@@ -183,14 +277,9 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
   2. Quando o usuário responder a descrição, confirme e pergunte **apenas** o **Valor** em R$ (ex: "Legal! Qual o valor em reais (R$) para [Descrição]?")
   3. Quando o usuário responder o valor, confirme e pergunte **apenas** o **Dia de vencimento** (ex: "Entendido. Qual o dia de vencimento (1 a 31)?")
   4. Quando o usuário responder o dia, peça a **Categoria** (ex: "Anotado! Qual é a categoria da despesa?")
-  5. Quando o usuário tiver informado tudo (ou se ele mandar tudo de uma vez na mesma frase, ex: "Criar despesa de internet R$ 150 dia 10 em outros"), chame a ferramenta \`create_expense\`.
+  5. Quando o usuário tiver informado tudo (ou se ele mandar tudo de uma vez na mesma frase), chame a ferramenta \`create_expense\`.
 
-- NUNCA liste todos os campos de uma vez nem faça uma lista longa de categorias de uma vez só no chat.
-- **REGRA DE CONFIRMAÇÃO E ENCERRAMENTO**:
-  1. TODAS as mutações (criar, editar, deletar) exigem confirmação via botão antes da inserção.
-  2. Assim que uma despesa for criada (mensagem "criada com sucesso" ou tool call executada), o fluxo de criação está **TOTALMENTE ENCERRADO**.
-  3. Se o usuário mandar qualquer mensagem que NÃO seja continuar o cadastro (ex: "Preciso de um plano para reduzir gastos", "Qual meu maior gasto?", "Tenho renda de R$ 18.000"), NUNCA tente cadastrar uma nova despesa ou chamar \`create_expense\`. Responda à dúvida do usuário normalmente como um consultor financeiro perspicaz!
-- Responda SEMPRE em português do Brasil, de forma concisa e amigável.`
+- Responda SEMPRE em português do Brasil, de forma concisa, perspicaz e amigável.`
 
     const groqMessages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
@@ -220,9 +309,10 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
     const choice = completion.choices[0]
     const message = choice.message
 
-    // Se o modelo quer chamar uma tool, retorna o tool_call com parsing seguro de JSON
+    // Se o modelo pediu para executar uma ferramenta
     if (message.tool_calls && message.tool_calls.length > 0) {
       const toolCall = message.tool_calls[0]
+      const toolName = toolCall.function.name
       let parsedArgs: Record<string, unknown> = {}
       try {
         parsedArgs = JSON.parse(toolCall.function.arguments || '{}')
@@ -231,11 +321,56 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
         parsedArgs = {}
       }
 
+      // TRATAMENTO SERVER-SIDE PARA TOOLS BANCÁRIAS DE LEITURA (bank_get_*)
+      if (toolName.startsWith('bank_') && toolName !== 'bank_set_transaction_category') {
+        try {
+          const client = await getCataCentavoClient()
+          const mcpToolName = BANK_TOOL_MAP[toolName] || toolName.replace('bank_', '')
+          
+          const mcpResult = await client.callTool({
+            name: mcpToolName,
+            arguments: parsedArgs,
+          })
+
+          // Anexa a chamada e o resultado do MCP ao histórico de mensagens para a 2ª chamada ao Groq
+          const secondTurnMessages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
+            ...groqMessages,
+            message,
+            {
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(mcpResult.content || mcpResult),
+            },
+          ]
+
+          // 2ª chamada ao Groq para sintetizar a resposta bancária em linguagem natural
+          const secondCompletion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: secondTurnMessages,
+            max_tokens: 2048,
+            temperature: 0.3,
+          })
+
+          return NextResponse.json({
+            role: 'assistant',
+            content: secondCompletion.choices[0].message.content,
+          })
+        } catch (mcpError: unknown) {
+          console.error(`Erro ao executar ferramenta bancária ${toolName}:`, mcpError)
+          const errMsg = mcpError instanceof Error ? mcpError.message : 'Erro ao consultar Open Finance'
+          return NextResponse.json({
+            role: 'assistant',
+            content: `Desculpe, ocorreu um erro ao consultar seus dados bancários no Open Finance: ${errMsg}`,
+          })
+        }
+      }
+
+      // Se for tool de mutação bancária (bank_set_transaction_category) ou tool de planilha (expenses)
       return NextResponse.json({
         role: 'assistant',
         content: message.content || null,
         tool_call: {
-          name: toolCall.function.name,
+          name: toolName,
           arguments: parsedArgs,
           id: toolCall.id,
         },

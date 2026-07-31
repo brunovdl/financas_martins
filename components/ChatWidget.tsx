@@ -331,6 +331,34 @@ export function ChatWidget({
         return { content: `📅 Navegando para **${monthLabel(target)}**...` }
       }
 
+      case 'bank_set_transaction_category': {
+        const { transactionId, category } = args as { transactionId: string; category: string }
+        if (!confirmed) {
+          return {
+            content: `Deseja alterar a categoria da transação bancária **"${transactionId}"** para **"${category}"** no Open Finance?`,
+            pendingAction: {
+              type: 'update',
+              toolCall,
+              label: `Confirmar categoria "${category}"`,
+            },
+          }
+        }
+
+        const res = await fetch('/api/chat/confirm-bank-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toolCall }),
+        })
+        const resData = await res.json()
+        if (!res.ok || resData.error) {
+          throw new Error(resData.error || 'Falha ao atualizar categoria da transação bancária.')
+        }
+
+        return {
+          content: `✅ Categoria da transação bancária atualizada para **"${category}"** com sucesso!`,
+        }
+      }
+
       default:
         return { content: 'Ferramenta desconhecida.' }
     }
