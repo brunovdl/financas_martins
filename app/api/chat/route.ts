@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { saveChatSession } from '@/lib/chatCache'
-import { getCataCentavoClient } from '@/lib/cataCentavo'
+import { getCataCentavoClient, resetCataCentavoClient } from '@/lib/cataCentavo'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key_for_build' })
 
@@ -335,13 +335,29 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
       // TRATAMENTO SERVER-SIDE PARA TOOLS BANCÁRIAS DE LEITURA (bank_get_*)
       if (toolName.startsWith('bank_') && toolName !== 'bank_set_transaction_category') {
         try {
-          const client = await getCataCentavoClient()
+          let client = await getCataCentavoClient()
           const mcpToolName = BANK_TOOL_MAP[toolName] || toolName.replace('bank_', '')
           
-          const mcpResult = await client.callTool({
-            name: mcpToolName,
-            arguments: safeArgs,
-          })
+          let mcpResult
+          try {
+            mcpResult = await client.callTool({
+              name: mcpToolName,
+              arguments: safeArgs,
+            })
+          } catch (firstErr: unknown) {
+            const errStr = String(firstErr)
+            if (errStr.includes('closed') || errStr.includes('-32000')) {
+              console.warn(`[MCP] Conexão encerrada detectada ao chamar ${toolName}, reconectando...`)
+              resetCataCentavoClient()
+              client = await getCataCentavoClient()
+              mcpResult = await client.callTool({
+                name: mcpToolName,
+                arguments: safeArgs,
+              })
+            } else {
+              throw firstErr
+            }
+          }
 
           // Anexa a chamada e o resultado do MCP ao histórico de mensagens para a 2ª chamada ao Groq
           const secondTurnMessages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
