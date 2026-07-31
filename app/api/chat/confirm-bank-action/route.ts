@@ -17,11 +17,13 @@ export async function POST(req: NextRequest) {
     const client = await getCataCentavoClient()
 
     // Execute mutation tool on cata-centavo MCP
-    // Mapping bank_set_transaction_category -> set_transaction_category in cata-centavo
     const mcpToolName = 'set_transaction_category'
+    const rawArgs = toolCall.arguments
+    const safeArgs = (rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)) ? rawArgs : {}
+
     const result = await client.callTool({
       name: mcpToolName,
-      arguments: toolCall.arguments || {},
+      arguments: safeArgs,
     })
 
     return NextResponse.json({

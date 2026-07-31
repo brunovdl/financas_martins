@@ -25,6 +25,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'get_current_expenses',
       description: 'Retorna todas as despesas do mês atualmente exibido na tela. Use quando o usuário pedir a lista completa de despesas.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -32,6 +33,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'get_pending_expenses',
       description: 'Retorna apenas as despesas com status pendente do mês atualmente exibido na tela. Use quando o usuário perguntar por despesas pendentes, em aberto ou a pagar.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -56,6 +58,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'get_summary',
       description: 'Retorna o resumo financeiro do mês atual: total de despesas, total pago, total pendente e percentual pago.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -63,6 +66,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'get_highest_expense',
       description: 'Retorna a despesa de maior valor do mês atualmente exibido na tela. Use quando o usuário perguntar qual o maior gasto, despesa mais cara ou maior valor.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -144,6 +148,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'bank_get_accounts',
       description: 'Lista todas as contas bancárias e cartões de crédito reais conectados via Open Finance (Pluggy), com saldos e limites. Use quando o usuário perguntar sobre extrato bancário, contas do banco, cartões reais ou saldo nas contas.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -151,6 +156,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'bank_get_balance',
       description: 'Retorna o saldo consolidado em conta corrente e limite de crédito utilizado nas contas reais do banco. Use quando perguntarem "quanto tenho no banco", saldo bancário real ou visão geral do extrato.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -188,6 +194,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'bank_get_bill_summary',
       description: 'Retorna a estimativa da fatura atual dos cartões de crédito nas contas reais do banco.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -195,6 +202,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'bank_list_sources',
       description: 'Lista o status de sincronização das conexões bancárias da Pluggy (PicPay, Nubank, Neon, Itaú).',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
@@ -321,6 +329,9 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
         parsedArgs = {}
       }
 
+      // Garantir que os argumentos sejam sempre um objeto válido ({}), nunca null ou undefined
+      const safeArgs = (parsedArgs && typeof parsedArgs === 'object' && !Array.isArray(parsedArgs)) ? parsedArgs : {}
+
       // TRATAMENTO SERVER-SIDE PARA TOOLS BANCÁRIAS DE LEITURA (bank_get_*)
       if (toolName.startsWith('bank_') && toolName !== 'bank_set_transaction_category') {
         try {
@@ -329,7 +340,7 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
           
           const mcpResult = await client.callTool({
             name: mcpToolName,
-            arguments: parsedArgs,
+            arguments: safeArgs,
           })
 
           // Anexa a chamada e o resultado do MCP ao histórico de mensagens para a 2ª chamada ao Groq
@@ -371,7 +382,7 @@ ${summary ? JSON.stringify(summary, null, 2) : 'Não disponível.'}
         content: message.content || null,
         tool_call: {
           name: toolName,
-          arguments: parsedArgs,
+          arguments: safeArgs,
           id: toolCall.id,
         },
       })
