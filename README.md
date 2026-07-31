@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 MAI Finance — Sistema de Gestão Financeira Inteligente
 
-## Getting Started
+## 📊 Visão Geral
+**MAI Finance** é uma plataforma moderna e completa de controle financeiro pessoal e empresarial. Projetada para proporcionar visualização clara da saúde financeira mensal, gestão de despesas por categoria, fechamento de ciclo e automações integradas.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Funcionalidades do Sistema
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 💳 Gestão e Controle de Despesas
+* **Lançamento de Despesas:** Cadastro detalhado com data de vencimento, dia de pagamento, categoria, valor, status (`pago` / `pendente`) e observações adicionais.
+* **Categorização Personalizada:** Gerenciamento dinâmico de categorias com atribuição de cores hexadecimais para distinção visual intuitiva.
+* **Visualização por Referência Mensal:** Filtro e agregação de gastos organizados pelo mês de referência (`month_ref`).
+* **Resumo Financeiro em Tempo Real:** Cards dinâmicos e anéis de progresso que exibem o valor total acumulado, total pendente e quantidade de pendências do mês ativo.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🔄 Automação e Operações em Lote
+* **Clonagem de Mês:** Duplicação automática de despesas recorrentes de um mês para outro com ajuste inteligente de datas.
+* **Importação de Dados:** Suporte à carga em lote de lançamentos financeiros via arquivos estruturados.
+* **Assistente Virtual Inteligente (AI Chat):** Widget interativo alimentado por IA (GROQ) para insights financeiros e análise de hábitos de gastos.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 💾 Resiliência e Backups
+* **Gerador de Snapshots de Backup:** Criação de snapshots completos (categorias e despesas) em formato `JSONB`.
+* **Retenção Inteligente:** Execução automática via `pg_cron` (quinzenalmente) mantendo os 3 backups mais recentes para prevenção contra perda de dados.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🛡️ Características de Segurança & Proteção de Dados
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔒 Controle de Acesso e Isolamento no Banco de Dados (Row Level Security - RLS)
+* **RLS Habilitado em Produção:** Todas as tabelas públicas (`mai_finance_users`, `categories`, `expenses`, `backups`) possuem **Row Level Security (RLS)** obrigatoriamente ativo no PostgreSQL/Supabase.
+* **Políticas Estritas de Acesso (Policies):** Restrição total de acesso anônimo, permitindo operações de leitura e escrita apenas para requisições autenticadas (`TO authenticated`).
+* **Isolamento de Aplicações:** Utilização de tabela exclusiva (`mai_finance_users`) para impedir qualquer interferência ou conflito de identidade com outras aplicações no mesmo projeto Supabase.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 🔐 Arquitetura de Autenticação e Criptografia
+* **Criptografia de Senhas (PBKDF2 + Salt):** Senhas armazenadas no banco utilizando o padrão de derivação de chave **PBKDF2** com *Salt* aleatório de 16 bytes e 1000 iterações em SHA-512.
+* **Validação Estrita de Senha:** Imposição de senha mínima de 8 caracteres no cadastro e autenticação.
+* **Proteção Contra Injeção e Manipulação:** Consultas parametrizadas via cliente Supabase prevenindo falhas de SQL Injection (CWE-89) e Acesso Indevido (CWE-284).
 
-## Deploy on Vercel
+### ⏳ Gerenciamento de Sessão de 24 Horas & Tokens Criptografados
+* **Cookies HTTP-Only & SameSite:** Armazenamento do token de sessão em cookies seguros com as diretivas `HttpOnly`, `SameSite=Lax` e `Path=/`, tornando o token inacessível para scripts maliciosos de terceiros no navegador (proteção contra XSS).
+* **Expiração Rígida de 24 Horas:** O token de autenticação JWT assinado possui validade temporal de exatas 24 horas (`maxAge: 86400s`).
+* **Deslogamento Automático:** Monitoramento contínuo da sessão. Ao atingir o limite de 24 horas, o sistema invalida a sessão, limpa os estados locais e exige nova autenticação.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Arquitetura e Tecnologia
+* **Frontend & App Router:** Next.js (React), Tailwind CSS, Lucide Icons, TypeScript.
+* **Design System:** Dark Mode Financeiro Elegante com suporte a temas responsivos.
+* **Backend & API:** Next.js Server API Routes, Node.js Crypto.
+* **Banco de Dados & Storage:** Supabase (PostgreSQL), `pg_cron`, RLS Policies.
