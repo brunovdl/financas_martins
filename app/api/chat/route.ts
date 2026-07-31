@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { saveChatSession } from '@/lib/chatCache'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key_for_build' })
 
 // ---------------------------------------------------------------------------
 // Tool definitions (Groq tool-calling)
@@ -131,6 +131,13 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        { error: 'A chave GROQ_API_KEY não foi configurada no servidor (Easypanel).' },
+        { status: 500 }
+      )
+    }
+
     const body = await req.json()
     const {
       messages,
