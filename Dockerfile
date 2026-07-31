@@ -33,7 +33,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ============================================================
-# Stage 3: runner — imagem final mínima para produção
+# Stage 3: runner — imagem final de produção
 # ============================================================
 FROM node:22-alpine AS runner
 
@@ -55,13 +55,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copia manualmente módulos invocados via child_process (cata-centavo MCP server)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/cata-centavo ./node_modules/cata-centavo
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@modelcontextprotocol ./node_modules/@modelcontextprotocol
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pluggy-sdk ./node_modules/pluggy-sdk
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pino ./node_modules/pino
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pino-roll ./node_modules/pino-roll
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/zod ./node_modules/zod
+# Copia todo o node_modules para garantir todas as dependências transitivas do MCP (ex: zod-to-json-schema, pino, pluggy-sdk)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 
