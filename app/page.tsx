@@ -1,5 +1,5 @@
-import GastosApp from '@/components/GastosApp'
+import { MainAppWrapper } from '@/components/MainAppWrapper'
 
 export default function Home() {
-  return <GastosApp />
+  return <MainAppWrapper />
 }

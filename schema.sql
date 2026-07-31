@@ -13,6 +13,19 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- -------------------------------------------------------------
+-- mai_finance_users
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.mai_finance_users (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          text        NOT NULL,
+  email         text        NOT NULL UNIQUE,
+  password_hash text        NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.mai_finance_users ENABLE ROW LEVEL SECURITY;
+
+-- -------------------------------------------------------------
 -- categories
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -22,8 +35,8 @@ CREATE TABLE IF NOT EXISTS public.categories (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- RLS desabilitado para testes (habilitar antes de producao)
-ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
+-- RLS habilitado para producao
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
 -- -------------------------------------------------------------
 -- expenses
@@ -60,8 +73,8 @@ CREATE TRIGGER trg_expenses_updated_at
   BEFORE UPDATE ON public.expenses
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
--- RLS desabilitado para testes
-ALTER TABLE public.expenses DISABLE ROW LEVEL SECURITY;
+-- RLS habilitado para producao
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
 -- -------------------------------------------------------------
 -- VIEW: monthly_summary
@@ -91,7 +104,7 @@ CREATE TABLE IF NOT EXISTS public.backups (
 );
 
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON public.backups(created_at DESC);
-ALTER TABLE public.backups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backups ENABLE ROW LEVEL SECURITY;
 
 -- Stored Function para gerar backup no servidor com retenção dos 3 últimos
 CREATE OR REPLACE FUNCTION public.create_backup(backup_type text DEFAULT 'automatico')
@@ -145,20 +158,22 @@ BEGIN
 END $$;
 
 -- -------------------------------------------------------------
--- RLS - Para habilitar em producao, executar:
+-- RLS Políticas de Segurança (Ativas para Produção)
 -- -------------------------------------------------------------
--- ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.expenses   ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.backups    ENABLE ROW LEVEL SECURITY;
---
--- CREATE POLICY "authenticated full access on categories"
---   ON public.categories FOR ALL
---   TO authenticated USING (true) WITH CHECK (true);
---
--- CREATE POLICY "authenticated full access on expenses"
---   ON public.expenses FOR ALL
---   TO authenticated USING (true) WITH CHECK (true);
---
--- CREATE POLICY "authenticated full access on backups"
---   ON public.backups FOR ALL
---   TO authenticated USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on categories') THEN
+    CREATE POLICY "authenticated full access on categories"
+      ON public.categories FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on expenses') THEN
+    CREATE POLICY "authenticated full access on expenses"
+      ON public.expenses FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on backups') THEN
+    CREATE POLICY "authenticated full access on backups"
+      ON public.backups FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+END $$;

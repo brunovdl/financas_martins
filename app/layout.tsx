@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -32,7 +33,9 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${outfit.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
