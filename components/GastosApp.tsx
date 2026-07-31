@@ -26,6 +26,7 @@ import { ImportModal, type ParsedImportRow } from './ImportModal'
 import { CategoriesModal } from './CategoriesModal'
 import { CloneMonthModal } from './CloneMonthModal'
 import { BackupModal } from './BackupModal'
+import { ChatWidget } from './ChatWidget'
 import {
   fetchExpenses as fetchSupabaseExpenses,
   insertExpense as insertSupabaseExpense,
@@ -314,9 +315,11 @@ export default function GastosApp() {
     }
   }, [monthRef])
 
-  useEffect(() => {
+  const [prevMonthRefState, setPrevMonthRefState] = useState(monthRef)
+  if (prevMonthRefState !== monthRef) {
+    setPrevMonthRefState(monthRef)
     setShowPrevMonthPanel(false)
-  }, [monthRef])
+  }
 
   useEffect(() => {
     let active = true
@@ -538,6 +541,59 @@ export default function GastosApp() {
         }
       } catch (e) {
         console.error('Erro ao criar no Supabase:', e)
+      }
+    }
+  }
+
+  // Handler dedicado para criação de despesas via chat (sem abrir modo de edição inline)
+  const addExpenseFromChat = async (data: {
+    description: string
+    amount: number
+    dueDay: number
+    category: string
+    status: 'pendente' | 'pago'
+    observation: string
+  }) => {
+    const [year, month] = monthRef.split('-').map(Number)
+    const maxDays = new Date(year, month, 0).getDate()
+    const validDay = Math.min(Math.max(1, data.dueDay || 1), maxDays)
+    const due_date = `${monthRef}-${String(validDay).padStart(2, '0')}`
+
+    const newLocalId = nextId()
+    const newExp: UIExpense = {
+      id: newLocalId,
+      monthRef,
+      dueDay: validDay,
+      category: data.category,
+      description: data.description,
+      amount: data.amount,
+      paymentDay: data.status === 'pago' ? getTodayPaymentDay() : '',
+      status: data.status,
+      observation: data.observation,
+    }
+    setExpenses((prev) => [newExp, ...prev])
+
+    if (isSupabaseActive) {
+      try {
+        const catObj = categoriesList.find((c) => c.id === data.category)
+        const dbCat = dbCategories.find((c) => c.name.toLowerCase() === catObj?.name.toLowerCase()) || (catObj?.dbId ? { id: catObj.dbId } : undefined)
+        const created = await insertSupabaseExpense({
+          due_date,
+          category_id: dbCat ? dbCat.id : null,
+          description: data.description,
+          amount: data.amount,
+          payment_date: data.status === 'pago' ? getTodayIsoDate() : null,
+          status: data.status,
+          observation: data.observation || null,
+          month_ref: monthRef,
+        })
+        if (created?.id) {
+          setExpenses((prev) =>
+            prev.map((e) => (e.id === newLocalId ? { ...e, dbId: created.id, id: created.id } : e))
+          )
+        }
+      } catch (e) {
+        console.error('Erro ao criar despesa via chat no Supabase:', e)
       }
     }
   }
@@ -1368,6 +1424,20 @@ export default function GastosApp() {
           }}
         />
       )}
+
+      {/* AI Chat Widget */}
+      <ChatWidget
+        T={T}
+        theme={theme}
+        expenses={expenses}
+        monthRef={monthRef}
+        categoriesList={categoriesList}
+        isSupabaseActive={isSupabaseActive}
+        onCreateExpense={addExpenseFromChat}
+        onUpdateExpense={handleUpdateExpense}
+        onDeleteExpense={removeExpense}
+        onNavigateToMonth={setMonthRef}
+      />
     </div>
   )
 }

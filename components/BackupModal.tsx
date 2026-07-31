@@ -21,8 +21,6 @@ export function BackupModal({ T, onClose, onRestored }: BackupModalProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const loadBackups = useCallback(async () => {
-    setLoading(true)
-    setErrorMsg(null)
     try {
       const list = await fetchBackups()
       setBackups(list)
@@ -35,14 +33,31 @@ export function BackupModal({ T, onClose, onRestored }: BackupModalProps) {
   }, [])
 
   useEffect(() => {
-    loadBackups()
-  }, [loadBackups])
+    let isMounted = true
+    fetchBackups()
+      .then((list) => {
+        if (isMounted) setBackups(list)
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error('Erro ao carregar lista de backups:', err)
+          setErrorMsg('Não foi possível carregar o histórico de backups.')
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleCreateManualBackup = async () => {
     setCreating(true)
     setErrorMsg(null)
     try {
       await createBackup('manual')
+      setLoading(true)
       await loadBackups()
     } catch (err) {
       console.error('Erro ao criar backup manual:', err)
