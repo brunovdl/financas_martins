@@ -46,6 +46,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# documentation & agent instructions (not sent to github)
+GEMINI.md
+**/GEMINI.md
+CLAUDE.md
+**/CLAUDE.md
+spec.md
+**/spec.md
+mantis_pipeline.md
+**/mantis_pipeline.md
 implementaton_cata_centavo.md
 
 # mantis security audit pipeline artifacts
