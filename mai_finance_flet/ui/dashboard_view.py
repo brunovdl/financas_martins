@@ -604,7 +604,7 @@ class DashboardView(ft.Container):
                     ft.Container(content=ft.Text("PAGTO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=70, alignment=ft.Alignment.CENTER),
                     ft.Container(content=ft.Text("STATUS", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
                     ft.Container(content=ft.Text("OBSERVAÇÃO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), expand=2),
-                    ft.Container(width=95),
+                    ft.Container(width=105),
                 ],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -612,7 +612,7 @@ class DashboardView(ft.Container):
             bgcolor=self.T.get("tableHeaderBg", self.T["surfaceSolid"]),
             border=ft.Border.all(1, self.T.get("tableHeaderBorder", self.T["borderSubtle"])),
             border_radius=8,
-            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+            padding=ft.Padding.only(left=12, right=14, top=8, bottom=8),
             visible=not self.is_compact,
         )
 
@@ -1112,6 +1112,9 @@ class DashboardView(ft.Container):
             icon=ft.Icons.COPY_ALL_OUTLINED,
             icon_color=self.T["accent"],
             icon_size=18,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Duplicar despesa",
             on_click=lambda _, item=exp: self._open_expense_dialog(item, is_duplicate=True),
         )
@@ -1119,6 +1122,9 @@ class DashboardView(ft.Container):
             icon=ft.Icons.EDIT_OUTLINED,
             icon_color=self.T["textMuted"],
             icon_size=18,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Editar completo",
             on_click=lambda _, item=exp: self._open_expense_dialog(item),
         )
@@ -1126,6 +1132,9 @@ class DashboardView(ft.Container):
             icon=ft.Icons.DELETE_OUTLINE,
             icon_color=self.T["danger"],
             icon_size=18,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Excluir",
             on_click=lambda _, eid=exp_id, d=description: self._confirm_delete(eid, d),
         )
@@ -1394,6 +1403,9 @@ class DashboardView(ft.Container):
             icon=ft.Icons.COPY_ALL_OUTLINED,
             icon_color=self.T["accent"],
             icon_size=16,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Duplicar despesa",
             on_click=lambda _, item=exp: self._open_expense_dialog(item, is_duplicate=True),
         )
@@ -1401,6 +1413,9 @@ class DashboardView(ft.Container):
             icon=ft.Icons.EDIT_OUTLINED,
             icon_color=self.T["textMuted"],
             icon_size=16,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Editar completo",
             on_click=lambda _, item=exp: self._open_expense_dialog(item),
         )
@@ -1408,10 +1423,13 @@ class DashboardView(ft.Container):
             icon=ft.Icons.DELETE_OUTLINE,
             icon_color=self.T["danger"],
             icon_size=16,
+            width=32,
+            height=32,
+            padding=0,
             tooltip="Excluir",
             on_click=lambda _, eid=exp_id, d=description: self._confirm_delete(eid, d),
         )
-        col_actions = ft.Row([btn_duplicate, btn_edit, btn_delete], spacing=0, width=95, alignment=ft.MainAxisAlignment.END)
+        col_actions = ft.Row([btn_duplicate, btn_edit, btn_delete], spacing=2, width=105, alignment=ft.MainAxisAlignment.END)
 
         return ft.Container(
             content=ft.Row(
@@ -1431,7 +1449,7 @@ class DashboardView(ft.Container):
             bgcolor=self.T["surfaceSolid"],
             border=ft.Border.all(1, self.T["borderSubtle"]),
             border_radius=8,
-            padding=ft.Padding.symmetric(horizontal=12, vertical=4),
+            padding=ft.Padding.only(left=12, right=14, top=4, bottom=4),
         )
 
     # -----------------------------------------------------------------------
