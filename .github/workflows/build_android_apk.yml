@@ -88,6 +88,7 @@ jobs:
           flet build apk \
             --yes \
             --no-rich-output \
+            --module-name main \
             --project mai_finance \
             --product "MAI Finance" \
             --org com.martinsautomation \

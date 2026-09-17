@@ -36,6 +36,14 @@ class TestAndroidPackaging:
                 assert img.size == (1024, 1024), f"Dimensão incorreta para {p.name}: {img.size} (esperado 1024x1024)"
                 assert img.mode == "RGBA", f"Modo de cor incorreto para {p.name}: {img.mode} (esperado RGBA)"
 
+    def test_main_entrypoint_exists(self):
+        """Garante que o arquivo de entrada main.py existe para o empacotador Flet Android."""
+        main_py = BASE_DIR / "main.py"
+        assert main_py.exists(), f"Entry point {main_py} não encontrado!"
+        content = main_py.read_text(encoding="utf-8")
+        assert "from app import main" in content
+        assert "ft.run(" in content
+
     def test_github_actions_workflow_exists(self):
         """Valida que o arquivo de workflow do GitHub Actions existe."""
         workflow_path = PROJECT_ROOT / ".github" / "workflows" / "build_android_apk.yml"
