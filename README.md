@@ -78,3 +78,23 @@ cd mai_finance_flet
 docker build -t mai-finance-flet:latest .
 docker run -d -p 8550:8550 --env-file .env mai-finance-flet:latest
 ```
+
+---
+
+## 📱 Gerar Instalador Android (APK) via GitHub Actions
+
+O projeto conta com uma esteira de CI/CD automatizada no GitHub Actions para gerar o arquivo `.apk` pronto para instalação direta (sideloading) no celular Android, incluindo a identidade visual oficial da marca (ícone adaptativo e tela splash).
+
+### Como Gerar com 1 Clique:
+1. Acesse o repositório no GitHub: [brunovdl/financas_martins](https://github.com/brunovdl/financas_martins)
+2. Vá até a aba **Actions**.
+3. Selecione o workflow **"Build Android APK (MAI Finance)"** na barra lateral esquerda.
+4. Clique no botão **Run workflow**:
+   - Defina a versão desejada (ex.: `1.0.0`).
+   - Deixe marcada a opção **"Criar GitHub Release pública"**.
+   - Clique em **Run workflow**.
+
+### Como Baixar e Instalar:
+- **Pela aba Releases:** Ao término da build (~5 minutos), o instalador estará disponível na aba **Releases** do GitHub para download direto pelo celular.
+- **Pela aba Actions:** O APK também fica disponível na seção **Artifacts** da execução.
+- Basta abrir o arquivo baixado no Android e confirmar a instalação!

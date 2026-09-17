@@ -111,7 +111,12 @@ def generate():
     img_512.save(os.path.join(icons_dir, 'icon-512.png'), 'PNG')
     img_192.save(os.path.join(icons_dir, 'loading-animation.png'), 'PNG')
 
-    print('[generate] Assets atualizados com sucesso em mai_finance_flet/assets/')
+    # Ícones de empacotamento Mobile / Android (Flet build launcher icons)
+    img.save(os.path.join(assets_dir, 'icon.png'), 'PNG')
+    img.save(os.path.join(assets_dir, 'icon_android.png'), 'PNG')
+    img.save(os.path.join(base_dir, 'icon.png'), 'PNG')
+
+    print('[generate] Assets atualizados com sucesso em mai_finance_flet/assets/ e icones Android gerados (1024x1024)')
 
     # Substituição no flet_web da venv para erradicação total do logo flet padrão
     venv_dir = os.path.join(base_dir, '..', '.venv', 'Lib', 'site-packages', 'flet_web', 'web')

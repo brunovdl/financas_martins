@@ -1,0 +1,134 @@
+name: Build Android APK (MAI Finance)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão do APK (ex: 1.0.0)'
+        required: true
+        default: '1.0.0'
+      build_number:
+        description: 'Número sequencial da build (opcional, padrão: run_number)'
+        required: false
+        default: ''
+      create_release:
+        description: 'Criar GitHub Release pública para download direto'
+        type: boolean
+        required: true
+        default: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Diagnóstico das Ferramentas
+        run: |
+          flutter --version
+          java -version
+          python --version
+
+      - name: Instalar Dependências e Flet CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install flet
+          pip install -r mai_finance_flet/requirements.txt
+
+      - name: Executar Build do APK Android
+        run: |
+          cd mai_finance_flet
+          RAW_VERSION="${{ github.event.inputs.version || github.ref_name || '1.0.0' }}"
+          VERSION="${RAW_VERSION#v}"
+          BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
+          echo "Iniciando compilação do MAI Finance v${VERSION} (build ${BUILD_NUMBER})..."
+
+          flet build apk \
+            --project mai_finance \
+            --product "MAI Finance" \
+            --org com.martinsautomation \
+            --company "Martins Automation" \
+            --copyright "Copyright (c) 2026 Martins Automation" \
+            --description "MAI Finance — Gestão Financeira Pessoal" \
+            --build-version "${VERSION}" \
+            --build-number "${BUILD_NUMBER}" \
+            --android-adaptive-icon-background "#121828" \
+            --splash-color "#121828" \
+            --splash-dark-color "#121828" \
+            --android-permissions android.permission.INTERNET=true \
+            --exclude "tests/*" "Mai Finance QA.pdf" \
+            --verbose
+
+          # Localizar o arquivo APK gerado em build/apk
+          APK_FILE=$(find build/apk -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::Arquivo APK não encontrado após o build!"
+            exit 1
+          fi
+
+          DIST_NAME="MAI-Finance-v${VERSION}-build${BUILD_NUMBER}.apk"
+          cp "$APK_FILE" "$DIST_NAME"
+          echo "APK gerado com sucesso: $DIST_NAME"
+
+          # Exportar variáveis para as próximas etapas
+          echo "APK_DIST_PATH=mai_finance_flet/$DIST_NAME" >> $GITHUB_ENV
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "BUILD_NUM=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Upload do APK como Artefato do Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAI-Finance-v${{ env.APP_VERSION }}-build${{ env.BUILD_NUM }}
+          path: ${{ env.APK_DIST_PATH }}
+          retention-days: 30
+
+      - name: Criar ou Atualizar GitHub Release com APK
+        if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true') || github.ref_type == 'tag' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: "MAI Finance v${{ env.APP_VERSION }} (Instalador Android)"
+          body: |
+            ### 📱 MAI Finance — Instalador Oficial Android (APK)
+            
+            - **Versão:** `v${{ env.APP_VERSION }}` (Build `${{ env.BUILD_NUM }}`)
+            - **Data da Build:** ${{ github.event.head_commit.timestamp || 'Automática via GitHub Actions' }}
+            - **Identidade Visual:** Logo oficial MAI Finance integrado com ícone adaptativo e splash escuro.
+            
+            #### 📥 Como Instalar:
+            1. Baixe o arquivo `.apk` anexado abaixo diretamente no celular.
+            2. Toque na notificação de download ou no arquivo baixado.
+            3. Se solicitado, permita a instalação a partir desta fonte nas configurações do Android.
+            4. Abra o MAI Finance e faça login com suas credenciais.
+          files: ${{ env.APK_DIST_PATH }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
