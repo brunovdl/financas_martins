@@ -370,7 +370,7 @@ class TestDashboardQAFixes:
         assert view.btn_clonar.visible is False
         assert view.btn_backups.visible is False
         assert view.btn_more_options.visible is True
-        assert len(view.btn_more_options.items) == 4
+        assert len(view.btn_more_options.items) == 5
 
         # Transição para desktop (1024px)
         mock_page.width = 1024

@@ -81,20 +81,18 @@ docker run -d -p 8550:8550 --env-file .env mai-finance-flet:latest
 
 ---
 
-## 📱 Gerar Instalador Android (APK) via GitHub Actions
+## 📱 Instalador Android (APK) & Atualização Automática
 
-O projeto conta com uma esteira de CI/CD automatizada no GitHub Actions para gerar o arquivo `.apk` pronto para instalação direta (sideloading) no celular Android, incluindo a identidade visual oficial da marca (ícone adaptativo e tela splash).
+O projeto conta com esteira de CI/CD 100% automatizada no GitHub Actions para compilação contínua e distribuição de atualizações do aplicativo Android.
 
-### Como Gerar com 1 Clique:
-1. Acesse o repositório no GitHub: [brunovdl/financas_martins](https://github.com/brunovdl/financas_martins)
-2. Vá até a aba **Actions**.
-3. Selecione o workflow **"Build Android APK (MAI Finance)"** na barra lateral esquerda.
-4. Clique no botão **Run workflow**:
-   - Defina a versão desejada (ex.: `1.0.0`).
-   - Deixe marcada a opção **"Criar GitHub Release pública"**.
-   - Clique em **Run workflow**.
+### 🔄 Build Automático a Cada Commit:
+- Sempre que um commit é enviado para o branch `main` com alterações no app (`mai_finance_flet/**`), o GitHub Actions compila o APK automaticamente.
+- Cada compilação gera uma nova versão sequencial (`v1.0.{run_number}`) e disponibiliza o instalador na aba **Releases** do repositório.
+- Também é possível disparar manualmente pela aba **Actions** selecionando versão customizada.
 
-### Como Baixar e Instalar:
-- **Pela aba Releases:** Ao término da build (~5 minutos), o instalador estará disponível na aba **Releases** do GitHub para download direto pelo celular.
-- **Pela aba Actions:** O APK também fica disponível na seção **Artifacts** da execução.
-- Basta abrir o arquivo baixado no Android e confirmar a instalação!
+### 🚀 Auto-Update In-App (Atualização Automática no Celular):
+1. **Identificação de Nova Versão:** Ao abrir o aplicativo no Android, o sistema verifica automaticamente a API do GitHub Releases em segundo plano.
+2. **Modal Informativo:** Se houver versão mais recente, surge um diálogo elegante com as novidades e o botão **"Atualizar Agora"**.
+3. **Download com Barra de Progresso:** O download do APK é realizado diretamente dentro do app com visualização em tempo real de porcentagem e MB baixados.
+4. **Instalação com 1 Toque:** Ao concluir o download, o aplicativo abre imediatamente o instalador nativo do Android para aplicar a atualização preservando todos os dados locais.
+5. **Checagem Manual:** No menu de configurações (ícone de 3 pontinhos no mobile ou botão no topo), toque em **"Verificar Atualizações"** a qualquer momento.

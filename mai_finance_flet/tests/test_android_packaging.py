@@ -48,6 +48,9 @@ class TestAndroidPackaging:
 
         # Verifica triggers
         assert "workflow_dispatch:" in content
+        assert "branches:" in content
+        assert "main" in content
+        assert "mai_finance_flet/**" in content
         assert "v*" in content
 
         # Verifica ferramentas
@@ -61,6 +64,7 @@ class TestAndroidPackaging:
         assert '--product "MAI Finance"' in content
         assert "--android-adaptive-icon-background" in content
         assert "android.permission.INTERNET=true" in content
+        assert "android.permission.REQUEST_INSTALL_PACKAGES=true" in content
 
         # Verifica artefatos e releases
         assert "actions/upload-artifact" in content

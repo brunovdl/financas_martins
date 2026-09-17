@@ -17,8 +17,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 from typing import Any, Callable
 import flet as ft
+
+from services.updater import check_for_updates, CURRENT_VERSION
+from ui.components.update_modal import open_update_dialog
 
 from services.categories import list_categories
 from services.expenses import (
@@ -256,8 +260,16 @@ class DashboardView(ft.Container):
             on_click=lambda _: self.on_logout() if self.on_logout else None,
         )
 
+        self.btn_check_update = ft.IconButton(
+            icon=ft.Icons.SYSTEM_UPDATE_ALT_OUTLINED,
+            tooltip="Verificar Atualizações",
+            icon_color=self.T["textMuted"],
+            icon_size=20,
+            on_click=lambda _: self._manual_check_update(),
+        )
+
         self.account_row = ft.Row(
-            [self.btn_alert_box, self.btn_theme, self.btn_logout],
+            [self.btn_check_update, self.btn_alert_box, self.btn_theme, self.btn_logout],
             spacing=4,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             tight=True,
@@ -531,6 +543,10 @@ class DashboardView(ft.Container):
                     content=ft.Row([ft.Icon(ft.Icons.BACKUP_OUTLINED, size=18, color=self.T["textPrimary"]), ft.Text("Backups", size=13)]),
                     on_click=lambda _: self.on_open_backups() if self.on_open_backups else None,
                 ),
+                ft.PopupMenuItem(
+                    content=ft.Row([ft.Icon(ft.Icons.SYSTEM_UPDATE_ALT_OUTLINED, size=18, color=self.T["accent"]), ft.Text("Verificar Atualizações", size=13)]),
+                    on_click=lambda _: self._manual_check_update(),
+                ),
             ],
             visible=self.is_compact,
         )
@@ -713,6 +729,9 @@ class DashboardView(ft.Container):
         self.load_data()
         if hasattr(self.page_ref, "run_task"):
             self.page_ref.run_task(self._start_polling)
+
+        # Checagem em segundo plano de nova versão do aplicativo
+        threading.Thread(target=self._check_update_silently, daemon=True).start()
 
     def will_unmount(self) -> None:
         self._polling_active = False
@@ -1523,6 +1542,9 @@ class DashboardView(ft.Container):
             if hasattr(self.btn_more_options.content, "content") and isinstance(self.btn_more_options.content.content, ft.Icon):
                 self.btn_more_options.content.content.color = self.T["textPrimary"]
 
+        if hasattr(self, "btn_check_update") and self.btn_check_update:
+            self.btn_check_update.icon_color = self.T["textMuted"]
+
         self.table_header.bgcolor = self.T.get("tableHeaderBg", self.T["surfaceSolid"])
         self.table_header.border = ft.Border.all(1, self.T.get("tableHeaderBorder", self.T["borderSubtle"]))
         if hasattr(self.table_header.content, "controls"):
@@ -2217,3 +2239,28 @@ class DashboardView(ft.Container):
         self.page_ref.snack_bar = snack
         snack.open = True
         self.page_ref.update()
+
+    def _check_update_silently(self) -> None:
+        """Verifica em segundo plano se há atualização sem incomodar o usuário caso esteja atualizado."""
+        try:
+            update = check_for_updates()
+            if update and self.page_ref:
+                open_update_dialog(self.page_ref, update)
+        except Exception as exc:
+            print(f"[Dashboard] Checagem silenciosa de atualização: {exc}")
+
+    def _manual_check_update(self) -> None:
+        """Verificação sob demanda disparada pelo usuário via botão ou menu."""
+        self._show_snack("Verificando atualizações no GitHub...")
+
+        def _worker():
+            try:
+                update = check_for_updates()
+                if update and self.page_ref:
+                    open_update_dialog(self.page_ref, update)
+                else:
+                    self._show_snack(f"O MAI Finance já está na versão mais recente (v{CURRENT_VERSION}).")
+            except Exception as exc:
+                self._show_snack(f"Não foi possível verificar atualizações: {exc}", is_error=True)
+
+        threading.Thread(target=_worker, daemon=True).start()
