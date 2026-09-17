@@ -1,4 +1,7 @@
-flet>=0.24.0
+flet>=1.0.0
+flet-web>=1.0.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
 supabase>=2.0.0
 python-dotenv>=1.0.0
 PyJWT>=2.8.0
