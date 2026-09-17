@@ -18,6 +18,7 @@ import flet as ft
 
 from services.auth_service import login_user, register_user
 from ui.storage_util import get_local_item, set_local_item, set_local_items, remove_local_item
+from ui.components.mai_loading import MaiLoading
 
 
 class AuthView(ft.Container):
@@ -230,15 +231,18 @@ class AuthView(ft.Container):
         # Card Principal de Autenticação
         card_content = ft.Column(
             [
-                # Header com Logo & Branding
+                # Header com Logo Oficial da Marca MAI Finance
                 ft.Row(
                     [
                         ft.Container(
-                            content=ft.Icon(ft.Icons.TRENDING_UP, color="#3FD6C4", size=26),
-                            bgcolor="#1E293B",
-                            padding=10,
-                            border_radius=14,
-                            border=ft.Border.all(1, "#3FD6C4"),
+                            content=ft.Image(
+                                src="logo.png",
+                                width=56,
+                                height=56,
+                                fit=ft.BoxFit.CONTAIN,
+                            ),
+                            alignment=ft.Alignment.CENTER,
+                            padding=4,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,

@@ -20,12 +20,14 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-para-testes-unitarios")
 
 from ui.dashboard_view import DashboardView
+from ui.components.progress_ring import FinancialProgressRing
 from ui.theme import (
     format_brl,
     month_label,
     shift_month,
     get_max_days_in_month,
     format_payment_date_to_ui,
+    get_tokens,
 )
 
 
@@ -262,6 +264,15 @@ class TestDashboardQAFixes:
         assert view.card_pago.bgcolor == light_tokens["surfaceSolid"]
         assert view.card_pendente.bgcolor == light_tokens["surfaceSolid"]
         assert view.search_field.bgcolor == light_tokens["surfaceSolid"]
+        assert view.progress_ring.label.color == light_tokens["textPrimary"]
+        assert view.progress_ring.ring.bgcolor == light_tokens["ringTrack"]
+
+    def test_dashboard_initializes_with_json_string_user_data(self):
+        mock_page = MagicMock(spec=ft.Page)
+        with patch("ui.dashboard_view.get_local_item", return_value='{"name": "Maria", "email": "maria@example.com"}'):
+            view = DashboardView(page=mock_page)
+            assert view.user_name == "Maria"
+            assert view.user_email == "maria@example.com"
 
     @patch("ui.dashboard_view.get_previous_month_pending")
     @patch("ui.dashboard_view.list_expenses")
@@ -618,5 +629,269 @@ class TestDashboardResponsiveBreakpoints:
         assert page.show_dialog.called
         dlg = page.show_dialog.call_args[0][0]
         assert "Duplicar Despesa" in dlg.title.value
+
+
+class TestFinancialProgressRingUnit:
+    """Valida o componente FinancialProgressRing e sua resposta aos temas claro e escuro."""
+
+    def test_progress_ring_defaults(self):
+        ring = FinancialProgressRing(pct=35.0)
+        assert ring.ring.value == 0.35
+        assert ring.label.value == "35%"
+        assert ring.label.color == "#F1F5F9"
+        assert ring.ring.bgcolor == "#1E293B"
+
+    def test_progress_ring_custom_text_color(self):
+        ring = FinancialProgressRing(pct=40.0, text_color="#0F172A")
+        assert ring.label.color == "#0F172A"
+
+    def test_progress_ring_set_pct(self):
+        ring = FinancialProgressRing(pct=0.0)
+        ring.set_pct(88.4)
+        assert ring.ring.value == 0.884
+        assert ring.label.value == "88%"
+
+    def test_progress_ring_apply_theme_dict(self):
+        ring = FinancialProgressRing(pct=50.0)
+        light_tokens = get_tokens("light")
+        ring.apply_theme(light_tokens)
+        assert ring.label.color == light_tokens["textPrimary"]  # Alto contraste contra branco
+        assert ring.ring.bgcolor == light_tokens["ringTrack"]
+        assert ring.ring.color == light_tokens["ring1"]
+
+        dark_tokens = get_tokens("dark")
+        ring.apply_theme(dark_tokens)
+        assert ring.label.color == dark_tokens["textPrimary"]
+        assert ring.ring.bgcolor == dark_tokens["ringTrack"]
+        assert ring.ring.color == dark_tokens["ring1"]
+
+    def test_progress_ring_apply_theme_kwargs(self):
+        ring = FinancialProgressRing(pct=50.0)
+        ring.apply_theme(text_color="#123456", track_color="#ABCDEF", ring_color="#654321")
+        assert ring.label.color == "#123456"
+        assert ring.ring.bgcolor == "#ABCDEF"
+        assert ring.ring.color == "#654321"
+
+
+class TestMobileCardObservationAndPendingModal:
+    """Valida o indicativo/sanfona de observações no mobile e o layout compacto do modal de pendências."""
+
+    def test_mobile_card_observation_accordion(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        # Despesa com observação
+        exp_with_obs = {
+            "id": "exp-obs-1",
+            "description": "Seguro Carro",
+            "amount": 250.0,
+            "status": "pendente",
+            "due_date": "2026-09-15",
+            "observation": "Parcela 3 de 10",
+        }
+        card = view._build_expense_mobile_card(exp_with_obs)
+        col = card.content
+        assert isinstance(col, ft.Column)
+        # Top row, Desc row, Obs box, Bottom row
+        assert len(col.controls) == 4
+
+        desc_row = col.controls[1]
+        assert isinstance(desc_row, ft.Row)
+        obs_badge = desc_row.controls[1]
+        assert isinstance(obs_badge, ft.Container)
+        assert obs_badge.content.controls[1].value == "Obs"
+
+        obs_box = col.controls[2]
+        assert isinstance(obs_box, ft.Container)
+        assert obs_box.visible is False
+
+        # Dispara clique no badge de observação para expandir sanfona
+        obs_badge.on_click(None)
+        assert obs_box.visible is True
+
+        # Dispara clique novamente para recolher
+        obs_badge.on_click(None)
+        assert obs_box.visible is False
+
+        # Dispara clique no container de descrição da despesa para expandir
+        desc_container = desc_row.controls[0]
+        desc_container.on_click(None)
+        assert obs_box.visible is True
+
+        # Dispara clique na própria caixa de observação para recolher
+        obs_box.on_click(None)
+        assert obs_box.visible is False
+
+    def test_mobile_card_without_observation(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        exp_no_obs = {
+            "id": "exp-no-obs",
+            "description": "Água",
+            "amount": 80.0,
+            "status": "pago",
+            "due_date": "2026-09-08",
+            "observation": "",
+        }
+        card = view._build_expense_mobile_card(exp_no_obs)
+        col = card.content
+        assert isinstance(col, ft.Column)
+        # Apenas Top row, Desc container, Bottom row (sem Obs box)
+        assert len(col.controls) == 3
+
+    @patch("ui.dashboard_view.get_previous_month_pending")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_pending_modal_two_line_compact_layout(self, mock_summary, mock_expenses, mock_pending):
+        mock_expenses.return_value = []
+        mock_summary.return_value = {"total_despesas": 0.0, "total_pago": 0.0, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+        mock_pending.return_value = {
+            "prev_month_ref": "2026-08",
+            "items": [
+                {
+                    "id": "exp-p1",
+                    "description": "Financiamento Apto Araraquara",
+                    "amount": 605.05,
+                    "due_date": "2026-08-20",
+                    "category": {"name": "Moradia", "color": "#3B82F6"},
+                }
+            ],
+            "count": 1,
+            "total_amount": 605.05,
+        }
+
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+        view.load_data(silent=True)
+        view._open_prev_month_alert_modal()
+
+        dlg = page.show_dialog.call_args[0][0]
+        items_list = dlg.content.content.controls[1]
+        row_item = items_list.controls[0]
+        assert isinstance(row_item, ft.Container)
+
+        # O conteúdo interno é uma Column de 2 linhas compactas
+        card_col = row_item.content
+        assert isinstance(card_col, ft.Column)
+        assert len(card_col.controls) == 2
+
+        top_row = card_col.controls[0]
+        assert "Moradia" in top_row.controls[0].controls[0].content.value
+        assert "Dia 20" in top_row.controls[0].controls[1].content.value
+        assert "R$ 605,05" in top_row.controls[1].value
+
+        bottom_row = card_col.controls[1]
+        assert "Financiamento Apto Araraquara" in bottom_row.controls[0].value
+        assert "Ir" in bottom_row.controls[1].controls[0].value
+
+    def test_clear_filters_and_active_banner_flow(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        # Simula filtros ativos
+        view.search_query = "Financiamento"
+        view.search_field.value = "Financiamento"
+        view.status_filter = "pendente"
+        view._update_active_filters_banner()
+
+        assert view.active_filters_banner.visible is True
+        assert "Pendentes" in view.active_filter_text.value
+        assert "Financiamento" in view.active_filter_text.value
+        assert view.btn_clear_search.visible is True
+
+        # Dispara limpeza completa dos filtros
+        view._clear_all_filters()
+
+        assert view.search_query == ""
+        assert view.search_field.value == ""
+        assert view.status_filter == "todos"
+        assert view.active_filters_banner.visible is False
+        assert view.btn_clear_search.visible is False
+
+    def test_clear_search_button_flow(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        view.search_query = "Luz"
+        view.search_field.value = "Luz"
+        view._update_active_filters_banner()
+        assert view.btn_clear_search.visible is True
+
+        # Limpa apenas a busca
+        view._clear_search()
+        assert view.search_query == ""
+        assert view.search_field.value == ""
+        assert view.btn_clear_search.visible is False
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_reset_to_current_month_clears_all_filters(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = []
+        mock_summary.return_value = {"total_despesas": 0.0, "total_pago": 0.0, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        view.current_month_ref = "2026-07"
+        view.search_query = "Aluguel"
+        view.search_field.value = "Aluguel"
+        view.status_filter = "pendente"
+
+        view._reset_to_current_month()
+
+        assert view.search_query == ""
+        assert view.search_field.value == ""
+        assert view.status_filter == "todos"
+        assert view.active_filters_banner.visible is False
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_change_month_clears_search_query(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = []
+        mock_summary.return_value = {"total_despesas": 0.0, "total_pago": 0.0, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        view.search_query = "Mercado"
+        view.search_field.value = "Mercado"
+
+        view._change_month(1)
+
+        assert view.search_query == ""
+        assert view.search_field.value == ""
+        assert view.btn_clear_search.visible is False
+
+    def test_will_unmount_stops_polling_and_fab(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+        view._polling_active = True
+        page.floating_action_button = MagicMock()
+
+        view.will_unmount()
+
+        assert view._polling_active is False
+        assert page.floating_action_button is None
+
+    def test_handle_page_resized_optimizes_rendering(self):
+        page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=page)
+
+        with patch.object(view, "_render_expenses_list") as mock_render:
+            # 1. Primeiro resize (montagem inicial): dispara render
+            view._handle_page_resized(MagicMock(width=360))
+            assert mock_render.call_count == 1
+
+            # 2. Resize dentro do mesmo breakpoint (ex: 365px, ainda mobile): NÃO re-renderiza a lista toda
+            view._handle_page_resized(MagicMock(width=365))
+            assert mock_render.call_count == 1
+
+            # 3. Transição de breakpoint (ex: 800px, tablet/desktop): dispara render
+            view._handle_page_resized(MagicMock(width=800))
+            assert mock_render.call_count == 2
+
+
+
 
 

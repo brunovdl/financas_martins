@@ -103,8 +103,16 @@ def get_local_item(page: ft.Page, key: str) -> Any | None:
             pass
 
     mai_storage = getattr(page, "_mai_storage", None)
-    if val_str is None and isinstance(mai_storage, dict):
+    if mai_storage is not None and isinstance(mai_storage, dict):
         val_str = mai_storage.get(key)
+        if val_str is None:
+            return None
+        if isinstance(val_str, (dict, list, int, float, bool)):
+            return val_str
+        try:
+            return json.loads(val_str)
+        except Exception:
+            return val_str
 
     if val_str is None:
         # Fallback no cache em disco local
@@ -113,6 +121,9 @@ def get_local_item(page: ft.Page, key: str) -> Any | None:
 
     if val_str is None:
         return None
+
+    if isinstance(val_str, (dict, list, int, float, bool)):
+        return val_str
 
     try:
         return json.loads(val_str)

@@ -39,7 +39,10 @@ THEMES: dict[str, dict[str, str]] = {
         "surfaceGradientB": "#111525",
         "border": "#232A45",
         "borderSubtle": "#1B2138",
+        "tableHeaderBg": "#151B2E",
+        "tableHeaderBorder": "#232A45",
         "textPrimary": "#EDF0F7",
+        "textHeader": "#EDF0F7",
         "textMuted": "#8891A8",
         "textFaint": "#606A85",
         "rowHover": "#161C34",
@@ -64,28 +67,31 @@ THEMES: dict[str, dict[str, str]] = {
         "surface": "#FFFFFF",
         "surfaceSolid": "#FFFFFF",
         "surfaceGradientA": "#FFFFFF",
-        "surfaceGradientB": "#F6F8FC",
-        "border": "#E1E5F0",
-        "borderSubtle": "#EAEDF5",
-        "textPrimary": "#131826",
-        "textMuted": "#5B6478",
-        "textFaint": "#8890A3",
-        "rowHover": "#F4F6FC",
+        "surfaceGradientB": "#F8FAFC",
+        "border": "#CBD5E1",
+        "borderSubtle": "#E2E8F0",
+        "tableHeaderBg": "#F1F5F9",
+        "tableHeaderBorder": "#CBD5E1",
+        "textPrimary": "#0F172A",
+        "textHeader": "#1E293B",
+        "textMuted": "#334155",
+        "textFaint": "#64748B",
+        "rowHover": "#F8FAFC",
         "accent": "#0E9488",
         "accentTo": "#3B5FE0",
         "accentOnBrand": "#FFFFFF",
-        "success": "#0D9488",
-        "successText": "#0D9488",
-        "successBg": "#ECFBF8",
-        "successBorder": "#CBEFE8",
+        "success": "#0E9488",
+        "successText": "#0E9488",
+        "successBg": "#ECFDF5",
+        "successBorder": "#A7F3D0",
         "warning": "#B45309",
-        "warningBg": "#FFF7EB",
-        "warningBorder": "#F5E3C4",
+        "warningBg": "#FFFBEB",
+        "warningBorder": "#FDE68A",
         "danger": "#BE123C",
         "inputBg": "#FFFFFF",
         "ring1": "#0D9488",
         "ring2": "#3FD6C4",
-        "ringTrack": "#E4E8F0",
+        "ringTrack": "#E2E8F0",
     },
 }
 
@@ -93,6 +99,49 @@ THEMES: dict[str, dict[str, str]] = {
 def get_tokens(theme_mode: str = "dark") -> dict[str, str]:
     """Retorna o dicionário de tokens para o modo informado."""
     return THEMES.get(theme_mode, THEMES["dark"])
+
+
+def get_badge_colors(color_hex: str | None, is_light: bool = False) -> tuple[str, str, str]:
+    """
+    Calcula (bgcolor, text_color, border_color) com contraste garantido.
+    No tema claro: fundo suave pastel (15-20% opacidade), texto escuro e saturado.
+    No tema escuro: fundo sólido vibrante ou semi-transparente com texto branco nítido.
+    """
+    raw = (color_hex or "#94A3B8").strip()
+    if not raw.startswith("#"):
+        raw = f"#{raw}"
+
+    # Fallback caso a cor seja inválida
+    if len(raw) not in (4, 7):
+        raw = "#94A3B8"
+
+    if len(raw) == 4:
+        raw = f"#{raw[1]*2}{raw[2]*2}{raw[3]*2}"
+
+    try:
+        r = int(raw[1:3], 16)
+        g = int(raw[3:5], 16)
+        b = int(raw[5:7], 16)
+    except Exception:
+        r, g, b = 148, 163, 184
+
+    if is_light:
+        # Fundo suave pastel
+        bg = f"rgba({r}, {g}, {b}, 0.16)"
+        border = f"rgba({r}, {g}, {b}, 0.40)"
+        # Escurece a cor em 50% para texto de alto contraste no tema claro
+        dr = max(0, int(r * 0.45))
+        dg = max(0, int(g * 0.45))
+        db = max(0, int(b * 0.45))
+        text = f"#{dr:02x}{dg:02x}{db:02x}"
+        return bg, text, border
+    else:
+        # No tema escuro: fundo escurecido sutil com texto brilhante
+        bg = f"rgba({r}, {g}, {b}, 0.22)"
+        border = f"rgba({r}, {g}, {b}, 0.50)"
+        # Clareia ou mantém vibrante
+        text = f"#{min(255, int(r * 1.15)):02x}{min(255, int(g * 1.15)):02x}{min(255, int(b * 1.15)):02x}"
+        return bg, text, border
 
 
 def format_brl(value: float | int | None) -> str:

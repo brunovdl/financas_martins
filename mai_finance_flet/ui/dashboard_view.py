@@ -16,6 +16,7 @@ Implementa:
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any, Callable
 import flet as ft
 
@@ -30,10 +31,13 @@ from services.expenses import (
     get_previous_month_pending,
 )
 from ui.components.progress_ring import FinancialProgressRing
+from ui.components.mai_loading import MaiLoading
+from ui.components.modal_header import build_modal_header
 from ui.nav import toggle_theme, get_current_theme
 from ui.storage_util import get_local_item
 from ui.theme import (
     get_tokens,
+    get_badge_colors,
     format_brl,
     month_label,
     shift_month,
@@ -98,7 +102,16 @@ class DashboardView(ft.Container):
         self._polling_active = True
 
         # Usuário logado
-        user_data = get_local_item(page, "user_data") or {}
+        user_data_raw = get_local_item(page, "user_data") or {}
+        if isinstance(user_data_raw, str):
+            try:
+                user_data = json.loads(user_data_raw)
+            except Exception:
+                user_data = {}
+        elif isinstance(user_data_raw, dict):
+            user_data = user_data_raw
+        else:
+            user_data = {}
         self.user_name = user_data.get("name", "Usuário")
         self.user_email = user_data.get("email", "")
 
@@ -137,7 +150,7 @@ class DashboardView(ft.Container):
         self.header_title = ft.Text("MAI Finance", size=18, weight=ft.FontWeight.BOLD, color=self.T["accent"], no_wrap=True)
         self.header_user = ft.Text(f"Olá, {self.user_name}", size=12, color=self.T["textMuted"], no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS)
 
-        self.logo_icon = ft.Icon(ft.Icons.ACCOUNT_BALANCE_WALLET, color=self.T["accent"], size=24)
+        self.logo_icon = ft.Image(src="logo.png", width=32, height=32, fit=ft.BoxFit.CONTAIN)
         self.logo_user_row = ft.Row(
             [
                 self.logo_icon,
@@ -301,7 +314,14 @@ class DashboardView(ft.Container):
         self.card_pago_title = ft.Text("TOTAL PAGO", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
         self.card_pago_val = ft.Text(format_brl(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["success"])
         self.card_pago_icon = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=18, color=self.T["success"])
-        self.progress_ring = FinancialProgressRing(pct=100.0, size=34, stroke_width=3.5)
+        self.progress_ring = FinancialProgressRing(
+            pct=100.0,
+            size=34,
+            stroke_width=3.5,
+            color=self.T.get("ring1", self.T["success"]),
+            bgcolor=self.T.get("ringTrack", self.T["borderSubtle"]),
+            text_color=self.T.get("textPrimary", "#F1F5F9"),
+        )
         self.card_pago = ft.Container(
             content=ft.Row(
                 [
@@ -357,10 +377,21 @@ class DashboardView(ft.Container):
 
         self.summary_bar = self._build_summary_bar()
 
+        # Botão de limpar busca rápida
+        self.btn_clear_search = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=16,
+            icon_color=self.T["textMuted"],
+            tooltip="Limpar busca",
+            visible=False,
+            on_click=lambda _: self._clear_search(),
+        )
+
         # Barra Unificada: Busca + Filtro Status Nivelado + Nova Despesa + Ações Limpas
         self.search_field = ft.TextField(
             hint_text="Buscar despesa...",
             prefix_icon=ft.Icons.SEARCH,
+            suffix=self.btn_clear_search,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -372,6 +403,49 @@ class DashboardView(ft.Container):
             content_padding=ft.Padding.symmetric(horizontal=10, vertical=0),
             text_size=13,
             on_change=self._on_search_change,
+        )
+
+        # Banner informativo de filtros ativos com botão Limpar
+        self.active_filter_text = ft.Text("", size=11, weight=ft.FontWeight.W_600, color=self.T["warning"])
+        self.btn_clear_all_filters = ft.Button(
+            content=ft.Row(
+                [
+                    ft.Text("Limpar filtros", size=11, weight=ft.FontWeight.BOLD, color="#08090F"),
+                    ft.Icon(ft.Icons.CLOSE, size=12, color="#08090F"),
+                ],
+                spacing=2,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["warning"],
+                shape=ft.RoundedRectangleBorder(radius=6),
+                padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+            ),
+            height=26,
+            on_click=lambda _: self._clear_all_filters(),
+        )
+        self.active_filters_banner = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Row(
+                        [
+                            ft.Icon(ft.Icons.FILTER_LIST, size=14, color=self.T["warning"]),
+                            self.active_filter_text,
+                        ],
+                        spacing=6,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        expand=True,
+                    ),
+                    self.btn_clear_all_filters,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            bgcolor=self.T["warningBg"],
+            border=ft.Border.all(1, self.T["warningBorder"]),
+            border_radius=8,
+            padding=ft.Padding.symmetric(horizontal=10, vertical=5),
+            visible=False,
         )
 
         status_init_label = "Todos" if self.is_compact else "Todos os status"
@@ -478,16 +552,36 @@ class DashboardView(ft.Container):
         # Área da Lista de Despesas
         self.expenses_list_col = ft.Column(spacing=6, expand=True, scroll=ft.ScrollMode.AUTO)
         self.loading_ring = ft.Container(
-            content=ft.ProgressRing(color=self.T["accent"]),
+            content=MaiLoading(message="Carregando despesas...", size=44),
             alignment=ft.Alignment.CENTER,
             padding=ft.Padding.all(40),
             visible=False,
+        )
+        self.empty_msg = ft.Text("Nenhuma despesa encontrada para este período.", size=14, color=self.T["textMuted"], text_align=ft.TextAlign.CENTER)
+        self.btn_empty_clear_filters = ft.Button(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.FILTER_ALT_OFF, size=15, color="#08090F"),
+                    ft.Text("Limpar filtros e ver todas", size=12, weight=ft.FontWeight.BOLD, color="#08090F"),
+                ],
+                spacing=4,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["warning"],
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+            ),
+            height=32,
+            visible=False,
+            on_click=lambda _: self._clear_all_filters(),
         )
         self.empty_container = ft.Container(
             content=ft.Column(
                 [
                     ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=48, color=self.T["textMuted"]),
-                    ft.Text("Nenhuma despesa encontrada para este período.", size=14, color=self.T["textMuted"]),
+                    self.empty_msg,
+                    self.btn_empty_clear_filters,
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -499,23 +593,24 @@ class DashboardView(ft.Container):
         )
 
         # Cabeçalho da Tabela (Desktop Amplo >= 1024px)
+        header_text_color = self.T.get("textHeader", self.T["textMuted"])
         self.table_header = ft.Container(
             content=ft.Row(
                 [
-                    ft.Container(content=ft.Text("VENC.", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], no_wrap=True), width=65),
-                    ft.Container(content=ft.Text("CATEGORIA", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], no_wrap=True), width=120),
-                    ft.Container(content=ft.Text("DESCRIÇÃO", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], no_wrap=True), expand=3),
-                    ft.Container(content=ft.Text("VALOR", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], text_align=ft.TextAlign.RIGHT, no_wrap=True), width=105, alignment=ft.Alignment.CENTER_RIGHT),
-                    ft.Container(content=ft.Text("PAGTO", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], text_align=ft.TextAlign.CENTER, no_wrap=True), width=70, alignment=ft.Alignment.CENTER),
-                    ft.Container(content=ft.Text("STATUS", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
-                    ft.Container(content=ft.Text("OBSERVAÇÃO", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"], no_wrap=True), expand=2),
+                    ft.Container(content=ft.Text("VENC.", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), width=65),
+                    ft.Container(content=ft.Text("CATEGORIA", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), width=120),
+                    ft.Container(content=ft.Text("DESCRIÇÃO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), expand=3),
+                    ft.Container(content=ft.Text("VALOR", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.RIGHT, no_wrap=True), width=105, alignment=ft.Alignment.CENTER_RIGHT),
+                    ft.Container(content=ft.Text("PAGTO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=70, alignment=ft.Alignment.CENTER),
+                    ft.Container(content=ft.Text("STATUS", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
+                    ft.Container(content=ft.Text("OBSERVAÇÃO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), expand=2),
                     ft.Container(width=95),
                 ],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            bgcolor=self.T["surfaceSolid"],
-            border=ft.Border.all(1, self.T["borderSubtle"]),
+            bgcolor=self.T.get("tableHeaderBg", self.T["surfaceSolid"]),
+            border=ft.Border.all(1, self.T.get("tableHeaderBorder", self.T["borderSubtle"])),
             border_radius=8,
             padding=ft.Padding.symmetric(horizontal=12, vertical=8),
             visible=not self.is_compact,
@@ -530,6 +625,7 @@ class DashboardView(ft.Container):
                 self.divider,
                 self.summary_bar,
                 self.action_filter_bar,
+                self.active_filters_banner,
                 self.table_header,
                 self.loading_ring,
                 self.empty_container,
@@ -588,6 +684,7 @@ class DashboardView(ft.Container):
                 self.page_ref.floating_action_button = ft.FloatingActionButton(
                     icon=ft.Icons.ADD,
                     bgcolor=self.T["accent"],
+                    foreground_color=self.T.get("accentOnBrand", "#08090F"),
                     tooltip="Nova Despesa",
                     on_click=lambda _: self._open_expense_dialog(),
                 )
@@ -628,6 +725,16 @@ class DashboardView(ft.Container):
         new_compact = self._detect_compact(event_w)
         new_header_compact = self._detect_header_compact(event_w)
 
+        # Otimização: detecta se houve transição de breakpoint
+        has_mounted = getattr(self, "_has_resized_once", False)
+        state_changed = (
+            not has_mounted
+            or (new_mobile != self.is_mobile)
+            or (new_compact != self.is_compact)
+            or (new_header_compact != self.is_header_compact)
+        )
+        self._has_resized_once = True
+
         self.is_mobile = new_mobile
         self.is_compact = new_compact
         self.is_header_compact = new_header_compact
@@ -661,7 +768,9 @@ class DashboardView(ft.Container):
         except ValueError:
             pass
 
-        self._render_expenses_list()
+        # Apenas re-renderiza toda a lista de despesas se os breakpoints mudaram
+        if state_changed:
+            self._render_expenses_list()
         try:
             self.page_ref.update()
         except Exception:
@@ -800,6 +909,7 @@ class DashboardView(ft.Container):
 
     def _render_expenses_list(self) -> None:
         self.expenses_list_col.controls.clear()
+        self._update_active_filters_banner()
 
         # Filtra por texto de busca e status
         filtered = []
@@ -817,6 +927,16 @@ class DashboardView(ft.Container):
             filtered.append(exp)
 
         if not filtered:
+            has_filters = bool(self.search_query.strip()) or (self.status_filter != "todos")
+            if hasattr(self, "empty_msg"):
+                if has_filters:
+                    self.empty_msg.value = "Nenhuma despesa encontrada com os filtros aplicados."
+                    if hasattr(self, "btn_empty_clear_filters"):
+                        self.btn_empty_clear_filters.visible = True
+                else:
+                    self.empty_msg.value = "Nenhuma despesa encontrada para este período."
+                    if hasattr(self, "btn_empty_clear_filters"):
+                        self.btn_empty_clear_filters.visible = False
             self.empty_container.visible = True
             return
 
@@ -860,9 +980,11 @@ class DashboardView(ft.Container):
             on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "due_date"),
         )
 
+        cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
         cat_badge = ft.Container(
-            content=ft.Text(cat_name, size=11, weight=ft.FontWeight.W_500, color="#FFFFFF"),
-            bgcolor=cat_color,
+            content=ft.Text(cat_name, size=11, weight=ft.FontWeight.W_600, color=cat_fg),
+            bgcolor=cat_bg,
+            border=ft.Border.all(1, cat_border) if cat_border else None,
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=8, vertical=2),
         )
@@ -879,16 +1001,87 @@ class DashboardView(ft.Container):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        desc_container = ft.Container(
-            content=ft.Text(
-                description,
-                size=14,
-                weight=ft.FontWeight.BOLD,
-                color=self.T["textPrimary"] if not is_pago else self.T["textMuted"],
-            ),
-            tooltip="Clique para alterar descrição",
-            on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "description"),
+        desc_text = ft.Text(
+            description,
+            size=14,
+            weight=ft.FontWeight.BOLD,
+            color=self.T["textPrimary"] if not is_pago else self.T["textMuted"],
+            expand=True,
         )
+
+        obs_box: ft.Container | None = None
+        obs_badge: ft.Container | None = None
+
+        if obs:
+            obs_box = ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.NOTES, size=13, color=self.T["accent"]),
+                        ft.Text(obs, size=11, color=self.T["textMuted"], italic=True, expand=True),
+                    ],
+                    spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                ),
+                bgcolor=self.T["pageBg"],
+                border=ft.Border.all(1, self.T["borderSubtle"]),
+                border_radius=6,
+                padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+                visible=False,
+            )
+
+            def toggle_obs(e, target_box=obs_box):
+                target_box.visible = not target_box.visible
+                try:
+                    target_box.update()
+                except Exception:
+                    try:
+                        if self.page_ref:
+                            self.page_ref.update()
+                    except Exception:
+                        pass
+
+            obs_box.on_click = toggle_obs
+
+            obs_badge = ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.NOTES, size=12, color=self.T["accent"]),
+                        ft.Text("Obs", size=10, weight=ft.FontWeight.W_600, color=self.T["accent"]),
+                    ],
+                    spacing=2,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                bgcolor=self.T["pageBg"],
+                border=ft.Border.all(1, self.T["borderSubtle"]),
+                border_radius=4,
+                padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                tooltip="Toque para ver a observação desta despesa",
+                on_click=toggle_obs,
+                ink=True,
+            )
+
+        def on_desc_click(e):
+            if obs_box:
+                toggle_obs(e)
+            else:
+                self._start_inline_edit(exp_id, "description")
+
+        desc_container = ft.Container(
+            content=desc_text,
+            tooltip="Toque para ver a observação" if obs else "Clique para alterar descrição",
+            on_click=on_desc_click,
+            expand=True,
+        )
+
+        if obs_badge:
+            desc_row = ft.Row(
+                [desc_container, obs_badge],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=6,
+            )
+        else:
+            desc_row = desc_container
 
         btn_status_toggle = ft.Container(
             content=ft.Row(
@@ -949,16 +1142,9 @@ class DashboardView(ft.Container):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        card_controls: list[ft.Control] = [top_row, desc_container]
-        if obs:
-            card_controls.append(
-                ft.Text(
-                    f"Obs: {obs}",
-                    size=11,
-                    color=self.T["textMuted"],
-                    italic=True,
-                )
-            )
+        card_controls: list[ft.Control] = [top_row, desc_row]
+        if obs_box:
+            card_controls.append(obs_box)
         card_controls.append(bottom_row)
 
         return ft.Container(
@@ -1020,9 +1206,11 @@ class DashboardView(ft.Container):
             )
 
         # 2. Coluna Categoria
+        cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
         category_badge = ft.Container(
-            content=ft.Text(cat_name, size=11, weight=ft.FontWeight.W_500, color="#FFFFFF"),
-            bgcolor=cat_color,
+            content=ft.Text(cat_name, size=11, weight=ft.FontWeight.W_600, color=cat_fg),
+            bgcolor=cat_bg,
+            border=ft.Border.all(1, cat_border) if cat_border else None,
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=8, vertical=2),
             tooltip=f"Categoria: {cat_name}",
@@ -1258,7 +1446,8 @@ class DashboardView(ft.Container):
 
         self.header_title.color = self.T["accent"]
         self.header_user.color = self.T["textMuted"]
-        self.logo_icon.color = self.T["accent"]
+        if isinstance(self.logo_icon, ft.Icon):
+            self.logo_icon.color = self.T["accent"]
 
         self.month_display.color = self.T["textPrimary"]
         self.btn_prev_month.icon_color = self.T["accent"]
@@ -1279,6 +1468,8 @@ class DashboardView(ft.Container):
         self.card_pago_title.color = self.T["textMuted"]
         self.card_pago_val.color = self.T["success"]
         self.card_pago_icon.color = self.T["success"]
+        if hasattr(self, "progress_ring") and self.progress_ring:
+            self.progress_ring.apply_theme(self.T)
 
         self.card_pendente.bgcolor = self.T["surfaceSolid"]
         self.card_pendente.border = ft.Border.all(1, self.T["border"])
@@ -1314,12 +1505,22 @@ class DashboardView(ft.Container):
             if hasattr(self.btn_more_options.content, "content") and isinstance(self.btn_more_options.content.content, ft.Icon):
                 self.btn_more_options.content.content.color = self.T["textPrimary"]
 
-        self.table_header.bgcolor = self.T["surfaceSolid"]
-        self.table_header.border = ft.Border.all(1, self.T["borderSubtle"])
+        self.table_header.bgcolor = self.T.get("tableHeaderBg", self.T["surfaceSolid"])
+        self.table_header.border = ft.Border.all(1, self.T.get("tableHeaderBorder", self.T["borderSubtle"]))
         if hasattr(self.table_header.content, "controls"):
             for c in self.table_header.content.controls:
                 if hasattr(c, "content") and isinstance(c.content, ft.Text):
-                    c.content.color = self.T["textMuted"]
+                    c.content.color = self.T.get("textHeader", self.T["textMuted"])
+
+        if hasattr(self, "active_filters_banner") and self.active_filters_banner:
+            self.active_filters_banner.bgcolor = self.T["warningBg"]
+            self.active_filters_banner.border = ft.Border.all(1, self.T["warningBorder"])
+            self.active_filter_text.color = self.T["warning"]
+            self.btn_clear_all_filters.style.bgcolor = self.T["warning"]
+        if hasattr(self, "btn_empty_clear_filters") and self.btn_empty_clear_filters:
+            self.btn_empty_clear_filters.style.bgcolor = self.T["warning"]
+        if hasattr(self, "btn_clear_search") and self.btn_clear_search:
+            self.btn_clear_search.icon_color = self.T["textMuted"]
 
         self.divider.color = self.T["borderSubtle"]
         self.btn_theme.icon = ft.Icons.LIGHT_MODE_OUTLINED if self.theme_mode == "dark" else ft.Icons.DARK_MODE_OUTLINED
@@ -1333,15 +1534,77 @@ class DashboardView(ft.Container):
     def _change_month(self, delta: int) -> None:
         self.current_month_ref = shift_month(self.current_month_ref, delta)
         self.month_display.value = month_label(self.current_month_ref)
+        # Ao navegar entre meses, reseta a busca de texto para não travar a exibição
+        if self.search_query:
+            self.search_query = ""
+            self.search_field.value = ""
+            if hasattr(self, "btn_clear_search"):
+                self.btn_clear_search.visible = False
+        self._update_active_filters_banner()
         self.load_data()
 
     def _reset_to_current_month(self) -> None:
         self.current_month_ref = get_current_month_ref()
         self.month_display.value = month_label(self.current_month_ref)
+        # Ao voltar para o mês atual, garante restauração completa da visão normal
+        self.search_query = ""
+        self.search_field.value = ""
+        if hasattr(self, "btn_clear_search"):
+            self.btn_clear_search.visible = False
+        self.status_filter = "todos"
+        self.filter_dropdown.value = "todos"
+        self._update_filter_status_label()
+        self._update_active_filters_banner()
         self.load_data()
+
+    def _clear_search(self) -> None:
+        """Limpa a busca textual e re-renderiza a lista."""
+        self.search_query = ""
+        self.search_field.value = ""
+        if hasattr(self, "btn_clear_search"):
+            self.btn_clear_search.visible = False
+        self._update_active_filters_banner()
+        self._render_expenses_list()
+        if self.page_ref:
+            self.page_ref.update()
+
+    def _clear_all_filters(self) -> None:
+        """Restaura a visão normal limpando todos os filtros aplicados (busca e status)."""
+        self.search_query = ""
+        self.search_field.value = ""
+        if hasattr(self, "btn_clear_search"):
+            self.btn_clear_search.visible = False
+        self.status_filter = "todos"
+        self.filter_dropdown.value = "todos"
+        self._update_filter_status_label()
+        self._update_active_filters_banner()
+        self._render_expenses_list()
+        if self.page_ref:
+            self.page_ref.update()
+
+    def _update_active_filters_banner(self) -> None:
+        """Sincroniza o banner informativo de filtros ativos e o botão de limpar busca."""
+        if not hasattr(self, "active_filters_banner"):
+            return
+        has_search = bool(self.search_query.strip())
+        has_status = self.status_filter != "todos"
+        if hasattr(self, "btn_clear_search"):
+            self.btn_clear_search.visible = has_search
+        if has_search or has_status:
+            parts = []
+            if has_status:
+                st_name = "Pendentes" if self.status_filter == "pendente" else "Pagos"
+                parts.append(f"Status: {st_name}")
+            if has_search:
+                parts.append(f"Busca: '{self.search_query}'")
+            self.active_filter_text.value = "Filtrando por: " + " • ".join(parts)
+            self.active_filters_banner.visible = True
+        else:
+            self.active_filters_banner.visible = False
 
     def _on_search_change(self, e: ft.ControlEvent) -> None:
         self.search_query = e.control.value or ""
+        self._update_active_filters_banner()
         self._render_expenses_list()
         self.page_ref.update()
 
@@ -1349,6 +1612,7 @@ class DashboardView(ft.Container):
         self.status_filter = key
         self.filter_dropdown.value = key
         self._update_filter_status_label()
+        self._update_active_filters_banner()
         self._render_expenses_list()
         self.page_ref.update()
 
@@ -1392,52 +1656,66 @@ class DashboardView(ft.Container):
                 cat_name = cat_info.get("name") if isinstance(cat_info, dict) else "Outros"
                 cat_color = (cat_info.get("color") or cat_info.get("color_hex") if isinstance(cat_info, dict) else None) or "#94A3B8"
 
-                btn_navigate = ft.Button(
-                    content=ft.Row(
-                        [
-                            ft.Text("Navegar", size=11, weight=ft.FontWeight.BOLD, color="#08090F"),
-                            ft.Icon(ft.Icons.ARROW_FORWARD, size=13, color="#08090F"),
-                        ],
-                        spacing=3,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                    style=ft.ButtonStyle(
-                        bgcolor=self.T["accent"],
-                        shape=ft.RoundedRectangleBorder(radius=6),
-                        padding=ft.Padding.symmetric(horizontal=8, vertical=2),
-                    ),
-                    height=28,
-                    tooltip=f"Navegar para '{desc}' em {month_label(prev_ref)}",
-                    on_click=lambda _, d=desc: navigate_to_expense(d),
+                cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
+                cat_badge = ft.Container(
+                    content=ft.Text(cat_name, size=10, weight=ft.FontWeight.W_600, color=cat_fg),
+                    bgcolor=cat_bg,
+                    border=ft.Border.all(1, cat_border) if cat_border else None,
+                    border_radius=4,
+                    padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                )
+                due_badge = ft.Container(
+                    content=ft.Text(f"Dia {due_d}", size=10, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
+                    bgcolor=self.T["pageBg"],
+                    border_radius=4,
+                    padding=ft.Padding.symmetric(horizontal=5, vertical=2),
+                )
+
+                top_pending_row = ft.Row(
+                    [
+                        ft.Row([cat_badge, due_badge], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                        ft.Text(format_brl(amt), size=12, weight=ft.FontWeight.BOLD, color=self.T["warning"]),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+
+                bottom_pending_row = ft.Row(
+                    [
+                        ft.Text(
+                            desc,
+                            size=12,
+                            weight=ft.FontWeight.BOLD,
+                            color=self.T["textPrimary"],
+                            expand=True,
+                            max_lines=2,
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        ),
+                        ft.Row(
+                            [
+                                ft.Text("Ir", size=10, weight=ft.FontWeight.BOLD, color=self.T["accent"]),
+                                ft.Icon(ft.Icons.ARROW_FORWARD, size=12, color=self.T["accent"]),
+                            ],
+                            spacing=3,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 )
 
                 row_item = ft.Container(
-                    content=ft.Row(
-                        [
-                            ft.Container(
-                                content=ft.Text(f"Dia {due_d}", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
-                                width=48,
-                            ),
-                            ft.Container(
-                                content=ft.Text(cat_name, size=10, weight=ft.FontWeight.W_500, color="#FFFFFF"),
-                                bgcolor=cat_color,
-                                border_radius=4,
-                                padding=ft.Padding.symmetric(horizontal=6, vertical=2),
-                            ),
-                            ft.Text(desc, size=12, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"], expand=True),
-                            ft.Text(format_brl(amt), size=12, weight=ft.FontWeight.BOLD, color=self.T["warning"]),
-                            btn_navigate,
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=8,
+                    content=ft.Column(
+                        [top_pending_row, bottom_pending_row],
+                        spacing=4,
+                        tight=True,
                     ),
                     bgcolor=self.T["surfaceSolid"],
                     border=ft.Border.all(1, self.T["borderSubtle"]),
                     border_radius=8,
-                    padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                    padding=ft.Padding.symmetric(horizontal=12, vertical=8),
                     ink=True,
-                    tooltip=f"Clique para navegar para esta despesa em {month_label(prev_ref)}",
+                    tooltip=f"Clique para navegar para '{desc}' em {month_label(prev_ref)}",
                     on_click=lambda _, d=desc: navigate_to_expense(d),
                 )
                 items_list.controls.append(row_item)
@@ -1462,14 +1740,18 @@ class DashboardView(ft.Container):
             self.month_display.value = month_label(prev_ref)
             self.status_filter = "pendente"
             self.filter_dropdown.value = "pendente"
-            if hasattr(self, "filter_status_text"):
-                self.filter_status_text.value = "Pendentes"
+            self._update_filter_status_label()
             if target_desc:
                 self.search_query = target_desc
                 self.search_field.value = target_desc
+                if hasattr(self, "btn_clear_search"):
+                    self.btn_clear_search.visible = True
             else:
                 self.search_query = ""
                 self.search_field.value = ""
+                if hasattr(self, "btn_clear_search"):
+                    self.btn_clear_search.visible = False
+            self._update_active_filters_banner()
             self.load_data()
             if target_desc:
                 self._show_snack(f"Navegou para {month_label(prev_ref)}: {target_desc}")
@@ -1486,12 +1768,23 @@ class DashboardView(ft.Container):
 
         dlg_w = min(page_w - 32, 520)
 
+        dlg_header = build_modal_header(
+            title=f"Pendências de {month_label(prev_ref)}",
+            on_close=lambda: self._close_dialog(dlg),
+            theme_tokens=self.T,
+        )
+
         dlg = ft.AlertDialog(
-            title=ft.Text(f"Pendências de {month_label(prev_ref)}", weight=ft.FontWeight.BOLD),
+            title=dlg_header,
             content=ft.Container(content=content_col, width=dlg_w),
+            bgcolor=self.T["surface"],
             actions=[
                 ft.Button(
-                    content=ft.Text("Fechar"),
+                    content=ft.Text("Fechar", color=self.T["textMuted"]),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["surfaceSolid"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
                     on_click=lambda _: self._close_dialog(dlg),
                 ),
                 ft.Button(
@@ -1503,7 +1796,10 @@ class DashboardView(ft.Container):
                         spacing=4,
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
-                    style=ft.ButtonStyle(bgcolor=self.T["warning"]),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["warning"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
                     on_click=lambda _: navigate_to_expense(""),
                 ),
             ],
@@ -1525,19 +1821,41 @@ class DashboardView(ft.Container):
 
         dlg_w = min(page_w - 32, 400)
 
+        del_header = build_modal_header(
+            title="Confirmar Exclusão",
+            on_close=lambda: self._close_dialog(dlg),
+            theme_tokens=self.T,
+        )
+
         dlg = ft.AlertDialog(
-            title=ft.Text("Confirmar Exclusão"),
+            title=del_header,
             content=ft.Container(
-                content=ft.Text(f"Deseja realmente excluir a despesa '{description}'?"),
+                content=ft.Text(f"Deseja realmente excluir a despesa '{description}'?", size=13, color=self.T["textPrimary"]),
                 width=dlg_w,
             ),
+            bgcolor=self.T["surface"],
             actions=[
                 ft.Button(
-                    content=ft.Text("Cancelar"),
+                    content=ft.Text("Cancelar", color=self.T["textMuted"]),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["surfaceSolid"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
                     on_click=lambda _: self._close_dialog(dlg),
                 ),
                 ft.Button(
-                    content=ft.Text("Excluir", color=self.T["danger"]),
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.DELETE_OUTLINE, size=16, color="#FFFFFF"),
+                            ft.Text("Excluir", weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+                        ],
+                        spacing=4,
+                        tight=True,
+                    ),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["danger"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
                     on_click=lambda _: self._execute_delete(dlg, expense_id),
                 ),
             ],
@@ -1570,9 +1888,18 @@ class DashboardView(ft.Container):
         if expense:
             desc_init = f"{expense.get('description', '')} (Cópia)" if is_duplicate else expense.get("description", "")
 
+        # Header do Modal com Logo MAI Finance + Título + Fechar X via build_modal_header
+        modal_header = build_modal_header(
+            title=title,
+            on_close=lambda: self._close_dialog(dlg),
+            theme_tokens=self.T,
+        )
+
         desc_field = ft.TextField(
             label="Descrição *",
+            hint_text="Ex: Supermercado, Aluguel...",
             value=desc_init,
+            dense=True,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -1582,8 +1909,11 @@ class DashboardView(ft.Container):
 
         amount_field = ft.TextField(
             label="Valor (R$) *",
+            hint_text="0,00",
             value=str(expense.get("amount", "")) if expense else "",
             keyboard_type=ft.KeyboardType.NUMBER,
+            dense=True,
+            expand=1,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -1593,8 +1923,11 @@ class DashboardView(ft.Container):
 
         default_due = expense.get("due_date", "") if expense else f"{self.current_month_ref}-10"
         due_date_field = ft.TextField(
-            label="Data de Vencimento (AAAA-MM-DD) *",
+            label="Vencimento *",
+            hint_text="AAAA-MM-DD",
             value=default_due,
+            dense=True,
+            expand=1,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -1612,6 +1945,7 @@ class DashboardView(ft.Container):
             label="Categoria",
             options=cat_options,
             value=curr_cat_id,
+            dense=True,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -1619,24 +1953,69 @@ class DashboardView(ft.Container):
             border_radius=8,
         )
 
+        # Seletor Segmentado de Status com Botões Interativos
         status_init = "pendente" if is_duplicate else (expense.get("status", "pendente") if expense else "pendente")
-        status_dropdown = ft.Dropdown(
-            label="Status",
-            options=[
-                ft.dropdown.Option(key="pendente", text="Pendente"),
-                ft.dropdown.Option(key="pago", text="Pago"),
-            ],
-            value=status_init,
-            bgcolor=self.T["surfaceSolid"],
-            border_color=self.T["borderSubtle"],
-            focused_border_color=self.T["accent"],
-            color=self.T["textPrimary"],
+        selected_status = {"value": status_init}
+
+        btn_pendente = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.SCHEDULE, size=15, color=self.T["warning"]),
+                    ft.Text("Pendente", size=12, weight=ft.FontWeight.W_600, color=self.T["warning"]),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=4,
+            ),
+            bgcolor=self.T["warningBg"] if selected_status["value"] == "pendente" else None,
+            border=ft.Border.all(1.5, self.T["warning"]) if selected_status["value"] == "pendente" else ft.Border.all(1, self.T["borderSubtle"]),
             border_radius=8,
+            padding=ft.Padding.symmetric(vertical=8, horizontal=10),
+            expand=True,
+            ink=True,
+        )
+
+        btn_pago = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.CHECK_CIRCLE, size=15, color=self.T["success"]),
+                    ft.Text("Pago", size=12, weight=ft.FontWeight.W_600, color=self.T["success"]),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=4,
+            ),
+            bgcolor=self.T["successBg"] if selected_status["value"] == "pago" else None,
+            border=ft.Border.all(1.5, self.T["success"]) if selected_status["value"] == "pago" else ft.Border.all(1, self.T["borderSubtle"]),
+            border_radius=8,
+            padding=ft.Padding.symmetric(vertical=8, horizontal=10),
+            expand=True,
+            ink=True,
+        )
+
+        def set_status_val(new_st: str) -> None:
+            selected_status["value"] = new_st
+            is_p = new_st == "pago"
+            btn_pendente.bgcolor = self.T["warningBg"] if not is_p else None
+            btn_pendente.border = ft.Border.all(1.5, self.T["warning"]) if not is_p else ft.Border.all(1, self.T["borderSubtle"])
+            btn_pago.bgcolor = self.T["successBg"] if is_p else None
+            btn_pago.border = ft.Border.all(1.5, self.T["success"]) if is_p else ft.Border.all(1, self.T["borderSubtle"])
+            self.page_ref.update()
+
+        btn_pendente.on_click = lambda _: set_status_val("pendente")
+        btn_pago.on_click = lambda _: set_status_val("pago")
+
+        status_selector = ft.Column(
+            [
+                ft.Text("Status do Pagamento", size=11, weight=ft.FontWeight.W_500, color=self.T["textMuted"]),
+                ft.Row([btn_pendente, btn_pago], spacing=8),
+            ],
+            spacing=4,
         )
 
         obs_field = ft.TextField(
             label="Observação (opcional)",
+            hint_text="Anotações adicionais",
             value=expense.get("observation", "") if expense else "",
+            dense=True,
             bgcolor=self.T["surfaceSolid"],
             border_color=self.T["borderSubtle"],
             focused_border_color=self.T["accent"],
@@ -1646,7 +2025,37 @@ class DashboardView(ft.Container):
 
         form_error = ft.Text("", color=self.T["danger"], size=12, visible=False)
 
+        # Botões de Ação
+        btn_cancel = ft.Button(
+            content=ft.Text("Cancelar", color=self.T["textMuted"]),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["surfaceSolid"],
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+            on_click=lambda _: self._close_dialog(dlg),
+        )
+
+        btn_save = ft.Button(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.CHECK, size=16, color="#08090F"),
+                    ft.Text("Salvar", weight=ft.FontWeight.BOLD, color="#08090F"),
+                ],
+                spacing=6,
+                tight=True,
+            ),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["accent"],
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+        )
+
+        is_saving = {"active": False}
+
         def save_action(_: ft.ControlEvent) -> None:
+            if is_saving["active"]:
+                return
+
             desc = (desc_field.value or "").strip()
             if not desc:
                 form_error.value = "A descrição é obrigatória."
@@ -1671,12 +2080,19 @@ class DashboardView(ft.Container):
                 self.page_ref.update()
                 return
 
+            # Proteção contra duplo clique e feedback imediato no botão
+            is_saving["active"] = True
+            btn_save.disabled = True
+            btn_save.content = MaiLoading.button_spinner("Salvando...")
+            form_error.visible = False
+            self.page_ref.update()
+
             payload = {
                 "description": desc,
                 "amount": val,
                 "due_date": due,
                 "category_id": category_dropdown.value if category_dropdown.value else None,
-                "status": status_dropdown.value or "pendente",
+                "status": selected_status["value"],
                 "observation": (obs_field.value or "").strip() or None,
                 "month_ref": f"{due[:7]}-01",
             }
@@ -1684,50 +2100,68 @@ class DashboardView(ft.Container):
             try:
                 if is_edit and expense:
                     update_expense(expense["id"], payload)
-                    self._show_snack("Despesa atualizada com sucesso!")
+                    success_msg = "Despesa atualizada com sucesso!"
                 else:
                     create_expense(payload)
-                    self._show_snack("Despesa duplicada com sucesso!" if is_duplicate else "Despesa criada com sucesso!")
+                    success_msg = "Despesa duplicada com sucesso!" if is_duplicate else "Despesa criada com sucesso!"
 
+                # 1. FECHA O MODAL IMEDIATAMENTE (DETERMINÍSTICO)
                 self._close_dialog(dlg)
+
+                # 2. RECARREGA OS DADOS PARA EXIBIR A DESPESA NA TABELA
                 self.load_data(silent=True)
+
+                # 3. EXIBE A NOTIFICAÇÃO DE SUCESSO
+                self._show_snack(success_msg)
+
             except Exception as exc:
+                is_saving["active"] = False
+                btn_save.disabled = False
+                btn_save.content = ft.Row(
+                    [
+                        ft.Icon(ft.Icons.CHECK, size=16, color="#08090F"),
+                        ft.Text("Salvar", weight=ft.FontWeight.BOLD, color="#08090F"),
+                    ],
+                    spacing=6,
+                    tight=True,
+                )
                 form_error.value = f"Erro ao salvar: {exc}"
                 form_error.visible = True
                 self.page_ref.update()
 
+        btn_save.on_click = save_action
+
         page_w = self._get_current_width()
-        dlg_w = min(page_w - 32, 420)
+        dlg_w = min(page_w - 32, 430)
+
+        # Campos Valor e Vencimento em linha compacta
+        row_amount_due = ft.Row(
+            [amount_field, due_date_field],
+            spacing=10,
+        )
 
         dlg = ft.AlertDialog(
-            title=ft.Text(title, weight=ft.FontWeight.BOLD),
+            title=modal_header,
+            bgcolor=self.T["surface"],
             content=ft.Container(
                 content=ft.Column(
                     [
                         desc_field,
+                        row_amount_due,
                         category_dropdown,
-                        amount_field,
-                        due_date_field,
-                        status_dropdown,
+                        status_selector,
                         obs_field,
                         form_error,
                     ],
-                    spacing=12,
+                    spacing=10,
                     tight=True,
                     scroll=ft.ScrollMode.AUTO,
                 ),
                 width=dlg_w,
             ),
             actions=[
-                ft.Button(
-                    content=ft.Text("Cancelar"),
-                    on_click=lambda _: self._close_dialog(dlg),
-                ),
-                ft.Button(
-                    content=ft.Text("Salvar", weight=ft.FontWeight.BOLD, color="#08090F"),
-                    style=ft.ButtonStyle(bgcolor=self.T["accent"]),
-                    on_click=save_action,
-                ),
+                btn_cancel,
+                btn_save,
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
@@ -1745,21 +2179,23 @@ class DashboardView(ft.Container):
             self.page_ref.update()
 
     def _close_dialog(self, dlg: ft.AlertDialog | None = None) -> None:
-        if hasattr(self.page_ref, "pop_dialog"):
-            self.page_ref.pop_dialog()
-        elif dlg:
+        if dlg is not None:
             dlg.open = False
-            self.page_ref.update()
+        if hasattr(self.page_ref, "pop_dialog"):
+            try:
+                self.page_ref.pop_dialog()
+            except Exception:
+                pass
+        if hasattr(self.page_ref, "dialog") and self.page_ref.dialog == dlg:
+            self.page_ref.dialog = None
+        self.page_ref.update()
 
     def _show_snack(self, message: str, is_error: bool = False) -> None:
         snack = ft.SnackBar(
-            content=ft.Text(message, color="#FFFFFF"),
+            content=ft.Text(message, color="#FFFFFF", weight=ft.FontWeight.W_500),
             bgcolor=self.T["danger"] if is_error else self.T["successBg"],
             action="OK",
         )
-        if hasattr(self.page_ref, "show_dialog"):
-            self.page_ref.show_dialog(snack)
-        else:
-            self.page_ref.snack_bar = snack
-            snack.open = True
-            self.page_ref.update()
+        self.page_ref.snack_bar = snack
+        snack.open = True
+        self.page_ref.update()

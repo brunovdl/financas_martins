@@ -40,9 +40,19 @@ def main(page: ft.Page) -> None:
     }
     page.theme = ft.Theme(font_family="Inter")
 
+    current_dashboard: DashboardView | None = None
+
     def show_auth() -> None:
+        nonlocal current_dashboard
+        if current_dashboard is not None:
+            try:
+                current_dashboard.will_unmount()
+            except Exception:
+                pass
+            current_dashboard = None
         if hasattr(page, "floating_action_button"):
             page.floating_action_button = None
+        page.on_resize = None
         page.controls.clear()
         auth_view = AuthView(
             page=page,
@@ -59,16 +69,29 @@ def main(page: ft.Page) -> None:
         page.update()
 
     def handle_logout() -> None:
+        nonlocal current_dashboard
+        if current_dashboard is not None:
+            try:
+                current_dashboard.will_unmount()
+            except Exception:
+                pass
+            current_dashboard = None
         if hasattr(page, "floating_action_button"):
             page.floating_action_button = None
+        page.on_resize = None
         remove_local_item(page, "auth_token")
         remove_local_item(page, "user_data")
         show_auth()
 
     def show_dashboard() -> None:
+        nonlocal current_dashboard
         try:
+            if current_dashboard is not None:
+                try:
+                    current_dashboard.will_unmount()
+                except Exception:
+                    pass
             page.controls.clear()
-            dashboard: DashboardView
             dashboard = DashboardView(
                 page=page,
                 on_logout=handle_logout,
@@ -80,6 +103,7 @@ def main(page: ft.Page) -> None:
                 ),
                 on_open_backups=lambda: open_backup_modal(page, on_restored=dashboard.load_data),
             )
+            current_dashboard = dashboard
             page.on_resize = dashboard._handle_page_resized
             page.add(
                 ft.SafeArea(
@@ -126,21 +150,31 @@ def _open_placeholder_modal(page: ft.Page, feature_name: str) -> None:
             )
         ],
     )
-    page.dialog = dlg
-    dlg.open = True
-    page.update()
+    if hasattr(page, "show_dialog"):
+        page.show_dialog(dlg)
+    else:
+        page.dialog = dlg
+        dlg.open = True
+        page.update()
 
 
 def _close_dialog(page: ft.Page, dlg: ft.AlertDialog) -> None:
     dlg.open = False
+    if hasattr(page, "pop_dialog"):
+        try:
+            page.pop_dialog()
+        except Exception:
+            pass
     page.update()
 
 
 if __name__ == "__main__":
+    assets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
     ft.run(
         main,
         view=ft.AppView.WEB_BROWSER,
         host=config.FLET_HOST,
         port=config.FLET_PORT,
+        assets_dir=assets_path,
     )
 
