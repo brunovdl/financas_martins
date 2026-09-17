@@ -1,0 +1,200 @@
+{
+  "runId": "financas_martins-migracao-flet-mu2433pn",
+  "feature": "migracao-flet",
+  "agent": "antigravity",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-09-15 03:27",
+  "branchTrabalho": "spec/migracao-flet",
+  "baseDir": ".spec/features/migracao-flet",
+  "specDir": ".spec",
+  "repoName": "financas_martins",
+  "logsDir": "../onp-worktrees/financas_martins-migracao-flet-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-001",
+      "titulo": "Setup do projeto Python/Flet e validação de conexão",
+      "modelo": "claude-sonnet-5",
+      "esforco": "low",
+      "arquivos": [
+        "mai_finance_flet/app.py",
+        "mai_finance_flet/config.py",
+        "mai_finance_flet/requirements.txt",
+        "mai_finance_flet/.env.example"
+      ],
+      "refs": [
+        "US-009",
+        "AC-019",
+        "AC-020"
+      ]
+    },
+    {
+      "id": "T-002",
+      "titulo": "Módulo de autenticação (PBKDF2 + JWT)",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/db/auth.py",
+        "mai_finance_flet/tests/test_auth.py"
+      ],
+      "refs": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "T-003",
+      "titulo": "Módulo supabase_client.py com suporte a RLS",
+      "modelo": "claude-sonnet-5",
+      "esforco": "low",
+      "arquivos": [
+        "mai_finance_flet/db/supabase_client.py"
+      ],
+      "refs": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-006"
+      ]
+    },
+    {
+      "id": "T-004",
+      "titulo": "Tela de autenticação (login e cadastro)",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/ui/auth_view.py",
+        "mai_finance_flet/tests/test_auth_view.py"
+      ],
+      "refs": [
+        "AC-001",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "T-005",
+      "titulo": "Serviço de despesas e view do dashboard",
+      "modelo": "claude-sonnet-5",
+      "esforco": "high",
+      "arquivos": [
+        "mai_finance_flet/services/expenses.py",
+        "mai_finance_flet/ui/dashboard_view.py",
+        "mai_finance_flet/ui/components/progress_ring.py",
+        "mai_finance_flet/tests/test_expenses.py"
+      ],
+      "refs": [
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009"
+      ]
+    },
+    {
+      "id": "T-006",
+      "titulo": "Serviço e modal de categorias",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/services/categories.py",
+        "mai_finance_flet/ui/categories_modal.py",
+        "mai_finance_flet/tests/test_categories.py"
+      ],
+      "refs": [
+        "AC-010",
+        "AC-011"
+      ]
+    },
+    {
+      "id": "T-007",
+      "titulo": "Modal de clonagem de mês",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/services/clone_month.py",
+        "mai_finance_flet/ui/clone_month_modal.py",
+        "mai_finance_flet/tests/test_clone_month.py"
+      ],
+      "refs": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "T-008",
+      "titulo": "Modal de importação em lote CSV/XLS/XLSX",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/services/import_expenses.py",
+        "mai_finance_flet/ui/import_modal.py"
+      ],
+      "refs": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "T-009",
+      "titulo": "Serviço e modal de backups",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/services/backups.py",
+        "mai_finance_flet/ui/backup_modal.py",
+        "mai_finance_flet/tests/test_backups.py"
+      ],
+      "refs": [
+        "AC-014",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "T-010",
+      "titulo": "Assistente de IA Groq com cache",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "mai_finance_flet/services/chat.py",
+        "mai_finance_flet/ui/chat_widget.py"
+      ],
+      "refs": [
+        "AC-016",
+        "AC-017"
+      ]
+    },
+    {
+      "id": "T-012",
+      "titulo": "Tema visual dark/light e navegação principal",
+      "modelo": "claude-sonnet-5",
+      "esforco": "low",
+      "arquivos": [
+        "mai_finance_flet/ui/theme.py",
+        "mai_finance_flet/ui/nav.py"
+      ],
+      "refs": [
+        "US-009"
+      ]
+    },
+    {
+      "id": "T-013",
+      "titulo": "Dockerfile Python e documentação final",
+      "modelo": "claude-sonnet-5",
+      "esforco": "low",
+      "arquivos": [
+        "mai_finance_flet/Dockerfile",
+        "mai_finance_flet/README.md"
+      ],
+      "refs": [
+        "AC-019",
+        "AC-020"
+      ]
+    }
+  ],
+  "concluidas": [],
+  "avisos": []
+}

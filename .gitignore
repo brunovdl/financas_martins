@@ -1,6 +1,12 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
+/.venv/
+/android/build/
+/android/.flet/
+**/__pycache__/
+/.pytest_cache/
+*.pyc
 /node_modules
 /.pnp
 .pnp.*
@@ -62,3 +68,7 @@ implementaton_cata_centavo.md
 mantis-summary.md
 **/mantis-summary.md
 workspace/
+
+# cache local de sessao
+.mai_session_cache.json
+**/.mai_session_cache.json

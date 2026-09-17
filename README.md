@@ -44,7 +44,37 @@
 ---
 
 ## 🛠️ Arquitetura e Tecnologia
-* **Frontend & App Router:** Next.js (React), Tailwind CSS, Lucide Icons, TypeScript.
-* **Design System:** Dark Mode Financeiro Elegante com suporte a temas responsivos.
-* **Backend & API:** Next.js Server API Routes, Node.js Crypto.
+* **Web App:** Python 3.11+, Flet (`mai_finance_flet/`), rodando como aplicação web (`ft.app(view=ft.AppView.WEB_BROWSER)`).
+* **Design System & Responsividade:** Dark Mode Financeiro Elegante (com suporte a temas claro/escuro) e arquitetura de 3 breakpoints:
+  - *Mobile (< 768px):* Coluna única, cabeçalho de 2 linhas, resumo em 2 níveis, botão flutuante (FAB) e cards de despesas.
+  - *Compacto / Tablet (< 1024px):* Ações secundárias reunidas no menu de 3 pontinhos, busca adaptativa e lista em cards fluidos (sem esmagamento de colunas).
+  - *Desktop Amplo (>= 1024px):* Tabela horizontal de 8 colunas com proteção contra quebra vertical de texto (`no_wrap=True`) e botões de atalho visíveis.
+* **Autenticação:** PBKDF2-HMAC-SHA512 e JWT HS256 (compatibilidade com usuários existentes).
+* **Inteligência Artificial:** Groq SDK (`llama-3.3-70b-versatile`) com cache de respostas em memória.
 * **Banco de Dados & Storage:** Supabase (PostgreSQL), `pg_cron`, RLS Policies.
+* **Deploy:** Docker multi-stage com usuário não-root (`appuser`), porta 8550.
+
+---
+
+## 💻 Execução Local do Web App (Python + Flet)
+
+### Executar a aplicação Flet Web:
+```powershell
+& ".\.venv\Scripts\python.exe" mai_finance_flet/app.py
+```
+Acesse no navegador: `http://localhost:8550`
+
+### Executar a suíte completa de testes:
+```powershell
+& ".\.venv\Scripts\python.exe" -m pytest mai_finance_flet -v
+```
+
+---
+
+## 🐳 Deploy via Docker
+
+```bash
+cd mai_finance_flet
+docker build -t mai-finance-flet:latest .
+docker run -d -p 8550:8550 --env-file .env mai-finance-flet:latest
+```

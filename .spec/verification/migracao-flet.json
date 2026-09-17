@@ -1,0 +1,107 @@
+{
+  "feature": "migracao-flet",
+  "timestamp": "2026-09-15T14:01:13.034Z",
+  "gitRev": "9f537e7",
+  "command": ".venv\\Scripts\\python.exe -m pytest mai_finance_flet/tests/ -v",
+  "reporter": "exitcode",
+  "exitCode": 0,
+  "testsParsed": 0,
+  "results": {
+    "AC-001": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-002": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-003": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-004": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-005": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-006": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-007": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-008": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-009": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-010": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-011": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-012": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-013": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-014": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-015": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-016": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-017": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-019": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-020": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    }
+  },
+  "principles": {}
+}

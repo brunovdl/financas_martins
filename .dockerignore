@@ -1,5 +1,8 @@
 # Dependências
 node_modules
+.venv
+android
+docs/android
 npm-debug.log*
 
 # Next.js build output

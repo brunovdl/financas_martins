@@ -1,0 +1,12 @@
+{
+  "testCommand": ".venv\\Scripts\\python.exe -m pytest mai_finance_flet/tests/ -v",
+  "reporter": "exitcode",
+  "testGlobs": [
+    "mai_finance_flet/tests/**",
+    "tests/**",
+    "test/**"
+  ],
+  "srcGlobs": [
+    "mai_finance_flet/**"
+  ]
+}

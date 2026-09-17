@@ -1,0 +1,941 @@
+{
+  "schema": 1,
+  "sinais": {
+    "SPEC_SEM_US::migracao-flet::.spec\\features\\migracao-flet\\spec.md": {
+      "codigo": "SPEC_SEM_US",
+      "feature": "migracao-flet",
+      "ref": ".spec\\features\\migracao-flet\\spec.md",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.209Z",
+      "ultimaVez": "2026-09-15T03:16:26.212Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-001": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.212Z",
+      "ultimaVez": "2026-09-15T03:16:26.212Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-002": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-003": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-004": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-005": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-006": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-007": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-008": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-009": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-010": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-011": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-012": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "TASK_SEM_STATUS::migracao-flet::T-013": {
+      "codigo": "TASK_SEM_STATUS",
+      "feature": "migracao-flet",
+      "ref": "T-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T03:16:26.213Z",
+      "gitRev": "9f537e7"
+    },
+    "GLOB_SEM_ARQUIVOS::—::P-002": {
+      "codigo": "GLOB_SEM_ARQUIVOS",
+      "feature": "—",
+      "ref": "P-002",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-09-15T03:16:26.213Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ID_DUPLICADO::teste-formato::US-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "teste-formato",
+      "ref": "US-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.409Z",
+      "ultimaVez": "2026-09-15T14:02:26.175Z",
+      "gitRev": "9f537e7"
+    },
+    "ID_DUPLICADO::teste-formato::AC-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "teste-formato",
+      "ref": "AC-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "ID_DUPLICADO::teste-formato::ASM-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "teste-formato",
+      "ref": "ASM-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "ID_DUPLICADO::teste-formato::Q-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "teste-formato",
+      "ref": "Q-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-001",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-002": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-002",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-003": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-004": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-004",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-005": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-005",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-006": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-006",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-007": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-007",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-008": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-008",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-009": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-009",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-010": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-010",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-011": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-012": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-012",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::migracao-flet::T-013": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "migracao-flet",
+      "ref": "T-013",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-001": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-002": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-003": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-004": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-005": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-006": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-007": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-008": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-009": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-010": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.413Z",
+      "ultimaVez": "2026-09-15T03:18:58.413Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-011": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-012": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-013": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-014": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-015": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-016": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-017": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-018": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-018",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-019": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::migracao-flet::AC-020": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "migracao-flet",
+      "ref": "AC-020",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_INEXISTENTE::teste-formato::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "teste-formato",
+      "ref": "T-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_TESTE::teste-formato::AC-001": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "teste-formato",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T03:18:58.414Z",
+      "ultimaVez": "2026-09-15T03:18:58.414Z",
+      "gitRev": "9f537e7"
+    },
+    "REF_QUEBRADA::migracao-flet::T-001": {
+      "codigo": "REF_QUEBRADA",
+      "feature": "migracao-flet",
+      "ref": "T-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "REF_QUEBRADA::migracao-flet::T-012": {
+      "codigo": "REF_QUEBRADA",
+      "feature": "migracao-flet",
+      "ref": "T-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-001": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-002": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-003": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-004": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-005": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-006": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-007": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-008": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.176Z",
+      "ultimaVez": "2026-09-15T14:02:26.176Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-009": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-010": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-011": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-012": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-013": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-014": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-015": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-016": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-017": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-019": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "PROVA_FRACA::migracao-flet::AC-020": {
+      "codigo": "PROVA_FRACA",
+      "feature": "migracao-flet",
+      "ref": "AC-020",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "AC_SEM_PROVA::teste-formato::AC-001": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "teste-formato",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/__init__.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/__init__.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/__pycache__/__init__.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/__pycache__/__init__.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/__pycache__/config.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/__pycache__/config.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/db/__init__.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/db/__init__.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/__init__.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/db/__pycache__/__init__.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/auth.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/db/__pycache__/auth.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/supabase_client.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/db/__pycache__/supabase_client.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__init__.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__init__.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/__init__.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/__init__.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/auth_service.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/auth_service.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/backups.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/backups.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/categories.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/categories.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/chat.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/chat.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/clone_month.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/clone_month.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/expenses.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/expenses.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/import_expenses.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/import_expenses.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/auth_service.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/auth_service.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__init__.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__init__.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/__init__.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/__init__.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/auth_view.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/auth_view.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/dashboard_view.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/dashboard_view.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/nav.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/nav.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/storage_util.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/storage_util.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/theme.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/theme.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__init__.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__init__.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/__init__.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/__init__.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/progress_ring.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/progress_ring.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/storage_util.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/storage_util.py",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-15T14:02:26.177Z",
+      "ultimaVez": "2026-09-15T14:02:26.177Z",
+      "gitRev": "9f537e7"
+    }
+  }
+}
