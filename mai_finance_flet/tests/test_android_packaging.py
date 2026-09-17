@@ -55,11 +55,14 @@ class TestAndroidPackaging:
 
         # Verifica ferramentas
         assert "subosito/flutter-action" in content
+        assert "flutter-version: '3.44.8'" in content
         assert "actions/setup-java" in content
         assert "java-version: '17'" in content
 
         # Verifica comando flet build apk e parâmetros essenciais
         assert "flet build apk" in content
+        assert "--yes" in content
+        assert "--no-rich-output" in content
         assert "--project mai_finance" in content
         assert '--product "MAI Finance"' in content
         assert "--android-adaptive-icon-background" in content

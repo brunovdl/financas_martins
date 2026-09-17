@@ -38,14 +38,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar Java 17 (JDK)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Flutter
+      - name: Configurar Flutter 3.44.8
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.44.8'
           channel: 'stable'
           cache: true
 
@@ -60,6 +61,7 @@ jobs:
           flutter --version
           java -version
           python --version
+          yes | flutter doctor --android-licenses || true
 
       - name: Instalar Dependências e Flet CLI
         run: |
@@ -84,6 +86,8 @@ jobs:
           echo "Iniciando compilação do MAI Finance v${VERSION} (build ${BUILD_NUMBER})..."
 
           flet build apk \
+            --yes \
+            --no-rich-output \
             --project mai_finance \
             --product "MAI Finance" \
             --org com.martinsautomation \
