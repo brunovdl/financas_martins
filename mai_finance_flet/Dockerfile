@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 2. Instala dependências Python no ambiente global do container
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt flet-web>=1.0.0
 
 # 3. Copia o código-fonte da aplicação
 COPY . /app

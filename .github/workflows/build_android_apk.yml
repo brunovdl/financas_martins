@@ -89,6 +89,7 @@ jobs:
             --yes \
             --no-rich-output \
             --module-name main \
+            --python-version 3.12 \
             --project mai_finance \
             --product "MAI Finance" \
             --org com.martinsautomation \

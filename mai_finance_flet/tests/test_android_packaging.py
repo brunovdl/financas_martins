@@ -71,6 +71,8 @@ class TestAndroidPackaging:
         assert "flet build apk" in content
         assert "--yes" in content
         assert "--no-rich-output" in content
+        assert "--module-name main" in content
+        assert "--python-version 3.12" in content
         assert "--project mai_finance" in content
         assert '--product "MAI Finance"' in content
         assert "--android-adaptive-icon-background" in content
