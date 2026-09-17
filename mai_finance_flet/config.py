@@ -4,21 +4,41 @@ Carrega o .env da raiz de mai_finance_flet/ (ou do diretório de trabalho).
 """
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+# Carregamento seguro do .env (apenas se os arquivos existirem)
+# Evita chamadas sem path (find_dotenv) que causam AssertionError em runtimes embarcados (Android Serious Python)
+try:
+    from dotenv import load_dotenv
 
-# Tenta carregar .env da pasta do projeto e da raiz do workspace
-load_dotenv(Path(__file__).parent / ".env", override=False)
-load_dotenv(Path(__file__).parent.parent / ".env", override=False)
-load_dotenv(override=False)
+    for env_path in [
+        Path(__file__).parent / ".env",
+        Path(__file__).parent.parent / ".env",
+    ]:
+        try:
+            if env_path.exists() and env_path.is_file():
+                load_dotenv(dotenv_path=env_path, override=False)
+        except Exception:
+            pass
+except Exception:
+    pass
 
-# Supabase
+# Supabase — Configurações padrão de produção públicas para o app móvel nativo
+# (equivalente às variáveis públicas expostas no frontend web)
+DEFAULT_SUPABASE_URL = "https://frauytuzqpubsbijbjrt.supabase.co"
+DEFAULT_SUPABASE_ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyYXV5dHV6cXB1YnNiaWpianJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NDg5OTgsImV4cCI6MjA3NTQyNDk5OH0."
+    "rV-3lA6J33VWnsVlY5lTXqN5bERads0O2R8al9UmPTQ"
+)
+
 SUPABASE_URL: str = (
     os.getenv("SUPABASE_URL")
-    or os.getenv("NEXT_PUBLIC_SUPABASE_URL", "https://frauytuzqpubsbijbjrt.supabase.co")
+    or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    or DEFAULT_SUPABASE_URL
 )
 SUPABASE_ANON_KEY: str = (
     os.getenv("SUPABASE_ANON_KEY")
-    or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+    or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    or DEFAULT_SUPABASE_ANON_KEY
 )
 
 # JWT caseiro — assinatura de sessão
