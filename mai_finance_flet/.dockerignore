@@ -6,11 +6,6 @@
 .pytest_cache/
 /.pytest_cache/
 
-# Dependências legadas / mobile
-node_modules/
-android/
-docs/
-
 # Cache local de sessão
 .mai_session_cache.json
 **/.mai_session_cache.json
@@ -23,12 +18,6 @@ docs/
 # Git e controle de versão
 .git/
 .gitignore
-
-# Especificações e agentes
-.agents/
-.spec/
-*.md
-!mai_finance_flet/README.md
 
 # Dev / Sistema operacional
 .DS_Store

@@ -1,6 +1,6 @@
 # ============================================================
-# MAI Finance Flet Web App — Dockerfile Multi-Stage (Subpasta mai_finance_flet)
-# Build Context: mai_finance_flet/
+# MAI Finance Flet Web App — Dockerfile Multi-Stage (Easypanel / Produção)
+# Build Context: Raiz do repositório
 # ============================================================
 
 # Stage 1: Builder — instala dependências em ambiente isolado
@@ -8,11 +8,12 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
+# Instala dependências de compilação se necessárias
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY mai_finance_flet/requirements.txt ./
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # ============================================================
@@ -36,8 +37,8 @@ RUN groupadd -g 1001 appgroup && \
 # Copia pacotes python instalados do builder para o usuário appuser
 COPY --from=builder --chown=appuser:appgroup /root/.local /home/appuser/.local
 
-# Copia o código-fonte da aplicação
-COPY --chown=appuser:appgroup . /app
+# Copia o código-fonte da aplicação Flet para /app
+COPY --chown=appuser:appgroup mai_finance_flet/ /app/
 
 USER appuser
 

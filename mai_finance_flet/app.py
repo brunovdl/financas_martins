@@ -140,6 +140,7 @@ if __name__ == "__main__":
     ft.run(
         main,
         view=ft.AppView.WEB_BROWSER,
+        host=config.FLET_HOST,
         port=config.FLET_PORT,
     )
 
