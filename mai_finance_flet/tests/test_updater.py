@@ -127,3 +127,38 @@ class TestUpdateModalUI:
         assert isinstance(dlg, ft.AlertDialog)
         assert dlg.modal is True
         assert dlg.content is not None
+
+    def test_dashboard_web_updater_behavior(self):
+        """Valida que o Dashboard desabilita verificações de atualização quando executando no navegador Web."""
+        from ui.dashboard_view import DashboardView
+
+        # Cenário 1: Ambiente Web (page.web = True)
+        mock_page_web = MagicMock(spec=ft.Page)
+        mock_page_web.web = True
+        mock_page_web.width = 1200
+        mock_page_web.theme_mode = ft.ThemeMode.DARK
+        mock_page_web.snack_bar = None
+        mock_page_web.update = MagicMock()
+
+        view_web = DashboardView(page=mock_page_web)
+        assert view_web._is_web() is True
+        assert view_web.btn_check_update.visible is False
+        assert view_web.item_check_update.visible is False
+
+        # Chamada manual em ambiente Web exibe aviso amigável sem chamar a API do GitHub
+        view_web._manual_check_update()
+        assert mock_page_web.snack_bar is not None
+        assert "Web" in mock_page_web.snack_bar.content.value
+
+        # Cenário 2: Ambiente Nativo / Mobile / Desktop (page.web = False)
+        mock_page_native = MagicMock(spec=ft.Page)
+        mock_page_native.web = False
+        mock_page_native.width = 1200
+        mock_page_native.theme_mode = ft.ThemeMode.DARK
+
+        view_native = DashboardView(page=mock_page_native)
+        assert view_native._is_web() is False
+        assert view_native.btn_check_update.visible is True
+        assert view_native.item_check_update.visible is True
+
+

@@ -265,6 +265,7 @@ class DashboardView(ft.Container):
             tooltip="Verificar Atualizações",
             icon_color=self.T["textMuted"],
             icon_size=20,
+            visible=not self._is_web(),
             on_click=lambda _: self._manual_check_update(),
         )
 
@@ -514,6 +515,12 @@ class DashboardView(ft.Container):
         self.btn_clonar.visible = not self.is_compact
         self.btn_backups.visible = not self.is_compact
 
+        self.item_check_update = ft.PopupMenuItem(
+            content=ft.Row([ft.Icon(ft.Icons.SYSTEM_UPDATE_ALT_OUTLINED, size=18, color=self.T["accent"]), ft.Text("Verificar Atualizações", size=13)]),
+            visible=not self._is_web(),
+            on_click=lambda _: self._manual_check_update(),
+        )
+
         self.btn_more_options = ft.PopupMenuButton(
             content=ft.Container(
                 content=ft.Icon(ft.Icons.MORE_VERT, size=20, color=self.T["textPrimary"]),
@@ -543,10 +550,7 @@ class DashboardView(ft.Container):
                     content=ft.Row([ft.Icon(ft.Icons.BACKUP_OUTLINED, size=18, color=self.T["textPrimary"]), ft.Text("Backups", size=13)]),
                     on_click=lambda _: self.on_open_backups() if self.on_open_backups else None,
                 ),
-                ft.PopupMenuItem(
-                    content=ft.Row([ft.Icon(ft.Icons.SYSTEM_UPDATE_ALT_OUTLINED, size=18, color=self.T["accent"]), ft.Text("Verificar Atualizações", size=13)]),
-                    on_click=lambda _: self._manual_check_update(),
-                ),
+                self.item_check_update,
             ],
             visible=self.is_compact,
         )
@@ -730,8 +734,14 @@ class DashboardView(ft.Container):
         if hasattr(self.page_ref, "run_task"):
             self.page_ref.run_task(self._start_polling)
 
-        # Checagem em segundo plano de nova versão do aplicativo
-        threading.Thread(target=self._check_update_silently, daemon=True).start()
+        # Checagem em segundo plano de nova versão do aplicativo (apenas no aplicativo nativo Android, nunca na Web)
+        if not self._is_web():
+            threading.Thread(target=self._check_update_silently, daemon=True).start()
+        else:
+            if hasattr(self, "btn_check_update"):
+                self.btn_check_update.visible = False
+            if hasattr(self, "item_check_update"):
+                self.item_check_update.visible = False
 
     def will_unmount(self) -> None:
         self._polling_active = False
@@ -2240,8 +2250,14 @@ class DashboardView(ft.Container):
         snack.open = True
         self.page_ref.update()
 
+    def _is_web(self) -> bool:
+        """Retorna True se estiver executando no navegador Web (servidor)."""
+        return bool(self.page_ref and getattr(self.page_ref, "web", False))
+
     def _check_update_silently(self) -> None:
-        """Verifica em segundo plano se há atualização sem incomodar o usuário caso esteja atualizado."""
+        """Verifica em segundo plano se há atualização (apenas no app Android nativo, nunca na Web)."""
+        if self._is_web():
+            return
         try:
             update = check_for_updates()
             if update and self.page_ref:
@@ -2251,6 +2267,10 @@ class DashboardView(ft.Container):
 
     def _manual_check_update(self) -> None:
         """Verificação sob demanda disparada pelo usuário via botão ou menu."""
+        if self._is_web():
+            self._show_snack("A versão Web é atualizada automaticamente no servidor.")
+            return
+
         self._show_snack("Verificando atualizações no GitHub...")
 
         def _worker():

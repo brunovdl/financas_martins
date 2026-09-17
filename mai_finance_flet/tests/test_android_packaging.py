@@ -49,6 +49,12 @@ class TestAndroidPackaging:
         workflow_path = PROJECT_ROOT / ".github" / "workflows" / "build_android_apk.yml"
         assert workflow_path.exists(), f"Workflow não encontrado: {workflow_path}"
 
+    def test_release_keystore_exists(self):
+        """Garante que a keystore permanente de release para assinatura Android existe e é válida."""
+        keystore_path = BASE_DIR / "keystore" / "mai_finance.jks"
+        assert keystore_path.exists(), f"Keystore não encontrada em {keystore_path}"
+        assert keystore_path.stat().st_size > 1000, "Keystore parece corrompida ou vazia"
+
     def test_github_actions_workflow_content(self):
         """Valida se o workflow contém os parâmetros críticos de build Android e branding oficial."""
         workflow_path = PROJECT_ROOT / ".github" / "workflows" / "build_android_apk.yml"
@@ -79,6 +85,14 @@ class TestAndroidPackaging:
         assert "android.permission.INTERNET=true" in content
         assert "android.permission.REQUEST_INSTALL_PACKAGES=true" in content
 
+        # Validação de assinatura com Keystore permanente (evita conflito de pacotes no Android)
+        assert "--android-signing-key-store" in content
+        assert "mai_finance.jks" in content
+        assert "--android-signing-key-alias" in content
+        assert "maifinance" in content
+        assert "--android-signing-key-password" in content
+
         # Verifica artefatos e releases
         assert "actions/upload-artifact" in content
         assert "softprops/action-gh-release" in content
+

@@ -101,6 +101,10 @@ jobs:
             --android-adaptive-icon-background "#121828" \
             --splash-color "#121828" \
             --splash-dark-color "#121828" \
+            --android-signing-key-store "$(pwd)/keystore/mai_finance.jks" \
+            --android-signing-key-store-password "mai_finance_release_key_2026" \
+            --android-signing-key-password "mai_finance_release_key_2026" \
+            --android-signing-key-alias "maifinance" \
             --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true \
             --exclude "tests/*" "Mai Finance QA.pdf" \
             --verbose
