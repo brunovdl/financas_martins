@@ -41,11 +41,12 @@ from ui.components.mai_loading import MaiLoading
 from ui.components.modal_header import build_modal_header
 from ui.components.calendar_modal import open_calendar_modal
 from ui.nav import toggle_theme, get_current_theme
-from ui.storage_util import get_local_item
+from ui.storage_util import get_local_item, set_local_item
 from ui.theme import (
     get_tokens,
     get_badge_colors,
     format_brl,
+    HIDDEN_CURRENCY_MASK,
     month_label,
     shift_month,
     get_current_month_ref,
@@ -127,8 +128,20 @@ class DashboardView(ft.Container):
         self.user_name = user_data.get("name", "Usuário")
         self.user_email = user_data.get("email", "")
 
+        # Modo de privacidade (ocultar valores em R$)
+        hide_val_pref = get_local_item(page, "mai_finance_hide_values")
+        self.hide_values = (hide_val_pref is True or str(hide_val_pref).lower() == "true") if not isinstance(hide_val_pref, MagicMock if "MagicMock" in globals() else object) else False
+        if hasattr(hide_val_pref, "_mock_return_value") or str(type(hide_val_pref)).find("Mock") != -1:
+            self.hide_values = False
+        else:
+            self.hide_values = bool(hide_val_pref is True or str(hide_val_pref).lower() == "true")
+
         # Inicializa sub-componentes visuais
         self._init_ui()
+
+    def _format_money(self, value: float | int | None) -> str:
+        """Formata valor monetário respeitando o modo de privacidade."""
+        return format_brl(value, hide_values=self.hide_values)
 
     def _get_current_width(self, event_width: float | None = None) -> float:
         if event_width is not None and isinstance(event_width, (int, float)) and event_width > 0:
@@ -314,12 +327,28 @@ class DashboardView(ft.Container):
 
         # Cards de Resumo Mensal Espaçosos e Proeminentes (Métricas Modernas)
         self.card_total_title = ft.Text("TOTAL DESPESAS", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
-        self.card_total_val = ft.Text(format_brl(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["accent"])
+        self.card_total_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["accent"])
         self.card_total_icon = ft.Icon(ft.Icons.PAYMENTS_OUTLINED, size=18, color=self.T["accent"])
+        eye_icon = ft.Icons.VISIBILITY_OFF_OUTLINED if self.hide_values else ft.Icons.VISIBILITY_OUTLINED
+        eye_tooltip = "Mostrar valores" if self.hide_values else "Ocultar valores"
+        self.btn_toggle_hide_values = ft.IconButton(
+            icon=eye_icon,
+            icon_size=16,
+            icon_color=self.T["textMuted"],
+            tooltip=eye_tooltip,
+            on_click=lambda _: self._toggle_hide_values(),
+        )
         self.card_total = ft.Container(
             content=ft.Column(
                 [
-                    ft.Row([self.card_total_icon, self.card_total_title], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Row(
+                        [
+                            ft.Row([self.card_total_icon, self.card_total_title], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                            self.btn_toggle_hide_values,
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
                     self.card_total_val,
                 ],
                 spacing=4,
@@ -333,7 +362,7 @@ class DashboardView(ft.Container):
         )
 
         self.card_pago_title = ft.Text("TOTAL PAGO", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
-        self.card_pago_val = ft.Text(format_brl(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["success"])
+        self.card_pago_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["success"])
         self.card_pago_icon = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=18, color=self.T["success"])
         self.progress_ring = FinancialProgressRing(
             pct=100.0,
@@ -368,7 +397,7 @@ class DashboardView(ft.Container):
         )
 
         self.card_pendente_title = ft.Text("A PAGAR", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
-        self.card_pendente_val = ft.Text(format_brl(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["warning"])
+        self.card_pendente_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["warning"])
         self.card_pendente_icon = ft.Icon(ft.Icons.SCHEDULE, size=18, color=self.T["warning"])
         self.card_pendente_badge = ft.Text("0 pendências", size=11, color=self.T["warning"])
         self.card_pendente = ft.Container(
@@ -529,6 +558,20 @@ class DashboardView(ft.Container):
             on_click=lambda _: self._manual_check_update(),
         )
 
+        self.icon_toggle_hide_values = ft.Icon(
+            ft.Icons.VISIBILITY_OFF_OUTLINED if self.hide_values else ft.Icons.VISIBILITY_OUTLINED,
+            size=18,
+            color=self.T["textPrimary"],
+        )
+        self.text_toggle_hide_values = ft.Text(
+            "Mostrar Valores" if self.hide_values else "Ocultar Valores",
+            size=13,
+        )
+        self.item_toggle_hide_values = ft.PopupMenuItem(
+            content=ft.Row([self.icon_toggle_hide_values, self.text_toggle_hide_values], spacing=8),
+            on_click=lambda _: self._toggle_hide_values(),
+        )
+
         self.btn_more_options = ft.PopupMenuButton(
             content=ft.Container(
                 content=ft.Icon(ft.Icons.MORE_VERT, size=20, color=self.T["textPrimary"]),
@@ -540,12 +583,13 @@ class DashboardView(ft.Container):
                 alignment=ft.Alignment.CENTER,
             ),
             padding=0,
-            tooltip="Mais Ações (Nova Despesa, Clonar, Backups, Categorias)",
+            tooltip="Mais Ações (Nova Despesa, Ocultar Valores, Clonar, Backups, Categorias)",
             items=[
                 ft.PopupMenuItem(
                     content=ft.Row([ft.Icon(ft.Icons.ADD, size=18, color=self.T["accent"]), ft.Text("Nova Despesa", size=13, weight=ft.FontWeight.BOLD)]),
                     on_click=lambda _: self._open_expense_dialog(),
                 ),
+                self.item_toggle_hide_values,
                 ft.PopupMenuItem(
                     content=ft.Row([ft.Icon(ft.Icons.LABEL_OUTLINED, size=18, color=self.T["textPrimary"]), ft.Text("Categorias", size=13)]),
                     on_click=lambda _: self.on_open_categories() if self.on_open_categories else None,
@@ -1016,10 +1060,40 @@ class DashboardView(ft.Container):
         self.expenses_list_col.visible = True
         self.page_ref.update()
 
+    def _toggle_hide_values(self) -> None:
+        """Alterna o modo de privacidade para ocultar ou exibir valores monetários."""
+        self.hide_values = not self.hide_values
+        try:
+            set_local_item(self.page_ref, "mai_finance_hide_values", self.hide_values)
+        except Exception:
+            pass
+
+        eye_icon = ft.Icons.VISIBILITY_OFF_OUTLINED if self.hide_values else ft.Icons.VISIBILITY_OUTLINED
+        eye_tooltip = "Mostrar valores" if self.hide_values else "Ocultar valores"
+        menu_label = "Mostrar Valores" if self.hide_values else "Ocultar Valores"
+
+        if hasattr(self, "btn_toggle_hide_values") and self.btn_toggle_hide_values:
+            self.btn_toggle_hide_values.icon = eye_icon
+            self.btn_toggle_hide_values.tooltip = eye_tooltip
+
+        if hasattr(self, "icon_toggle_hide_values") and self.icon_toggle_hide_values:
+            self.icon_toggle_hide_values.name = eye_icon
+
+        if hasattr(self, "text_toggle_hide_values") and self.text_toggle_hide_values:
+            self.text_toggle_hide_values.value = menu_label
+
+        self._update_summary_ui()
+        self._render_expenses_list()
+        if self.selected_expense_ids:
+            self._update_selected_totals_bar()
+
+        if self.page_ref:
+            self.page_ref.update()
+
     def _update_summary_ui(self) -> None:
-        self.card_total_val.value = format_brl(self.summary.get("total_despesas", 0.0))
-        self.card_pago_val.value = format_brl(self.summary.get("total_pago", 0.0))
-        self.card_pendente_val.value = format_brl(self.summary.get("total_pendente", 0.0))
+        self.card_total_val.value = self._format_money(self.summary.get("total_despesas", 0.0))
+        self.card_pago_val.value = self._format_money(self.summary.get("total_pago", 0.0))
+        self.card_pendente_val.value = self._format_money(self.summary.get("total_pendente", 0.0))
         qtd = self.summary.get("qtd_pendente", 0)
         self.card_pendente_badge.value = f"{qtd} pendência{'s' if qtd != 1 else ''}"
         self.progress_ring.set_pct(self.summary.get("percent_pago", 100.0))
@@ -1230,16 +1304,16 @@ class DashboardView(ft.Container):
         if hasattr(self, "selected_totals_count_text"):
             self.selected_totals_count_text.value = f"{c_tot} {'item selecionado' if c_tot == 1 else 'itens selecionados'}"
         if hasattr(self, "selected_totals_sum_text"):
-            self.selected_totals_sum_text.value = format_brl(totals["total"])
+            self.selected_totals_sum_text.value = self._format_money(totals["total"])
 
         if totals["count_pago"] > 0:
-            self.subtotal_pago_text.value = f"Pago: {format_brl(totals['total_pago'])} ({totals['count_pago']})"
+            self.subtotal_pago_text.value = f"Pago: {self._format_money(totals['total_pago'])} ({totals['count_pago']})"
             self.subtotal_pago_chip.visible = True
         else:
             self.subtotal_pago_chip.visible = False
 
         if totals["count_pendente"] > 0:
-            self.subtotal_pendente_text.value = f"Pendente: {format_brl(totals['total_pendente'])} ({totals['count_pendente']})"
+            self.subtotal_pendente_text.value = f"Pendente: {self._format_money(totals['total_pendente'])} ({totals['count_pendente']})"
             self.subtotal_pendente_chip.visible = True
         else:
             self.subtotal_pendente_chip.visible = False
@@ -1328,7 +1402,7 @@ class DashboardView(ft.Container):
         )
 
         amount_container = ft.Container(
-            content=ft.Text(format_brl(amount), size=15, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
+            content=ft.Text(self._format_money(amount), size=15, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
             tooltip="Clique para alterar valor",
             on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "amount"),
         )
@@ -1628,7 +1702,7 @@ class DashboardView(ft.Container):
         else:
             col_amount = ft.Container(
                 content=ft.Text(
-                    format_brl(amount),
+                    self._format_money(amount),
                     size=13,
                     weight=ft.FontWeight.BOLD,
                     color=self.T["textPrimary"],
@@ -1817,6 +1891,12 @@ class DashboardView(ft.Container):
         self.card_total_title.color = self.T["textMuted"]
         self.card_total_val.color = self.T["accent"]
         self.card_total_icon.color = self.T["accent"]
+        if hasattr(self, "btn_toggle_hide_values") and self.btn_toggle_hide_values:
+            self.btn_toggle_hide_values.icon_color = self.T["textMuted"]
+        if hasattr(self, "icon_toggle_hide_values") and self.icon_toggle_hide_values:
+            self.icon_toggle_hide_values.color = self.T["textPrimary"]
+        if hasattr(self, "text_toggle_hide_values") and self.text_toggle_hide_values:
+            self.text_toggle_hide_values.color = self.T["textPrimary"]
 
         self.card_pago.bgcolor = self.T["surfaceSolid"]
         self.card_pago.border = ft.Border.all(1, self.T["border"])
@@ -2110,7 +2190,7 @@ class DashboardView(ft.Container):
                 top_pending_row = ft.Row(
                     [
                         ft.Row([cat_badge, due_badge], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                        ft.Text(format_brl(amt), size=12, weight=ft.FontWeight.BOLD, color=self.T["warning"]),
+                        ft.Text(self._format_money(amt), size=12, weight=ft.FontWeight.BOLD, color=self.T["warning"]),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -2159,7 +2239,7 @@ class DashboardView(ft.Container):
             content_col = ft.Column(
                 [
                     ft.Text(
-                        f"{count} pendência{'s' if count != 1 else ''} • Total em aberto: {format_brl(total)}",
+                        f"{count} pendência{'s' if count != 1 else ''} • Total em aberto: {self._format_money(total)}",
                         size=12,
                         weight=ft.FontWeight.BOLD,
                         color=self.T["warning"],

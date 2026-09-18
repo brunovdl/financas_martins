@@ -43,6 +43,9 @@ class TestThemeHelpers:
         assert format_brl(1234.56) == "R$ 1.234,56"
         assert format_brl(50.5) == "R$ 50,50"
         assert format_brl(None) == "R$ 0,00"
+        assert format_brl(1234.56, hide_values=True) == "R$ •••••"
+        assert format_brl(0, hide_values=True) == "R$ •••••"
+        assert format_brl(None, hide_values=True) == "R$ •••••"
 
     def test_month_label(self):
         assert month_label("2026-09") == "Setembro 2026"
@@ -386,7 +389,7 @@ class TestDashboardQAFixes:
         assert view.btn_clonar.visible is False
         assert view.btn_backups.visible is False
         assert view.btn_more_options.visible is True
-        assert len(view.btn_more_options.items) == 5
+        assert len(view.btn_more_options.items) == 6
 
         # Transição para desktop (1024px)
         mock_page.width = 1024
@@ -1075,6 +1078,155 @@ class TestMultiSelectionAndStatusStability:
         # 5. Ao selecionar filtro de pagos, exibe exp-1 e exp-2 (2 itens)
         view._on_status_filter_selected("pago")
         assert len(view.expenses_list_col.controls) == 2
+
+
+# ---------------------------------------------------------------------------
+# Testes do Modo de Privacidade (Ocultar Valores em Reais)
+# ---------------------------------------------------------------------------
+
+class TestDashboardPrivacyAndHideValues:
+    """Valida o modo de privacidade para ocultar valores monetários (R$ •••••)."""
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_initial_state_defaults_to_visible(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Conta de Luz", "amount": 250.50, "status": "pendente", "due_date": "2026-09-10"}
+        ]
+        mock_summary.return_value = {
+            "total_despesas": 250.50,
+            "total_pago": 0.0,
+            "total_pendente": 250.50,
+            "qtd_pendente": 1,
+            "percent_pago": 0.0,
+        }
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        assert view.hide_values is False
+        assert view.btn_toggle_hide_values.icon == ft.Icons.VISIBILITY_OUTLINED
+        assert view.btn_toggle_hide_values.tooltip == "Ocultar valores"
+        assert view.text_toggle_hide_values.value == "Ocultar Valores"
+        assert view.card_total_val.value == "R$ 250,50"
+        assert view.card_pago_val.value == "R$ 0,00"
+        assert view.card_pendente_val.value == "R$ 250,50"
+
+    @patch("ui.dashboard_view.set_local_item")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_toggle_hide_values_updates_cards_and_menu(self, mock_summary, mock_expenses, mock_set_item):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Internet", "amount": 120.0, "status": "pago", "due_date": "2026-09-05"}
+        ]
+        mock_summary.return_value = {
+            "total_despesas": 120.0,
+            "total_pago": 120.0,
+            "total_pendente": 0.0,
+            "qtd_pendente": 0,
+            "percent_pago": 100.0,
+        }
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # 1. Ativa ocultação de valores
+        view._toggle_hide_values()
+        assert view.hide_values is True
+        assert view.btn_toggle_hide_values.icon == ft.Icons.VISIBILITY_OFF_OUTLINED
+        assert view.btn_toggle_hide_values.tooltip == "Mostrar valores"
+        assert view.text_toggle_hide_values.value == "Mostrar Valores"
+        assert view.card_total_val.value == "R$ •••••"
+        assert view.card_pago_val.value == "R$ •••••"
+        assert view.card_pendente_val.value == "R$ •••••"
+        mock_set_item.assert_called_with(mock_page, "mai_finance_hide_values", True)
+
+        # 2. Desativa ocultação de valores (volta a mostrar)
+        view._toggle_hide_values()
+        assert view.hide_values is False
+        assert view.btn_toggle_hide_values.icon == ft.Icons.VISIBILITY_OUTLINED
+        assert view.btn_toggle_hide_values.tooltip == "Ocultar valores"
+        assert view.text_toggle_hide_values.value == "Ocultar Valores"
+        assert view.card_total_val.value == "R$ 120,00"
+        mock_set_item.assert_called_with(mock_page, "mai_finance_hide_values", False)
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_expenses_list_and_floating_bar_masked_when_hidden(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Supermercado", "amount": 450.0, "status": "pago", "due_date": "2026-09-08"},
+            {"id": "exp-2", "description": "Farmácia", "amount": 85.0, "status": "pendente", "due_date": "2026-09-12"},
+        ]
+        mock_summary.return_value = {
+            "total_despesas": 535.0,
+            "total_pago": 450.0,
+            "total_pendente": 85.0,
+            "qtd_pendente": 1,
+            "percent_pago": 84.1,
+        }
+
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.width = 360  # Modo mobile compacto
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # Ativa modo de privacidade
+        view._toggle_hide_values()
+
+        # Verifica que os valores dos cards de despesas na lista estão mascarados
+        first_card = view.expenses_list_col.controls[0]
+        # O amount_container está na primeira linha (top_row)
+        top_row = first_card.content.controls[0]
+        amount_text = top_row.controls[1].content.value
+        assert amount_text == "R$ •••••"
+
+        # Seleciona ambas as despesas e verifica a barra flutuante
+        view._toggle_expense_selection("exp-1", True)
+        view._toggle_expense_selection("exp-2", True)
+        assert view.floating_selection_bar.visible is True
+        assert view.selected_totals_sum_text.value == "R$ •••••"
+        assert "R$ •••••" in view.subtotal_pago_text.value
+        assert "R$ •••••" in view.subtotal_pendente_text.value
+
+    @patch("ui.dashboard_view.get_previous_month_pending")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_prev_month_pending_modal_masked_when_hidden(self, mock_summary, mock_expenses, mock_pending):
+        mock_expenses.return_value = []
+        mock_summary.return_value = {"total_despesas": 0.0, "total_pago": 0.0, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+        mock_pending.return_value = {
+            "prev_month_ref": "2026-08",
+            "items": [
+                {
+                    "id": "exp-p1",
+                    "description": "Condomínio",
+                    "amount": 380.0,
+                    "due_date": "2026-08-10",
+                    "category": {"name": "Moradia", "color": "#3B82F6"},
+                }
+            ],
+            "count": 1,
+            "total_amount": 380.0,
+        }
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # Ativa ocultação e abre modal
+        view._toggle_hide_values()
+        view._open_prev_month_alert_modal()
+
+        dlg = mock_page.show_dialog.call_args[0][0]
+        header_text = dlg.content.content.controls[0].value
+        assert "Total em aberto: R$ •••••" in header_text
+
+        items_list = dlg.content.content.controls[1]
+        row_item = items_list.controls[0]
+        item_amt_text = row_item.content.controls[0].controls[1].value
+        assert item_amt_text == "R$ •••••"
 
 
 

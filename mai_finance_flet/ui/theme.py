@@ -144,8 +144,13 @@ def get_badge_colors(color_hex: str | None, is_light: bool = False) -> tuple[str
         return bg, text, border
 
 
-def format_brl(value: float | int | None) -> str:
-    """Formata valor numérico para padrão BRL (ex.: R$ 1.234,56)."""
+HIDDEN_CURRENCY_MASK = "R$ •••••"
+
+
+def format_brl(value: float | int | None, hide_values: bool = False) -> str:
+    """Formata valor numérico para padrão BRL (ex.: R$ 1.234,56). Se hide_values=True, retorna HIDDEN_CURRENCY_MASK."""
+    if hide_values:
+        return HIDDEN_CURRENCY_MASK
     if value is None:
         value = 0.0
     val = float(value)
