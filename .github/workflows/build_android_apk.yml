@@ -85,6 +85,25 @@ jobs:
           VERSION="${RAW_VERSION#v}"
           echo "Iniciando compilação do MAI Finance v${VERSION} (build ${BUILD_NUMBER})..."
 
+          # Injetar a versão oficial calculada no código Python e no version.json para que o app saiba sua versão real
+          python -c "
+import json, re
+with open('services/updater.py', 'r', encoding='utf-8') as f:
+    code = f.read()
+code = re.sub(r'CURRENT_VERSION\s*=\s*[\"\\'].*?[\"\\']', f'CURRENT_VERSION = \"${VERSION}\"', code)
+with open('services/updater.py', 'w', encoding='utf-8') as f:
+    f.write(code)
+
+version_data = {'version': '${VERSION}', 'build_number': '${BUILD_NUMBER}'}
+with open('version.json', 'w', encoding='utf-8') as f:
+    json.dump(version_data, f, indent=2)
+import os
+os.makedirs('assets', exist_ok=True)
+with open('assets/version.json', 'w', encoding='utf-8') as f:
+    json.dump(version_data, f, indent=2)
+print(f'Versão ${VERSION} (build ${BUILD_NUMBER}) gravada com sucesso!')
+"
+
           flet build apk \
             --yes \
             --no-rich-output \

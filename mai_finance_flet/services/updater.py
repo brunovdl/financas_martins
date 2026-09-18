@@ -10,9 +10,58 @@ from typing import Any, Callable, Optional
 import httpx
 import flet as ft
 
-# Versão local do aplicativo instalada
-CURRENT_VERSION = "1.0.0"
+# Versão local do aplicativo instalada (fallback padrão se version.json não existir)
+CURRENT_VERSION = "1.0.9"
 GITHUB_REPO = "brunovdl/financas_martins"
+
+
+def get_current_app_version() -> str:
+    """
+    Retorna a versão oficial instalada do aplicativo.
+    Prioriza leitura de version.json gerado no build Android, com fallback para CURRENT_VERSION.
+    """
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "version.json"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "version.json"),
+        os.path.join(os.getcwd(), "version.json"),
+        os.path.join(os.getcwd(), "assets", "version.json"),
+    ]
+    for path in candidates:
+        try:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    import json
+                    data = json.load(f)
+                    ver = data.get("version")
+                    if ver:
+                        return str(ver).strip().lstrip("vV")
+        except Exception:
+            pass
+
+    return CURRENT_VERSION.lstrip("vV")
+
+
+def get_android_download_dir() -> str:
+    """
+    Retorna o diretório de Downloads ideal para a plataforma.
+    No Android, prioriza a pasta pública '/storage/emulated/0/Download' para que
+    o APK fique acessível ao instalador nativo do sistema e ao usuário.
+    """
+    android_public_downloads = [
+        "/storage/emulated/0/Download",
+        "/sdcard/Download",
+        "/storage/self/primary/Download",
+    ]
+    for p in android_public_downloads:
+        if os.path.isdir(p):
+            return p
+
+    # Se estiver em ambiente Desktop, tenta pasta Downloads do usuário
+    user_downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+    if os.path.isdir(user_downloads):
+        return user_downloads
+
+    return tempfile.gettempdir()
 
 
 def parse_version_tuple(version_str: str) -> tuple[int, ...]:
@@ -48,7 +97,7 @@ def compare_versions(v1: str, v2: str) -> int:
 
 
 def check_for_updates(
-    current_version: str = CURRENT_VERSION,
+    current_version: Optional[str] = None,
     repo: str = GITHUB_REPO,
     timeout: float = 8.0,
 ) -> Optional[dict[str, Any]]:
@@ -56,6 +105,7 @@ def check_for_updates(
     Consulta a API do GitHub Releases buscando a release mais recente.
     Retorna None se não houver atualização disponível ou se falhar.
     """
+    cur_ver = current_version or get_current_app_version()
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
     headers = {
         "User-Agent": "MAI-Finance-App/1.0",
@@ -75,7 +125,7 @@ def check_for_updates(
             return None
 
         latest_version = tag_name.lstrip("vV")
-        if compare_versions(current_version, latest_version) < 0:
+        if compare_versions(cur_ver, latest_version) < 0:
             # Encontra o asset do instalador APK
             apk_asset = None
             for asset in data.get("assets", []):
@@ -87,7 +137,7 @@ def check_for_updates(
             if apk_asset:
                 return {
                     "has_update": True,
-                    "current_version": current_version,
+                    "current_version": cur_ver,
                     "latest_version": latest_version,
                     "tag_name": tag_name,
                     "release_name": data.get("name") or f"Versão {latest_version}",
@@ -111,21 +161,25 @@ def download_apk(
 ) -> str:
     """
     Baixa o APK em streaming chamando progress_callback(percent, downloaded_bytes, total_bytes).
+    Salva na pasta de Downloads pública do Android por padrão.
     Retorna o caminho do arquivo baixado.
     """
     if not target_path:
-        temp_dir = tempfile.gettempdir()
+        dest_dir = get_android_download_dir()
         filename = download_url.split("/")[-1] or "mai_finance_update.apk"
         if not filename.endswith(".apk"):
             filename += ".apk"
-        target_path = os.path.join(temp_dir, filename)
+        target_path = os.path.join(dest_dir, filename)
 
     headers = {"User-Agent": "MAI-Finance-App/1.0"}
     req = urllib.request.Request(download_url, headers=headers)
 
-    with urllib.request.urlopen(req, timeout=30.0) as response:
+    with urllib.request.urlopen(req, timeout=60.0) as response:
         total_size = int(response.headers.get("Content-Length", 0))
         downloaded = 0
+
+        # Cria pasta se não existir
+        os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
 
         with open(target_path, "wb") as f:
             while True:
@@ -141,22 +195,26 @@ def download_apk(
     return target_path
 
 
-def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[str] = None) -> None:
+def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[str] = None) -> bool:
     """
     Abre o instalador do APK no Android.
-    Se for em ambiente desktop/web, abre o link no navegador.
+    Retorna True se acionou com sucesso, False caso contrário.
     """
     try:
-        # Se puder lançar arquivo local no Android
         if os.path.exists(apk_path):
             abs_path = os.path.abspath(apk_path)
-            # No Flet Android, launch_url abre a intent correspondente
+            # Tenta disparar intent de visualização de arquivo
             file_url = f"file://{abs_path}"
             page.launch_url(file_url)
-            return
+            return True
     except Exception as e:
         print(f"[Updater] Falha ao lançar arquivo local: {e}")
 
-    # Fallback: abrir URL de download no navegador
     if download_url:
-        page.launch_url(download_url)
+        try:
+            page.launch_url(download_url)
+            return True
+        except Exception:
+            pass
+
+    return False

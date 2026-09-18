@@ -12,6 +12,8 @@ from services.updater import (
     check_for_updates,
     download_apk,
     launch_apk_installer,
+    get_current_app_version,
+    get_android_download_dir,
     CURRENT_VERSION,
 )
 from ui.components.update_modal import open_update_dialog
@@ -40,6 +42,87 @@ class TestUpdaterService:
         # Versão atual é mais recente que a remota -> 1
         assert compare_versions("1.0.5", "1.0.2") == 1
         assert compare_versions("v2.0.0", "v1.9.9") == 1
+
+    def test_get_current_app_version_from_json(self):
+        fake_json = '{"version": "1.0.15", "build": 15}'
+        with patch("os.path.exists", return_value=True):
+            with patch("builtins.open", unittest_mock_open := MagicMock()):
+                unittest_mock_open.return_value.__enter__.return_value.read.return_value = fake_json
+                with patch("json.load", return_value={"version": "1.0.15"}):
+                    v = get_current_app_version()
+                    assert v == "1.0.15"
+
+    def test_get_current_app_version_fallback(self):
+        with patch("os.path.exists", return_value=False):
+            v = get_current_app_version()
+            assert v == CURRENT_VERSION.lstrip("vV")
+
+    def test_get_android_download_dir_android(self):
+        with patch("os.path.isdir") as mock_isdir:
+            # Simula que /storage/emulated/0/Download existe
+            def fake_isdir(path):
+                return path == "/storage/emulated/0/Download"
+            mock_isdir.side_effect = fake_isdir
+
+            d = get_android_download_dir()
+            assert d == "/storage/emulated/0/Download"
+
+    def test_get_android_download_dir_fallback(self):
+        with patch("os.path.isdir", return_value=False):
+            with patch("tempfile.gettempdir", return_value="/custom/temp"):
+                d = get_android_download_dir()
+                assert d == "/custom/temp"
+
+    def test_launch_apk_installer_file_exists(self):
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.launch_url = MagicMock()
+
+        with patch("os.path.exists", return_value=True):
+            success = launch_apk_installer(mock_page, "/storage/Download/app.apk")
+            assert success is True
+            assert mock_page.launch_url.called
+            called_url = mock_page.launch_url.call_args[0][0]
+            assert called_url.startswith("file://")
+
+    def test_launch_apk_installer_browser_fallback(self):
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.launch_url = MagicMock()
+
+        with patch("os.path.exists", return_value=False):
+            success = launch_apk_installer(
+                mock_page, "/storage/Download/app.apk", download_url="https://github.com/releases/app.apk"
+            )
+            assert success is True
+            mock_page.launch_url.assert_called_with("https://github.com/releases/app.apk")
+
+    def test_launch_apk_installer_failure(self):
+        mock_page = MagicMock(spec=ft.Page)
+        with patch("os.path.exists", return_value=False):
+            success = launch_apk_installer(mock_page, "/non_existent.apk", download_url=None)
+            assert success is False
+
+    @patch("urllib.request.urlopen")
+    def test_download_apk_progress(self, mock_urlopen, tmp_path):
+        mock_resp = MagicMock()
+        mock_resp.headers = {"Content-Length": "100"}
+        mock_resp.read.side_effect = [b"a" * 50, b"b" * 50, b""]
+        mock_urlopen.return_value.__enter__.return_value = mock_resp
+
+        progress_records = []
+        def on_prog(pct, down, tot):
+            progress_records.append((pct, down, tot))
+
+        target_file = str(tmp_path / "test.apk")
+        result = download_apk(
+            "https://example.com/app.apk",
+            target_path=target_file,
+            progress_callback=on_prog,
+            chunk_size=50,
+        )
+
+        assert result == target_file
+        assert len(progress_records) == 2
+        assert progress_records[-1] == (1.0, 100, 100)
 
     @patch("urllib.request.urlopen")
     def test_check_for_updates_found(self, mock_urlopen):

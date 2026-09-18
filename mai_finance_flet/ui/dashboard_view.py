@@ -22,7 +22,7 @@ import threading
 from typing import Any, Callable
 import flet as ft
 
-from services.updater import check_for_updates, CURRENT_VERSION
+from services.updater import check_for_updates, get_current_app_version, CURRENT_VERSION
 from ui.components.update_modal import open_update_dialog
 
 from services.categories import list_categories
@@ -2817,7 +2817,7 @@ class DashboardView(ft.Container):
                 if update and self.page_ref:
                     open_update_dialog(self.page_ref, update)
                 else:
-                    self._show_snack(f"O MAI Finance já está na versão mais recente (v{CURRENT_VERSION}).")
+                    self._show_snack(f"O MAI Finance já está na versão mais recente (v{get_current_app_version()}).")
             except Exception as exc:
                 self._show_snack(f"Não foi possível verificar atualizações: {exc}", is_error=True)
 

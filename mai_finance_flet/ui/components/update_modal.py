@@ -127,6 +127,28 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
         spacing=8,
     )
 
+    file_info_text = ft.Text(
+        "",
+        size=10,
+        color=T["textMuted"],
+        selectable=True,
+    )
+    file_info_box = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.FOLDER_OPEN_OUTLINED, size=14, color=T["accent"]),
+                ft.Column([file_info_text], spacing=0, expand=True),
+            ],
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        bgcolor=T["surfaceSolid"],
+        border=ft.Border.all(1, T["borderSubtle"]),
+        border_radius=6,
+        padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+        visible=False,
+    )
+
     is_downloading = False
 
     def on_progress(pct: float, downloaded: int, total: int) -> None:
@@ -154,13 +176,63 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
         def _worker():
             try:
                 apk_path = download_apk(download_url, progress_callback=on_progress)
-                status_text.value = "Download concluído! Abrindo instalador..."
-                page.update()
-                # Fecha o diálogo e aciona o instalador nativo
-                _close_dialog(page, dlg)
+                status_text.value = "✅ Download concluído com sucesso!"
+                status_text.color = T.get("success", "#3FD6C4")
+                status_text.weight = ft.FontWeight.BOLD
+
+                file_info_text.value = f"Arquivo salvo em: {apk_path}"
+                file_info_box.visible = True
+
+                # Dispara tentativa automática de abertura do instalador nativo
                 launch_apk_installer(page, apk_path, download_url)
+
+                btn_install_apk = ft.Button(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.INSTALL_MOBILE_ROUNDED, size=16, color=T.get("accentOnBrand", "#08090F")),
+                            ft.Text("Instalar APK", size=13, weight=ft.FontWeight.BOLD, color=T.get("accentOnBrand", "#08090F")),
+                        ],
+                        spacing=4,
+                        tight=True,
+                    ),
+                    bgcolor=T["accent"],
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+                    ),
+                    on_click=lambda _: launch_apk_installer(page, apk_path, download_url),
+                )
+
+                btn_browser = ft.Button(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.OPEN_IN_BROWSER, size=15, color=T.get("textPrimary", "#EDF0F7")),
+                            ft.Text("Instalar pelo Navegador", size=12, color=T.get("textPrimary", "#EDF0F7")),
+                        ],
+                        spacing=4,
+                        tight=True,
+                    ),
+                    bgcolor=T["surfaceSolid"],
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.Padding.symmetric(horizontal=10, vertical=8),
+                    ),
+                    on_click=lambda _: page.launch_url(download_url),
+                )
+
+                btn_close_done = ft.Button(
+                    content=ft.Text("Fechar", color=T["textMuted"], size=12),
+                    style=ft.ButtonStyle(bgcolor=ft.Colors.TRANSPARENT, elevation=0),
+                    on_click=lambda _: _close_dialog(page, dlg),
+                )
+
+                actions_row.controls = [btn_close_done, btn_browser, btn_install_apk]
+                actions_row.alignment = ft.MainAxisAlignment.END
+                page.update()
+
             except Exception as exc:
                 status_text.value = f"Erro no download: {exc}"
+                status_text.color = T.get("danger", "#F5738C")
                 btn_update.disabled = False
                 btn_cancel.disabled = False
                 progress_bar.visible = False
@@ -182,6 +254,7 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
                             notes_box,
                             progress_bar,
                             status_text,
+                            file_info_box,
                             actions_row,
                         ],
                         spacing=12,
