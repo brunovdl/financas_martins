@@ -218,9 +218,25 @@ class DashboardView(ft.Container):
             on_click=lambda _: self._reset_to_current_month(),
         )
 
+        eye_icon = ft.Icons.VISIBILITY_OFF_OUTLINED if self.hide_values else ft.Icons.VISIBILITY_OUTLINED
+        eye_tooltip = "Mostrar valores" if self.hide_values else "Ocultar valores"
+        self.btn_toggle_hide_values = ft.IconButton(
+            icon=eye_icon,
+            icon_color=self.T["accent"],
+            icon_size=18,
+            tooltip=eye_tooltip,
+            on_click=lambda _: self._toggle_hide_values(),
+        )
+
         self.month_selector_box = ft.Container(
             content=ft.Row(
-                [self.btn_prev_month, self.month_display, self.btn_next_month, self.btn_current_month],
+                [
+                    self.btn_prev_month,
+                    self.month_display,
+                    self.btn_next_month,
+                    self.btn_current_month,
+                    self.btn_toggle_hide_values,
+                ],
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=2,
             ),
@@ -591,19 +607,10 @@ class DashboardView(ft.Container):
             visible=self.is_compact,
         )
 
-        eye_icon = ft.Icons.VISIBILITY_OFF_OUTLINED if self.hide_values else ft.Icons.VISIBILITY_OUTLINED
-        eye_tooltip = "Mostrar valores" if self.hide_values else "Ocultar valores"
-        self.btn_toggle_hide_values = self._build_action_button(
-            eye_tooltip,
-            eye_icon,
-            self._toggle_hide_values,
-        )
-
         self.action_filter_bar = ft.Row(
             [
                 self.search_field,
                 self.filter_dropdown,
-                self.btn_toggle_hide_values,
                 self.btn_nova_despesa,
                 self.btn_categorias,
                 self.btn_clonar,
@@ -1878,21 +1885,18 @@ class DashboardView(ft.Container):
         self.btn_current_month.style.bgcolor = self.T["surfaceSolid"]
         self.month_selector_box.bgcolor = self.T["surfaceSolid"]
         self.month_selector_box.border = ft.Border.all(1, self.T["border"])
+        if hasattr(self, "btn_toggle_hide_values") and self.btn_toggle_hide_values:
+            self.btn_toggle_hide_values.icon_color = self.T["accent"]
+        if hasattr(self, "icon_toggle_hide_values") and self.icon_toggle_hide_values:
+            self.icon_toggle_hide_values.color = self.T["textPrimary"]
+        if hasattr(self, "text_toggle_hide_values") and self.text_toggle_hide_values:
+            self.text_toggle_hide_values.color = self.T["textPrimary"]
 
         self.card_total.bgcolor = self.T["surfaceSolid"]
         self.card_total.border = ft.Border.all(1, self.T["border"])
         self.card_total_title.color = self.T["textMuted"]
         self.card_total_val.color = self.T["accent"]
         self.card_total_icon.color = self.T["accent"]
-        if hasattr(self, "btn_toggle_hide_values") and self.btn_toggle_hide_values:
-            self.btn_toggle_hide_values.icon_color = self.T["textPrimary"]
-            if hasattr(self.btn_toggle_hide_values, "style") and self.btn_toggle_hide_values.style:
-                self.btn_toggle_hide_values.style.bgcolor = self.T["surfaceSolid"]
-                self.btn_toggle_hide_values.style.side = ft.BorderSide(1, self.T["borderSubtle"])
-        if hasattr(self, "icon_toggle_hide_values") and self.icon_toggle_hide_values:
-            self.icon_toggle_hide_values.color = self.T["textPrimary"]
-        if hasattr(self, "text_toggle_hide_values") and self.text_toggle_hide_values:
-            self.text_toggle_hide_values.color = self.T["textPrimary"]
 
         self.card_pago.bgcolor = self.T["surfaceSolid"]
         self.card_pago.border = ft.Border.all(1, self.T["border"])
