@@ -37,6 +37,8 @@ def list_expenses(month_ref: str, client: Any = None) -> list[dict[str, Any]]:
         .select("*, category:categories(*)")
         .eq("month_ref", month_date)
         .order("due_date", desc=False)
+        .order("created_at", desc=False)
+        .order("id", desc=False)
         .execute()
     )
     return response.data if hasattr(response, "data") and response.data else []
@@ -167,6 +169,19 @@ def delete_expense(expense_id: str, client: Any = None) -> bool:
         client = get_client()
 
     response = client.table("expenses").delete().eq("id", expense_id).execute()
+    return bool(hasattr(response, "data"))
+
+
+def delete_expenses_batch(expense_ids: list[str], client: Any = None) -> bool:
+    """
+    Exclui múltiplas despesas do banco de dados em lote.
+    """
+    if not expense_ids:
+        return True
+    if client is None:
+        client = get_client()
+
+    response = client.table("expenses").delete().in_("id", expense_ids).execute()
     return bool(hasattr(response, "data"))
 
 

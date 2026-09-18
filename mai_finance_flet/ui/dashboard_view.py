@@ -16,6 +16,7 @@ Implementa:
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 import json
 import threading
 from typing import Any, Callable
@@ -31,12 +32,14 @@ from services.expenses import (
     create_expense,
     update_expense,
     delete_expense,
+    delete_expenses_batch,
     toggle_expense_status,
     get_previous_month_pending,
 )
 from ui.components.progress_ring import FinancialProgressRing
 from ui.components.mai_loading import MaiLoading
 from ui.components.modal_header import build_modal_header
+from ui.components.calendar_modal import open_calendar_modal
 from ui.nav import toggle_theme, get_current_theme
 from ui.storage_util import get_local_item
 from ui.theme import (
@@ -47,6 +50,8 @@ from ui.theme import (
     shift_month,
     get_current_month_ref,
     format_payment_date_to_ui,
+    iso_to_br_date,
+    br_to_iso_date,
 )
 
 class DashboardView(ft.Container):
@@ -102,6 +107,9 @@ class DashboardView(ft.Container):
         }
         self.search_query = ""
         self.status_filter = "todos"
+        self.selected_expense_ids: set[str] = set()
+        self.visible_expense_ids: set[str] | None = None
+        self._last_applied_filter: tuple[str, str] = ("", "")
         self.is_loading = False
         self._polling_active = True
 
@@ -614,15 +622,21 @@ class DashboardView(ft.Container):
 
         # Cabeçalho da Tabela (Desktop Amplo >= 1024px)
         header_text_color = self.T.get("textHeader", self.T["textMuted"])
+        self.header_select_all_cb = ft.Checkbox(
+            value=False,
+            tooltip="Selecionar todos os itens visíveis",
+            on_change=lambda e: self._toggle_select_all(e),
+        )
         self.table_header = ft.Container(
             content=ft.Row(
                 [
-                    ft.Container(content=ft.Text("VENC.", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), width=65),
+                    ft.Container(content=self.header_select_all_cb, width=32, alignment=ft.Alignment.CENTER_LEFT),
+                    ft.Container(content=ft.Text("VENC.", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
                     ft.Container(content=ft.Text("CATEGORIA", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), width=120),
                     ft.Container(content=ft.Text("DESCRIÇÃO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), expand=3),
                     ft.Container(content=ft.Text("VALOR", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.RIGHT, no_wrap=True), width=105, alignment=ft.Alignment.CENTER_RIGHT),
-                    ft.Container(content=ft.Text("PAGTO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=70, alignment=ft.Alignment.CENTER),
-                    ft.Container(content=ft.Text("STATUS", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
+                    ft.Container(content=ft.Text("PAGTO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=90, alignment=ft.Alignment.CENTER),
+                    ft.Container(content=ft.Text("STATUS", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, text_align=ft.TextAlign.CENTER, no_wrap=True), width=85, alignment=ft.Alignment.CENTER),
                     ft.Container(content=ft.Text("OBSERVAÇÃO", size=11, weight=ft.FontWeight.BOLD, color=header_text_color, no_wrap=True), expand=2),
                     ft.Container(width=105),
                 ],
@@ -638,8 +652,137 @@ class DashboardView(ft.Container):
 
         self.divider = ft.Divider(color=self.T["borderSubtle"], height=1)
 
+        # Barra Flutuante de Seleção e Totais (Estilo Excel)
+        self.selected_totals_count_text = ft.Text(
+            "0 itens selecionados",
+            size=11,
+            weight=ft.FontWeight.BOLD,
+            color=self.T["accent"],
+        )
+        self.selected_totals_sum_text = ft.Text(
+            format_brl(0.0),
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            color=self.T["textPrimary"],
+        )
+
+        self.subtotal_pago_text = ft.Text("", size=11, weight=ft.FontWeight.W_600, color=self.T["successText"])
+        self.subtotal_pago_chip = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.CHECK_CIRCLE, size=13, color=self.T["success"]),
+                    self.subtotal_pago_text,
+                ],
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            bgcolor=self.T["successBg"],
+            border=ft.Border.all(1, self.T["successBorder"]),
+            border_radius=6,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+            visible=False,
+        )
+
+        self.subtotal_pendente_text = ft.Text("", size=11, weight=ft.FontWeight.W_600, color=self.T["warning"])
+        self.subtotal_pendente_chip = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.RADIO_BUTTON_UNCHECKED, size=13, color=self.T["warning"]),
+                    self.subtotal_pendente_text,
+                ],
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            bgcolor=self.T["warningBg"],
+            border=ft.Border.all(1, self.T["warningBorder"]),
+            border_radius=6,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+            visible=False,
+        )
+
+        self.btn_unselect_all = ft.Button(
+            content=ft.Text("Desmarcar todos", size=11, color=self.T["textMuted"]),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["surfaceSolid"],
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, self.T["borderSubtle"]),
+                padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+            ),
+            height=32,
+            on_click=lambda _: self._clear_selection(),
+        )
+
+        self.btn_delete_selected_text = ft.Text("Excluir (0)", size=11, color="#FFFFFF", weight=ft.FontWeight.BOLD)
+        self.btn_delete_selected = ft.Button(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.DELETE_OUTLINE, size=14, color="#FFFFFF"),
+                    self.btn_delete_selected_text,
+                ],
+                spacing=4,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            style=ft.ButtonStyle(
+                bgcolor=self.T["danger"],
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+            ),
+            height=32,
+            on_click=lambda _: self._confirm_delete_selected(),
+        )
+
+        self.floating_inner_bar = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Row(
+                        [
+                            ft.Column(
+                                [self.selected_totals_count_text, self.selected_totals_sum_text],
+                                spacing=0,
+                                alignment=ft.MainAxisAlignment.CENTER,
+                            ),
+                            ft.Container(width=1, height=28, bgcolor=self.T["borderSubtle"]),
+                            self.subtotal_pago_chip,
+                            self.subtotal_pendente_chip,
+                        ],
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        wrap=True,
+                    ),
+                    ft.Row(
+                        [self.btn_unselect_all, self.btn_delete_selected],
+                        spacing=8,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                wrap=True,
+            ),
+            bgcolor=self.T["surface"],
+            border=ft.Border.all(1.5, self.T["accent"]),
+            border_radius=12,
+            padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=18,
+                color="rgba(0,0,0,0.45)",
+                offset=ft.Offset(0, 4),
+            ),
+            width=760,
+        )
+
+        self.floating_selection_bar = ft.Container(
+            content=self.floating_inner_bar,
+            alignment=ft.Alignment.CENTER,
+            bottom=12,
+            left=0,
+            right=0,
+            visible=False,
+        )
+
         # Montagem do Layout Principal
-        self.content = ft.Column(
+        self.main_column = ft.Column(
             [
                 self.header_container,
                 self.divider,
@@ -652,6 +795,14 @@ class DashboardView(ft.Container):
                 self.expenses_list_col,
             ],
             spacing=10,
+            expand=True,
+        )
+
+        self.content = ft.Stack(
+            [
+                self.main_column,
+                self.floating_selection_bar,
+            ],
             expand=True,
         )
 
@@ -791,10 +942,11 @@ class DashboardView(ft.Container):
         self.table_header.visible = not self.is_compact
         new_summary = self._build_summary_bar()
         try:
-            idx = self.content.controls.index(self.summary_bar)
-            self.content.controls[idx] = new_summary
+            target_parent = getattr(self, "main_column", self.content)
+            idx = target_parent.controls.index(self.summary_bar)
+            target_parent.controls[idx] = new_summary
             self.summary_bar = new_summary
-        except ValueError:
+        except (ValueError, AttributeError):
             pass
 
         # Apenas re-renderiza toda a lista de despesas se os breakpoints mudaram
@@ -817,6 +969,8 @@ class DashboardView(ft.Container):
             self.loading_ring.visible = True
             self.expenses_list_col.visible = False
             self.empty_container.visible = False
+            self.selected_expense_ids.clear()
+            self.visible_expense_ids = None
             self.page_ref.update()
 
         try:
@@ -832,6 +986,11 @@ class DashboardView(ft.Container):
                 "qtd_pendente": 0,
                 "percent_pago": 100.0,
             }
+
+        if silent:
+            self.selected_expense_ids.intersection_update({str(e.get("id")) for e in self.expenses})
+            if self.visible_expense_ids is not None:
+                self.visible_expense_ids.intersection_update({str(e.get("id")) for e in self.expenses})
 
         try:
             self.available_categories = list_categories()
@@ -909,13 +1068,14 @@ class DashboardView(ft.Container):
                 patch["amount"] = val_num
 
             elif field == "due_date":
+                iso_d = br_to_iso_date(val)
                 if val.isdigit() and 1 <= int(val) <= 31:
                     patch["due_date"] = f"{self.current_month_ref}-{int(val):02d}"
-                elif len(val) == 10 and val[4] == "-" and val[7] == "-":
-                    patch["due_date"] = val
-                    patch["month_ref"] = f"{val[:7]}-01"
+                elif len(iso_d) == 10 and iso_d[4] == "-" and iso_d[7] == "-":
+                    patch["due_date"] = iso_d
+                    patch["month_ref"] = f"{iso_d[:7]}-01"
                 else:
-                    self._show_snack("Informe o dia (ex: 10) ou data AAAA-MM-DD.", is_error=True)
+                    self._show_snack("Informe o dia (ex: 10) ou data DD/MM/AAAA.", is_error=True)
                     return
 
             elif field == "payment_date":
@@ -923,7 +1083,8 @@ class DashboardView(ft.Container):
                     patch["payment_date"] = None
                     patch["status"] = "pendente"
                 else:
-                    patch["payment_date"] = val
+                    iso_p = br_to_iso_date(val)
+                    patch["payment_date"] = iso_p
                     patch["status"] = "pago"
 
             elif field == "observation":
@@ -936,24 +1097,73 @@ class DashboardView(ft.Container):
         except Exception as exc:
             self._show_snack(f"Erro ao atualizar: {exc}", is_error=True)
 
+    def _open_expense_calendar(self, expense_id: str, field: str = "due_date") -> None:
+        """Abre o calendário personalizado para alterar data de vencimento ou pagamento de uma despesa."""
+        target_exp = next((e for e in self.expenses if str(e.get("id")) == str(expense_id)), None)
+        if not target_exp:
+            return
+        initial_val = target_exp.get(field) or target_exp.get("due_date")
+        field_label = "Vencimento" if field == "due_date" else "Pagamento"
+
+        def on_selected(iso_date: str, br_date: str) -> None:
+            patch: dict[str, Any] = {field: iso_date}
+            if field == "due_date":
+                patch["month_ref"] = f"{iso_date[:7]}-01"
+            elif field == "payment_date":
+                patch["status"] = "pago"
+            try:
+                update_expense(expense_id, patch)
+                target_exp[field] = iso_date
+                if field == "due_date":
+                    target_exp["month_ref"] = f"{iso_date[:7]}-01"
+                elif field == "payment_date":
+                    target_exp["status"] = "pago"
+                self._render_expenses_list()
+                if self.page_ref:
+                    self.page_ref.update()
+                self._show_snack(f"{field_label} alterado para {br_date}!")
+            except Exception as exc:
+                self._show_snack(f"Erro ao atualizar {field_label.lower()}: {exc}", is_error=True)
+
+        open_calendar_modal(
+            page=self.page_ref,
+            initial_date=initial_val,
+            on_date_selected=on_selected,
+            theme_tokens=self.T,
+            title=f"Alterar {field_label}",
+        )
+
+    def _get_filtered_expenses(self) -> list[dict[str, Any]]:
+        current_filter = (self.status_filter, self.search_query)
+
+        # Se os filtros mudaram (ou se visible_expense_ids foi invalidado), recalcula a lista
+        if self.visible_expense_ids is None or current_filter != self._last_applied_filter:
+            filtered = []
+            for exp in self.expenses:
+                if self.status_filter != "todos" and exp.get("status") != self.status_filter:
+                    continue
+
+                if self.search_query:
+                    q = self.search_query.lower()
+                    desc = (exp.get("description") or "").lower()
+                    obs = (exp.get("observation") or "").lower()
+                    if q not in desc and q not in obs:
+                        continue
+
+                filtered.append(exp)
+
+            self.visible_expense_ids = {str(exp.get("id")) for exp in filtered if exp.get("id")}
+            self._last_applied_filter = current_filter
+            return filtered
+
+        # Se nenhum filtro mudou (ex: toggle de status pendente <-> pago), mantém todos os itens visíveis
+        return [exp for exp in self.expenses if str(exp.get("id")) in self.visible_expense_ids]
+
     def _render_expenses_list(self) -> None:
         self.expenses_list_col.controls.clear()
         self._update_active_filters_banner()
 
-        # Filtra por texto de busca e status
-        filtered = []
-        for exp in self.expenses:
-            if self.status_filter != "todos" and exp.get("status") != self.status_filter:
-                continue
-
-            if self.search_query:
-                q = self.search_query.lower()
-                desc = (exp.get("description") or "").lower()
-                obs = (exp.get("observation") or "").lower()
-                if q not in desc and q not in obs:
-                    continue
-
-            filtered.append(exp)
+        filtered = self._get_filtered_expenses()
 
         if not filtered:
             has_filters = bool(self.search_query.strip()) or (self.status_filter != "todos")
@@ -967,6 +1177,7 @@ class DashboardView(ft.Container):
                     if hasattr(self, "btn_empty_clear_filters"):
                         self.btn_empty_clear_filters.visible = False
             self.empty_container.visible = True
+            self._update_floating_bar()
             return
 
         self.empty_container.visible = False
@@ -977,6 +1188,98 @@ class DashboardView(ft.Container):
             else:
                 item = self._build_expense_row(exp)
             self.expenses_list_col.controls.append(item)
+
+        self._update_floating_bar()
+
+    def _calculate_selected_totals(self) -> dict[str, Any]:
+        selected_items = [e for e in self.expenses if str(e.get("id")) in self.selected_expense_ids]
+        total = sum(float(e.get("amount") or 0.0) for e in selected_items)
+        items_pago = [e for e in selected_items if e.get("status") == "pago"]
+        items_pendente = [e for e in selected_items if e.get("status") == "pendente"]
+        total_pago = sum(float(e.get("amount") or 0.0) for e in items_pago)
+        total_pendente = sum(float(e.get("amount") or 0.0) for e in items_pendente)
+        return {
+            "count_total": len(selected_items),
+            "total": total,
+            "count_pago": len(items_pago),
+            "total_pago": total_pago,
+            "count_pendente": len(items_pendente),
+            "total_pendente": total_pendente,
+        }
+
+    def _update_floating_bar(self) -> None:
+        count = len(self.selected_expense_ids)
+        filtered = self._get_filtered_expenses()
+
+        # Atualiza header select all checkbox
+        if hasattr(self, "header_select_all_cb") and self.header_select_all_cb:
+            if filtered and all(str(e.get("id")) in self.selected_expense_ids for e in filtered):
+                self.header_select_all_cb.value = True
+            else:
+                self.header_select_all_cb.value = False
+
+        if count == 0:
+            if hasattr(self, "floating_selection_bar") and self.floating_selection_bar:
+                self.floating_selection_bar.visible = False
+            if hasattr(self, "expenses_list_col") and self.expenses_list_col:
+                self.expenses_list_col.padding = None
+            return
+
+        totals = self._calculate_selected_totals()
+        c_tot = totals["count_total"]
+        if hasattr(self, "selected_totals_count_text"):
+            self.selected_totals_count_text.value = f"{c_tot} {'item selecionado' if c_tot == 1 else 'itens selecionados'}"
+        if hasattr(self, "selected_totals_sum_text"):
+            self.selected_totals_sum_text.value = format_brl(totals["total"])
+
+        if totals["count_pago"] > 0:
+            self.subtotal_pago_text.value = f"Pago: {format_brl(totals['total_pago'])} ({totals['count_pago']})"
+            self.subtotal_pago_chip.visible = True
+        else:
+            self.subtotal_pago_chip.visible = False
+
+        if totals["count_pendente"] > 0:
+            self.subtotal_pendente_text.value = f"Pendente: {format_brl(totals['total_pendente'])} ({totals['count_pendente']})"
+            self.subtotal_pendente_chip.visible = True
+        else:
+            self.subtotal_pendente_chip.visible = False
+
+        if hasattr(self, "btn_delete_selected_text"):
+            self.btn_delete_selected_text.value = f"Excluir ({c_tot})"
+
+        if hasattr(self, "floating_selection_bar") and self.floating_selection_bar:
+            self.floating_selection_bar.visible = True
+
+        if hasattr(self, "expenses_list_col") and self.expenses_list_col:
+            self.expenses_list_col.padding = ft.Padding.only(bottom=70)
+
+    def _toggle_select_all(self, e: Any) -> None:
+        val = getattr(e.control, "value", False) if hasattr(e, "control") else bool(e)
+        filtered = self._get_filtered_expenses()
+        filtered_ids = {str(exp.get("id")) for exp in filtered if exp.get("id")}
+        if val:
+            self.selected_expense_ids.update(filtered_ids)
+        else:
+            self.selected_expense_ids.difference_update(filtered_ids)
+        self._update_floating_bar()
+        self._render_expenses_list()
+        self.page_ref.update()
+
+    def _toggle_expense_selection(self, expense_id: str, is_selected: bool) -> None:
+        eid = str(expense_id)
+        if is_selected:
+            self.selected_expense_ids.add(eid)
+        else:
+            self.selected_expense_ids.discard(eid)
+        self._update_floating_bar()
+        self._render_expenses_list()
+        self.page_ref.update()
+
+    def _clear_selection(self) -> None:
+        self.selected_expense_ids.clear()
+        self._update_floating_bar()
+        self._render_expenses_list()
+        self.page_ref.update()
 
     # -----------------------------------------------------------------------
     # Cards Mobile / Compacto (< 1024px)
@@ -997,16 +1300,22 @@ class DashboardView(ft.Container):
             cat_name = "Outros"
         cat_color = (cat_info.get("color") or cat_info.get("color_hex") if isinstance(cat_info, dict) else None) or "#94A3B8"
 
-        due_day = due_date.split("-")[-1] if "-" in due_date else due_date
-        due_display = f"{due_day}/{due_date.split('-')[-2]}" if "-" in due_date else due_date
+        due_display = iso_to_br_date(due_date)
 
         venc_badge = ft.Container(
-            content=ft.Text(f"Venc. {due_display}", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.CALENDAR_MONTH, size=12, color=self.T["textMuted"]),
+                    ft.Text(f"Venc. {due_display}", size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
+                ],
+                spacing=3,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
             bgcolor=self.T["pageBg"],
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
-            tooltip="Clique para alterar vencimento",
-            on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "due_date"),
+            tooltip="Toque para alterar vencimento no calendário",
+            on_click=lambda _, eid=exp_id: self._open_expense_calendar(eid, "due_date"),
         )
 
         cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
@@ -1024,8 +1333,18 @@ class DashboardView(ft.Container):
             on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "amount"),
         )
 
+        is_selected = exp_id in self.selected_expense_ids
+        cb_select = ft.Checkbox(
+            value=is_selected,
+            tooltip="Selecionar despesa",
+            on_change=lambda e, eid=exp_id: self._toggle_expense_selection(eid, e.control.value),
+        )
+
         top_row = ft.Row(
-            [ft.Row([venc_badge, cat_badge], spacing=6), amount_container],
+            [
+                ft.Row([cb_select, venc_badge, cat_badge], spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                amount_container,
+            ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
@@ -1188,7 +1507,7 @@ class DashboardView(ft.Container):
         return ft.Container(
             content=ft.Column(card_controls, spacing=6),
             bgcolor=self.T["surfaceSolid"],
-            border=ft.Border.all(1, self.T["borderSubtle"]),
+            border=ft.Border.all(1.5, self.T["accent"]) if is_selected else ft.Border.all(1, self.T["borderSubtle"]),
             border_radius=10,
             padding=ft.Padding.all(10),
         )
@@ -1212,36 +1531,32 @@ class DashboardView(ft.Container):
             cat_name = "Outros"
         cat_color = (cat_info.get("color") or cat_info.get("color_hex") if isinstance(cat_info, dict) else None) or "#94A3B8"
 
-        due_day = due_date.split("-")[-1] if "-" in due_date else due_date
-        due_display = f"{due_day}/{due_date.split('-')[-2]}" if "-" in due_date else due_date
+        due_display = iso_to_br_date(due_date)
 
-        # 1. Coluna Vencimento
-        if self.editing_cell == (exp_id, "due_date"):
-            input_due = ft.TextField(
-                value=due_day,
-                width=55,
-                height=32,
-                text_size=12,
-                content_padding=ft.Padding.symmetric(horizontal=4, vertical=0),
-                autofocus=True,
-                on_submit=lambda e, eid=exp_id: self._commit_inline_edit(eid, "due_date", e.control.value),
-            )
-            col_due = ft.Row(
+        # 0. Coluna Checkbox Seleção
+        is_selected = exp_id in self.selected_expense_ids
+        cb_select = ft.Checkbox(
+            value=is_selected,
+            tooltip="Selecionar despesa",
+            on_change=lambda e, eid=exp_id: self._toggle_expense_selection(eid, e.control.value),
+        )
+        col_cb = ft.Container(content=cb_select, width=32, alignment=ft.Alignment.CENTER_LEFT)
+
+        # 1. Coluna Vencimento (pt-BR DD/MM/AAAA com Seletor de Calendário)
+        col_due = ft.Container(
+            content=ft.Row(
                 [
-                    input_due,
-                    ft.IconButton(icon=ft.Icons.CHECK, icon_size=14, icon_color=self.T["success"], on_click=lambda _, eid=exp_id: self._commit_inline_edit(eid, "due_date", input_due.value)),
-                    ft.IconButton(icon=ft.Icons.CLOSE, icon_size=14, icon_color=self.T["danger"], on_click=lambda _: self._cancel_inline_edit()),
+                    ft.Icon(ft.Icons.CALENDAR_TODAY_OUTLINED, size=12, color=self.T["textMuted"]),
+                    ft.Text(due_display, size=11, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
                 ],
-                spacing=0,
-                width=80,
-            )
-        else:
-            col_due = ft.Container(
-                content=ft.Text(due_display, size=12, weight=ft.FontWeight.BOLD, color=self.T["textMuted"]),
-                width=65,
-                tooltip="Clique para alterar vencimento",
-                on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "due_date"),
-            )
+                spacing=3,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            width=90,
+            alignment=ft.Alignment.CENTER,
+            tooltip="Clique para escolher nova data de vencimento no calendário",
+            on_click=lambda _, eid=exp_id: self._open_expense_calendar(eid, "due_date"),
+        )
 
         # 2. Coluna Categoria
         cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
@@ -1325,38 +1640,30 @@ class DashboardView(ft.Container):
                 on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "amount"),
             )
 
-        # 5. Coluna Pagamento
-        if self.editing_cell == (exp_id, "payment_date"):
-            input_pay = ft.TextField(
-                value=payment_date or "",
-                width=65,
-                height=32,
-                text_size=11,
-                content_padding=ft.Padding.symmetric(horizontal=4, vertical=0),
-                autofocus=True,
-                on_submit=lambda e, eid=exp_id: self._commit_inline_edit(eid, "payment_date", e.control.value),
-            )
-            col_payment = ft.Row(
-                [
-                    input_pay,
-                    ft.IconButton(icon=ft.Icons.CHECK, icon_size=14, icon_color=self.T["success"], on_click=lambda _, eid=exp_id: self._commit_inline_edit(eid, "payment_date", input_pay.value)),
-                ],
-                spacing=0,
-                width=70,
-            )
-        else:
-            col_payment = ft.Container(
-                content=ft.Text(
-                    format_payment_date_to_ui(payment_date) if is_pago else "-",
-                    size=11,
-                    color=self.T["textMuted"],
-                    text_align=ft.TextAlign.CENTER,
-                ),
-                width=70,
-                alignment=ft.Alignment.CENTER,
-                tooltip="Clique para alterar data de pagamento",
-                on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "payment_date"),
-            )
+        # 5. Coluna Pagamento (pt-BR DD/MM/AAAA com Seletor de Calendário)
+        pay_display = format_payment_date_to_ui(payment_date) if is_pago else "-"
+        pay_content = [
+            ft.Text(
+                pay_display,
+                size=11,
+                color=self.T["textMuted"],
+                text_align=ft.TextAlign.CENTER,
+            ),
+        ]
+        if is_pago and payment_date:
+            pay_content.insert(0, ft.Icon(ft.Icons.EVENT_AVAILABLE_OUTLINED, size=12, color=self.T["success"]))
+
+        col_payment = ft.Container(
+            content=ft.Row(
+                pay_content,
+                spacing=3,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            width=90,
+            alignment=ft.Alignment.CENTER,
+            tooltip="Clique para alterar data de pagamento no calendário" if is_pago else "Despesa pendente",
+            on_click=lambda _, eid=exp_id: self._open_expense_calendar(eid, "payment_date") if is_pago else None,
+        )
 
         # 6. Coluna Status
         col_status = ft.Container(
@@ -1463,6 +1770,7 @@ class DashboardView(ft.Container):
         return ft.Container(
             content=ft.Row(
                 [
+                    col_cb,
                     col_due,
                     col_cat,
                     col_desc,
@@ -1476,7 +1784,7 @@ class DashboardView(ft.Container):
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             bgcolor=self.T["surfaceSolid"],
-            border=ft.Border.all(1, self.T["borderSubtle"]),
+            border=ft.Border.all(1.5, self.T["accent"]) if is_selected else ft.Border.all(1, self.T["borderSubtle"]),
             border_radius=8,
             padding=ft.Padding.only(left=12, right=14, top=4, bottom=4),
         )
@@ -1574,6 +1882,23 @@ class DashboardView(ft.Container):
 
         self.divider.color = self.T["borderSubtle"]
         self.btn_theme.icon = ft.Icons.LIGHT_MODE_OUTLINED if self.theme_mode == "dark" else ft.Icons.DARK_MODE_OUTLINED
+
+        if hasattr(self, "floating_inner_bar") and self.floating_inner_bar:
+            self.floating_inner_bar.bgcolor = self.T["surface"]
+            self.floating_inner_bar.border = ft.Border.all(1.5, self.T["accent"])
+            self.selected_totals_count_text.color = self.T["accent"]
+            self.selected_totals_sum_text.color = self.T["textPrimary"]
+            self.subtotal_pago_chip.bgcolor = self.T["successBg"]
+            self.subtotal_pago_chip.border = ft.Border.all(1, self.T["successBorder"])
+            self.subtotal_pago_text.color = self.T["successText"]
+            self.subtotal_pendente_chip.bgcolor = self.T["warningBg"]
+            self.subtotal_pendente_chip.border = ft.Border.all(1, self.T["warningBorder"])
+            self.subtotal_pendente_text.color = self.T["warning"]
+            self.btn_unselect_all.style.bgcolor = self.T["surfaceSolid"]
+            self.btn_unselect_all.style.side = ft.BorderSide(1, self.T["borderSubtle"])
+            self.btn_unselect_all.content.color = self.T["textMuted"]
+            self.btn_delete_selected.style.bgcolor = self.T["danger"]
+
         self._update_fab()
 
     def _handle_toggle_theme(self, _: ft.ControlEvent) -> None:
@@ -1584,6 +1909,8 @@ class DashboardView(ft.Container):
     def _change_month(self, delta: int) -> None:
         self.current_month_ref = shift_month(self.current_month_ref, delta)
         self.month_display.value = month_label(self.current_month_ref)
+        self.selected_expense_ids.clear()
+        self.visible_expense_ids = None
         # Ao navegar entre meses, reseta a busca de texto para não travar a exibição
         if self.search_query:
             self.search_query = ""
@@ -1596,6 +1923,8 @@ class DashboardView(ft.Container):
     def _reset_to_current_month(self) -> None:
         self.current_month_ref = get_current_month_ref()
         self.month_display.value = month_label(self.current_month_ref)
+        self.selected_expense_ids.clear()
+        self.visible_expense_ids = None
         # Ao voltar para o mês atual, garante restauração completa da visão normal
         self.search_query = ""
         self.search_field.value = ""
@@ -1611,6 +1940,7 @@ class DashboardView(ft.Container):
         """Limpa a busca textual e re-renderiza a lista."""
         self.search_query = ""
         self.search_field.value = ""
+        self.visible_expense_ids = None
         if hasattr(self, "btn_clear_search"):
             self.btn_clear_search.visible = False
         self._update_active_filters_banner()
@@ -1622,6 +1952,7 @@ class DashboardView(ft.Container):
         """Restaura a visão normal limpando todos os filtros aplicados (busca e status)."""
         self.search_query = ""
         self.search_field.value = ""
+        self.visible_expense_ids = None
         if hasattr(self, "btn_clear_search"):
             self.btn_clear_search.visible = False
         self.status_filter = "todos"
@@ -1654,6 +1985,7 @@ class DashboardView(ft.Container):
 
     def _on_search_change(self, e: ft.ControlEvent) -> None:
         self.search_query = e.control.value or ""
+        self.visible_expense_ids = None
         self._update_active_filters_banner()
         self._render_expenses_list()
         self.page_ref.update()
@@ -1661,6 +1993,7 @@ class DashboardView(ft.Container):
     def _on_status_filter_selected(self, key: str) -> None:
         self.status_filter = key
         self.filter_dropdown.value = key
+        self.visible_expense_ids = None
         self._update_filter_status_label()
         self._update_active_filters_banner()
         self._render_expenses_list()
@@ -1671,10 +2004,63 @@ class DashboardView(ft.Container):
         self._on_status_filter_selected(val)
 
     def _toggle_status(self, expense_id: str, current_status: str) -> None:
+        new_status = "pago" if current_status == "pendente" else "pendente"
+        today_iso = datetime.now().strftime("%Y-%m-%d") if new_status == "pago" else None
+
+        target_exp = None
+        for exp in self.expenses:
+            if str(exp.get("id")) == str(expense_id):
+                target_exp = exp
+                break
+
+        if not target_exp:
+            try:
+                toggle_expense_status(expense_id, current_status)
+                self.load_data(silent=True)
+            except Exception as exc:
+                self._show_snack(f"Erro ao alternar status: {exc}", is_error=True)
+            return
+
+        old_status = target_exp.get("status")
+        old_payment_date = target_exp.get("payment_date")
+        amount = float(target_exp.get("amount") or 0.0)
+
+        # Atualiza in-place na memória mantendo rigorosamente a mesma posição da célula/linha
+        target_exp["status"] = new_status
+        target_exp["payment_date"] = today_iso
+
+        # Atualiza summary in-place
+        total_pago = float(self.summary.get("total_pago", 0.0))
+        total_pendente = float(self.summary.get("total_pendente", 0.0))
+        qtd_pendente = int(self.summary.get("qtd_pendente", 0))
+        total_despesas = float(self.summary.get("total_despesas", 0.0))
+
+        if new_status == "pago":
+            total_pago += amount
+            total_pendente = max(0.0, total_pendente - amount)
+            qtd_pendente = max(0, qtd_pendente - 1)
+        else:
+            total_pago = max(0.0, total_pago - amount)
+            total_pendente += amount
+            qtd_pendente += 1
+
+        percent_pago = (total_pago / total_despesas * 100.0) if total_despesas > 0 else 100.0
+        self.summary["total_pago"] = total_pago
+        self.summary["total_pendente"] = total_pendente
+        self.summary["qtd_pendente"] = qtd_pendente
+        self.summary["percent_pago"] = percent_pago
+
+        self._update_summary_ui()
+        self._render_expenses_list()
+        self.page_ref.update()
+
         try:
             toggle_expense_status(expense_id, current_status)
-            self.load_data(silent=True)
         except Exception as exc:
+            # Reverte em caso de erro no servidor
+            target_exp["status"] = old_status
+            target_exp["payment_date"] = old_payment_date
+            self.load_data(silent=True)
             self._show_snack(f"Erro ao alternar status: {exc}", is_error=True)
 
     # -----------------------------------------------------------------------
@@ -1917,10 +2303,109 @@ class DashboardView(ft.Container):
         self._close_dialog(dlg)
         try:
             delete_expense(expense_id)
+            self.selected_expense_ids.discard(str(expense_id))
+            if self.visible_expense_ids is not None:
+                self.visible_expense_ids.discard(str(expense_id))
             self.load_data(silent=True)
             self._show_snack("Despesa excluída com sucesso!")
         except Exception as exc:
             self._show_snack(f"Erro ao excluir despesa: {exc}", is_error=True)
+
+    def _confirm_delete_selected(self) -> None:
+        count = len(self.selected_expense_ids)
+        if count == 0:
+            return
+
+        page_w = 800.0
+        try:
+            raw_w = getattr(self.page_ref, "width", None)
+            if isinstance(raw_w, (int, float)):
+                page_w = float(raw_w)
+        except Exception:
+            page_w = 800.0
+
+        dlg_w = min(page_w - 32, 420)
+
+        del_header = build_modal_header(
+            title="Confirmar Exclusão em Lote",
+            on_close=lambda: self._close_dialog(dlg),
+            theme_tokens=self.T,
+        )
+
+        dlg = ft.AlertDialog(
+            title=del_header,
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            f"Deseja realmente excluir as {count} despesas selecionadas?",
+                            size=13,
+                            color=self.T["textPrimary"],
+                            weight=ft.FontWeight.W_500,
+                        ),
+                        ft.Text(
+                            "Esta ação é irreversível e excluirá os itens permanentemente.",
+                            size=12,
+                            color=self.T["danger"],
+                        ),
+                    ],
+                    tight=True,
+                    spacing=6,
+                ),
+                width=dlg_w,
+            ),
+            bgcolor=self.T["surface"],
+            shape=ft.RoundedRectangleBorder(radius=12),
+            actions=[
+                ft.Button(
+                    content=ft.Text("Cancelar", color=self.T["textMuted"]),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["surfaceSolid"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
+                    on_click=lambda _: self._close_dialog(dlg),
+                ),
+                ft.Button(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.DELETE_SWEEP_OUTLINED, size=16, color="#FFFFFF"),
+                            ft.Text(f"Excluir ({count})", weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+                        ],
+                        spacing=4,
+                        tight=True,
+                    ),
+                    style=ft.ButtonStyle(
+                        bgcolor=self.T["danger"],
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
+                    on_click=lambda _: self._execute_delete_selected(dlg),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self._open_dialog(dlg)
+
+    def _execute_delete_selected(self, dlg: ft.AlertDialog) -> None:
+        self._close_dialog(dlg)
+        ids_to_delete = list(self.selected_expense_ids)
+        if not ids_to_delete:
+            return
+
+        try:
+            delete_expenses_batch(ids_to_delete)
+            count = len(ids_to_delete)
+            self.expenses = [e for e in self.expenses if str(e.get("id")) not in self.selected_expense_ids]
+            if self.visible_expense_ids is not None:
+                self.visible_expense_ids.difference_update(self.selected_expense_ids)
+            self.selected_expense_ids.clear()
+            self._update_floating_bar()
+            self._render_expenses_list()
+            self.summary = get_monthly_summary(self.current_month_ref)
+            self._update_summary_ui()
+            self.page_ref.update()
+            self._show_snack(f"{count} {'despesa excluída' if count == 1 else 'despesas excluídas'} com sucesso!")
+        except Exception as exc:
+            self._show_snack(f"Erro ao excluir despesas selecionadas: {exc}", is_error=True)
 
     # -----------------------------------------------------------------------
     # Modal de Criação / Edição Completa de Despesa (Flet 1.0)
@@ -1971,11 +2456,13 @@ class DashboardView(ft.Container):
             border_radius=8,
         )
 
-        default_due = expense.get("due_date", "") if expense else f"{self.current_month_ref}-10"
+        default_due_iso = expense.get("due_date", "") if expense else f"{self.current_month_ref}-10"
+        default_due_br = iso_to_br_date(default_due_iso)
+
         due_date_field = ft.TextField(
             label="Vencimento *",
-            hint_text="AAAA-MM-DD",
-            value=default_due,
+            hint_text="DD/MM/AAAA",
+            value=default_due_br,
             dense=True,
             expand=1,
             bgcolor=self.T["surfaceSolid"],
@@ -1983,6 +2470,55 @@ class DashboardView(ft.Container):
             focused_border_color=self.T["accent"],
             color=self.T["textPrimary"],
             border_radius=8,
+            read_only=True,
+        )
+
+        def open_cal_for_due_modal(_=None):
+            def on_sel_due(iso_d: str, br_d: str):
+                due_date_field.value = br_d
+                try:
+                    due_date_field.update()
+                except Exception:
+                    if self.page_ref:
+                        self.page_ref.update()
+
+            open_calendar_modal(
+                page=self.page_ref,
+                initial_date=due_date_field.value or default_due_iso,
+                on_date_selected=on_sel_due,
+                theme_tokens=self.T,
+                title="Vencimento",
+            )
+
+        due_date_field.on_click = open_cal_for_due_modal
+
+        btn_pick_calendar = ft.IconButton(
+            icon=ft.Icons.CALENDAR_MONTH,
+            icon_color=self.T["accent"],
+            icon_size=20,
+            tooltip="Escolher data no calendário",
+            on_click=open_cal_for_due_modal,
+        )
+
+        class DuePickerRow(ft.Row):
+            def __init__(self, field: ft.TextField, button: ft.IconButton, **kwargs):
+                super().__init__(controls=[field, button], **kwargs)
+                self.due_date_field = field
+
+            @property
+            def value(self):
+                return self.due_date_field.value
+
+            @value.setter
+            def value(self, val):
+                self.due_date_field.value = val
+
+        due_picker_container = DuePickerRow(
+            due_date_field,
+            btn_pick_calendar,
+            spacing=2,
+            expand=1,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
         cat_options = [ft.dropdown.Option(key="", text="Sem Categoria")] + [
@@ -2123,9 +2659,10 @@ class DashboardView(ft.Container):
                 self.page_ref.update()
                 return
 
-            due = (due_date_field.value or "").strip()
-            if not due or len(due) < 10:
-                form_error.value = "Informe o vencimento no formato AAAA-MM-DD."
+            raw_due = (due_picker_container.value or due_date_field.value or "").strip()
+            iso_due = br_to_iso_date(raw_due)
+            if not iso_due or len(iso_due) < 10:
+                form_error.value = "Informe o vencimento no formato DD/MM/AAAA."
                 form_error.visible = True
                 self.page_ref.update()
                 return
@@ -2140,11 +2677,11 @@ class DashboardView(ft.Container):
             payload = {
                 "description": desc,
                 "amount": val,
-                "due_date": due,
+                "due_date": iso_due,
                 "category_id": category_dropdown.value if category_dropdown.value else None,
                 "status": selected_status["value"],
                 "observation": (obs_field.value or "").strip() or None,
-                "month_ref": f"{due[:7]}-01",
+                "month_ref": f"{iso_due[:7]}-01",
             }
 
             try:
@@ -2158,7 +2695,8 @@ class DashboardView(ft.Container):
                 # 1. FECHA O MODAL IMEDIATAMENTE (DETERMINÍSTICO)
                 self._close_dialog(dlg)
 
-                # 2. RECARREGA OS DADOS PARA EXIBIR A DESPESA NA TABELA
+                # 2. RESETA FILTRO CONGELADO E RECARREGA OS DADOS PARA EXIBIR A DESPESA NA TABELA
+                self.visible_expense_ids = None
                 self.load_data(silent=True)
 
                 # 3. EXIBE A NOTIFICAÇÃO DE SUCESSO
@@ -2186,8 +2724,8 @@ class DashboardView(ft.Container):
 
         # Campos Valor e Vencimento em linha compacta
         row_amount_due = ft.Row(
-            [amount_field, due_date_field],
-            spacing=10,
+            [amount_field, due_picker_container],
+            spacing=8,
         )
 
         dlg = ft.AlertDialog(

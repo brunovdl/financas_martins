@@ -27,6 +27,8 @@ from ui.theme import (
     shift_month,
     get_max_days_in_month,
     format_payment_date_to_ui,
+    iso_to_br_date,
+    br_to_iso_date,
     get_tokens,
 )
 
@@ -60,9 +62,23 @@ class TestThemeHelpers:
         assert get_max_days_in_month("2026-05") == 31
 
     def test_format_payment_date_to_ui(self):
-        assert format_payment_date_to_ui("2026-09-15") == "15.set"
-        assert format_payment_date_to_ui("2026-04-02") == "2.abr"
+        assert format_payment_date_to_ui("2026-09-15") == "15/09/2026"
+        assert format_payment_date_to_ui("2026-04-02") == "02/04/2026"
         assert format_payment_date_to_ui(None) == ""
+
+    def test_iso_to_br_date(self):
+        assert iso_to_br_date("2026-09-15") == "15/09/2026"
+        assert iso_to_br_date("2026-01-05") == "05/01/2026"
+        assert iso_to_br_date("15/09/2026") == "15/09/2026"
+        assert iso_to_br_date("") == ""
+        assert iso_to_br_date(None) == ""
+
+    def test_br_to_iso_date(self):
+        assert br_to_iso_date("15/09/2026") == "2026-09-15"
+        assert br_to_iso_date("05-01-2026") == "2026-01-05"
+        assert br_to_iso_date("2026-09-15") == "2026-09-15"
+        assert br_to_iso_date("") == ""
+        assert br_to_iso_date(None) == ""
 
 
 # ---------------------------------------------------------------------------
@@ -890,6 +906,176 @@ class TestMobileCardObservationAndPendingModal:
             # 3. Transição de breakpoint (ex: 800px, tablet/desktop): dispara render
             view._handle_page_resized(MagicMock(width=800))
             assert mock_render.call_count == 2
+
+
+class TestMultiSelectionAndStatusStability:
+    """Testes para seleção múltipla com barra flutuante e estabilidade do toggle de status."""
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_multi_selection_and_totals_calculation(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Aluguel", "amount": 1000.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"},
+            {"id": "exp-3", "description": "Energia", "amount": 200.0, "status": "pendente", "due_date": "2026-09-15"},
+        ]
+        mock_summary.return_value = {"total_despesas": 1300.0, "total_pago": 1000.0, "total_pendente": 300.0, "qtd_pendente": 2, "percent_pago": 76.9}
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        assert view.floating_selection_bar.visible is False
+
+        # Seleciona exp-1 e exp-2
+        view._toggle_expense_selection("exp-1", True)
+        view._toggle_expense_selection("exp-2", True)
+
+        assert view.selected_expense_ids == {"exp-1", "exp-2"}
+        assert view.floating_selection_bar.visible is True
+
+        totals = view._calculate_selected_totals()
+        assert totals["count_total"] == 2
+        assert totals["total"] == 1100.0
+        assert totals["count_pago"] == 1
+        assert totals["total_pago"] == 1000.0
+        assert totals["count_pendente"] == 1
+        assert totals["total_pendente"] == 100.0
+
+        # Desmarca exp-1
+        view._toggle_expense_selection("exp-1", False)
+        assert view.selected_expense_ids == {"exp-2"}
+        totals = view._calculate_selected_totals()
+        assert totals["count_total"] == 1
+        assert totals["total"] == 100.0
+
+        # Desmarca todos
+        view._clear_selection()
+        assert len(view.selected_expense_ids) == 0
+        assert view.floating_selection_bar.visible is False
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_toggle_select_all_respects_filtered_items(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Aluguel", "amount": 1000.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"},
+            {"id": "exp-3", "description": "Energia", "amount": 200.0, "status": "pendente", "due_date": "2026-09-15"},
+        ]
+        mock_summary.return_value = {"total_despesas": 1300.0, "total_pago": 1000.0, "total_pendente": 300.0, "qtd_pendente": 2, "percent_pago": 76.9}
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # Filtra apenas pendentes
+        view._on_status_filter_selected("pendente")
+
+        # Seleciona todos os visíveis
+        view._toggle_select_all(True)
+        assert view.selected_expense_ids == {"exp-2", "exp-3"}
+        assert "exp-1" not in view.selected_expense_ids
+
+        # Desmarca todos
+        view._toggle_select_all(False)
+        assert len(view.selected_expense_ids) == 0
+
+    @patch("ui.dashboard_view.delete_expenses_batch")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_batch_delete_selected(self, mock_summary, mock_expenses, mock_batch_delete):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Aluguel", "amount": 1000.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"},
+        ]
+        mock_summary.return_value = {"total_despesas": 1100.0, "total_pago": 1000.0, "total_pendente": 100.0, "qtd_pendente": 1, "percent_pago": 90.9}
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        view._toggle_expense_selection("exp-1", True)
+        view._toggle_expense_selection("exp-2", True)
+
+        mock_dlg = MagicMock(spec=ft.AlertDialog)
+        view._execute_delete_selected(mock_dlg)
+
+        mock_batch_delete.assert_called_once()
+        called_ids = mock_batch_delete.call_args[0][0]
+        assert set(called_ids) == {"exp-1", "exp-2"}
+        assert len(view.expenses) == 0
+        assert len(view.selected_expense_ids) == 0
+        assert view.floating_selection_bar.visible is False
+
+    @patch("ui.dashboard_view.toggle_expense_status")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_toggle_status_in_place_preserves_position(self, mock_summary, mock_expenses, mock_toggle):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Aluguel", "amount": 1000.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"},
+            {"id": "exp-3", "description": "Energia", "amount": 200.0, "status": "pendente", "due_date": "2026-09-15"},
+        ]
+        mock_summary.return_value = {"total_despesas": 1300.0, "total_pago": 1000.0, "total_pendente": 300.0, "qtd_pendente": 2, "percent_pago": 76.9}
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # Alterna status de exp-2 (posição index 1)
+        view._toggle_status("exp-2", "pendente")
+
+        # Verifica que exp-2 continua exatamente no index 1
+        assert view.expenses[0]["id"] == "exp-1"
+        assert view.expenses[1]["id"] == "exp-2"
+        assert view.expenses[2]["id"] == "exp-3"
+
+        # Verifica que o status foi atualizado in-place
+        assert view.expenses[1]["status"] == "pago"
+        assert view.expenses[1]["payment_date"] is not None
+
+        # Verifica que os resumos foram recalculados in-place
+        assert view.summary["total_pago"] == 1100.0
+        assert view.summary["total_pendente"] == 200.0
+        assert view.summary["qtd_pendente"] == 1
+
+        mock_toggle.assert_called_once_with("exp-2", "pendente")
+
+    @patch("ui.dashboard_view.toggle_expense_status")
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_toggle_status_under_active_filter_preserves_visibility_and_position(self, mock_summary, mock_expenses, mock_toggle):
+        """Garante que ao mudar o status com filtro ativo, a célula permanece visível no mesmo lugar até o filtro ser refeito."""
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Aluguel", "amount": 1000.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"},
+            {"id": "exp-3", "description": "Energia", "amount": 200.0, "status": "pendente", "due_date": "2026-09-15"},
+        ]
+        mock_summary.return_value = {"total_despesas": 1300.0, "total_pago": 1000.0, "total_pendente": 300.0, "qtd_pendente": 2, "percent_pago": 76.9}
+
+        mock_page = MagicMock(spec=ft.Page)
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        # 1. Aplica filtro de pendentes (deve exibir exp-2 e exp-3)
+        view._on_status_filter_selected("pendente")
+        assert len(view.expenses_list_col.controls) == 2
+
+        # 2. Alterna status de exp-2 para pago
+        view._toggle_status("exp-2", "pendente")
+
+        # 3. exp-2 DEVE permanecer visível na lista (2 itens continuam renderizados)
+        assert len(view.expenses_list_col.controls) == 2
+        assert view.expenses[1]["status"] == "pago"
+
+        # 4. Ao reaplicar explicitamente o filtro de pendentes, a lista se atualiza para 1 item
+        view._on_status_filter_selected("pendente")
+        assert len(view.expenses_list_col.controls) == 1
+
+        # 5. Ao selecionar filtro de pagos, exibe exp-1 e exp-2 (2 itens)
+        view._on_status_filter_selected("pago")
+        assert len(view.expenses_list_col.controls) == 2
+
 
 
 

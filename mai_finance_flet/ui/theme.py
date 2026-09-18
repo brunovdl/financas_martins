@@ -196,17 +196,47 @@ def get_max_days_in_month(month_ref: str) -> int:
         return 31
 
 
-def format_payment_date_to_ui(date_str: str | None) -> str:
-    """Formata data ISO AAAA-MM-DD para 'D.mmm' (ex: 2026-09-15 -> 15.set)."""
-    if not date_str:
+def iso_to_br_date(iso_date: str | None) -> str:
+    """Converte data ISO (AAAA-MM-DD) para pt-BR (DD/MM/AAAA)."""
+    if not iso_date:
         return ""
+    iso_date = str(iso_date).strip()
+    if "/" in iso_date and len(iso_date.split("/")) == 3:
+        return iso_date
     try:
-        parts = date_str.split("-")
+        parts = iso_date.split("-")
         if len(parts) == 3:
-            d = int(parts[2])
-            m = int(parts[1])
-            if 1 <= m <= 12:
-                return f"{d}.{MONTH_ABBRS[m - 1]}"
+            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+            return f"{d:02d}/{m:02d}/{y:04d}"
     except Exception:
         pass
-    return date_str
+    return iso_date
+
+
+def br_to_iso_date(br_date: str | None) -> str:
+    """Converte data pt-BR (DD/MM/AAAA ou DD-MM-AAAA) para ISO (AAAA-MM-DD)."""
+    if not br_date:
+        return ""
+    br_date = str(br_date).strip()
+    sep = "/" if "/" in br_date else ("-" if "-" in br_date else None)
+    if sep:
+        parts = br_date.split(sep)
+        if len(parts) == 3:
+            if len(parts[0]) <= 2 and len(parts[2]) == 4:
+                try:
+                    d, m, y = int(parts[0]), int(parts[1]), int(parts[2])
+                    return f"{y:04d}-{m:02d}-{d:02d}"
+                except Exception:
+                    pass
+            elif len(parts[0]) == 4 and len(parts[2]) <= 2:
+                try:
+                    y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+                    return f"{y:04d}-{m:02d}-{d:02d}"
+                except Exception:
+                    pass
+    return br_date
+
+
+def format_payment_date_to_ui(date_str: str | None) -> str:
+    """Formata data ISO AAAA-MM-DD para 'DD/MM/AAAA' (ex: 2026-09-15 -> 15/09/2026)."""
+    return iso_to_br_date(date_str)

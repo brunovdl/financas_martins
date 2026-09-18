@@ -21,6 +21,7 @@ from services.expenses import (
     create_expense,
     update_expense,
     delete_expense,
+    delete_expenses_batch,
     toggle_expense_status,
 )
 
@@ -54,7 +55,9 @@ class TestListExpenses:
         assert len(res) == 2
         mock_client.table.assert_called_with("expenses")
         mock_query.eq.assert_called_with("month_ref", "2026-09-01")
-        mock_query.order.assert_called_with("due_date", desc=False)
+        mock_query.order.assert_any_call("due_date", desc=False)
+        mock_query.order.assert_any_call("created_at", desc=False)
+        mock_query.order.assert_any_call("id", desc=False)
 
 
 class TestMonthlySummary:
@@ -168,6 +171,22 @@ class TestExpenseCRUD:
         mock_query.execute.return_value = MagicMock(data=[{"id": "exp-1"}])
 
         assert delete_expense("exp-1", client=mock_client)
+
+    def test_delete_expenses_batch(self):
+        mock_client = MagicMock()
+        mock_query = MagicMock()
+        mock_client.table.return_value = mock_query
+        mock_query.delete.return_value = mock_query
+        mock_query.in_.return_value = mock_query
+        mock_query.execute.return_value = MagicMock(data=[{"id": "exp-1"}, {"id": "exp-2"}])
+
+        assert delete_expenses_batch(["exp-1", "exp-2"], client=mock_client)
+        mock_client.table.assert_called_with("expenses")
+        mock_query.delete.assert_called_once()
+        mock_query.in_.assert_called_once_with("id", ["exp-1", "exp-2"])
+
+    def test_delete_expenses_batch_empty(self):
+        assert delete_expenses_batch([]) is True
 
 
 class TestToggleExpenseStatus:
