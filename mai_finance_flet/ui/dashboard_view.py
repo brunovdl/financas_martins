@@ -1376,6 +1376,14 @@ class DashboardView(ft.Container):
 
         due_display = iso_to_br_date(due_date)
 
+        is_selected = exp_id in self.selected_expense_ids
+
+        def on_venc_click(e):
+            if self.selected_expense_ids:
+                self._toggle_expense_selection(exp_id, not is_selected)
+            else:
+                self._open_expense_calendar(eid=exp_id, field="due_date")
+
         venc_badge = ft.Container(
             content=ft.Row(
                 [
@@ -1388,9 +1396,13 @@ class DashboardView(ft.Container):
             bgcolor=self.T["pageBg"],
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
-            tooltip="Toque para alterar vencimento no calendário",
-            on_click=lambda _, eid=exp_id: self._open_expense_calendar(eid, "due_date"),
+            tooltip="Toque para alterar vencimento no calendário" if not self.selected_expense_ids else "Selecionar despesa",
+            on_click=on_venc_click,
         )
+
+        def on_cat_click(e):
+            if self.selected_expense_ids:
+                self._toggle_expense_selection(exp_id, not is_selected)
 
         cat_bg, cat_fg, cat_border = get_badge_colors(cat_color, is_light=self.theme_mode == "light")
         cat_badge = ft.Container(
@@ -1399,24 +1411,31 @@ class DashboardView(ft.Container):
             border=ft.Border.all(1, cat_border) if cat_border else None,
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+            on_click=on_cat_click,
         )
+
+        def on_amount_click(e):
+            if self.selected_expense_ids:
+                self._toggle_expense_selection(exp_id, not is_selected)
+            else:
+                self._start_inline_edit(exp_id, "amount")
 
         amount_container = ft.Container(
             content=ft.Text(self._format_money(amount), size=15, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
-            tooltip="Clique para alterar valor",
-            on_click=lambda _, eid=exp_id: self._start_inline_edit(eid, "amount"),
+            tooltip="Clique para alterar valor" if not self.selected_expense_ids else "Selecionar despesa",
+            on_click=on_amount_click,
         )
 
-        is_selected = exp_id in self.selected_expense_ids
-        cb_select = ft.Checkbox(
-            value=is_selected,
-            tooltip="Selecionar despesa",
-            on_change=lambda e, eid=exp_id: self._toggle_expense_selection(eid, e.control.value),
-        )
+        left_badges: list[ft.Control] = []
+        if is_selected:
+            left_badges.append(
+                ft.Icon(ft.Icons.CHECK_CIRCLE, size=16, color=self.T["accent"], tooltip="Despesa selecionada")
+            )
+        left_badges.extend([venc_badge, cat_badge])
 
         top_row = ft.Row(
             [
-                ft.Row([cb_select, venc_badge, cat_badge], spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Row(left_badges, spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 amount_container,
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -1483,6 +1502,9 @@ class DashboardView(ft.Container):
             )
 
         def on_desc_click(e):
+            if self.selected_expense_ids:
+                self._toggle_expense_selection(exp_id, not is_selected)
+                return
             if obs_box:
                 toggle_obs(e)
             else:
@@ -1578,12 +1600,24 @@ class DashboardView(ft.Container):
             card_controls.append(obs_box)
         card_controls.append(bottom_row)
 
+        def on_card_click(_):
+            if self.selected_expense_ids:
+                self._toggle_expense_selection(exp_id, not is_selected)
+
+        def on_card_long_press(_):
+            self._toggle_expense_selection(exp_id, not is_selected)
+
+        card_bgcolor = self.T["successBg"] if is_selected else self.T["surfaceSolid"]
+
         return ft.Container(
             content=ft.Column(card_controls, spacing=6),
-            bgcolor=self.T["surfaceSolid"],
+            bgcolor=card_bgcolor,
             border=ft.Border.all(1.5, self.T["accent"]) if is_selected else ft.Border.all(1, self.T["borderSubtle"]),
             border_radius=10,
             padding=ft.Padding.all(10),
+            ink=True,
+            on_click=on_card_click,
+            on_long_press=on_card_long_press,
         )
 
     # -----------------------------------------------------------------------

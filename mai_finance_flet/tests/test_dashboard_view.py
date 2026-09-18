@@ -1232,6 +1232,115 @@ class TestDashboardPrivacyAndHideValues:
         assert item_amt_text == "R$ •••••"
 
 
+# ---------------------------------------------------------------------------
+# Testes de Seleção via Toque Longo no Mobile (Sem Checkboxes)
+# ---------------------------------------------------------------------------
+
+class TestMobileLongPressSelection:
+    """Valida a seleção de despesas por toque longo (long press) e sem checkboxes no mobile."""
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_mobile_cards_do_not_contain_checkboxes(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Condomínio", "amount": 504.96, "status": "pago", "due_date": "2026-09-04"}
+        ]
+        mock_summary.return_value = {"total_despesas": 504.96, "total_pago": 504.96, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.width = 360  # Força modo compacto / mobile
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        assert len(view.expenses_list_col.controls) == 1
+        card = view.expenses_list_col.controls[0]
+        assert isinstance(card, ft.Container)
+
+        # Garante que não há nenhum ft.Checkbox dentro da árvore de controles do card mobile
+        def has_checkbox(control):
+            if isinstance(control, ft.Checkbox):
+                return True
+            inner = getattr(control, "controls", None) or getattr(control, "content", None)
+            if isinstance(inner, list):
+                return any(has_checkbox(c) for c in inner)
+            elif inner is not None:
+                return has_checkbox(inner)
+            return False
+
+        assert not has_checkbox(card), "O card mobile não deve conter ft.Checkbox para não estourar a tela"
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_mobile_card_long_press_and_tap_selection_flow(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Água", "amount": 60.09, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "exp-2", "description": "Internet", "amount": 50.00, "status": "pago", "due_date": "2026-09-05"},
+        ]
+        mock_summary.return_value = {"total_despesas": 110.09, "total_pago": 110.09, "total_pendente": 0.0, "qtd_pendente": 0, "percent_pago": 100.0}
+
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.width = 360
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        assert len(view.selected_expense_ids) == 0
+
+        # 1. Toque longo no card 1 -> ativa modo de seleção
+        card1 = view.expenses_list_col.controls[0]
+        assert card1.on_long_press is not None
+        card1.on_long_press(None)
+
+        assert "exp-1" in view.selected_expense_ids
+        assert len(view.selected_expense_ids) == 1
+        assert view.floating_selection_bar.visible is True
+        assert view.selected_totals_sum_text.value == "R$ 60,09"
+
+        # 2. Com seleção ativa, toque simples no card 2 -> adiciona card 2 na seleção
+        card2 = view.expenses_list_col.controls[1]
+        assert card2.on_click is not None
+        card2.on_click(None)
+
+        assert "exp-2" in view.selected_expense_ids
+        assert len(view.selected_expense_ids) == 2
+        assert view.selected_totals_sum_text.value == "R$ 110,09"
+
+        # 3. Toque simples no card 1 -> desmarca card 1
+        card1_updated = view.expenses_list_col.controls[0]
+        card1_updated.on_click(None)
+        assert "exp-1" not in view.selected_expense_ids
+        assert "exp-2" in view.selected_expense_ids
+        assert len(view.selected_expense_ids) == 1
+        assert view.selected_totals_sum_text.value == "R$ 50,00"
+
+        # 4. Toque simples no card 2 -> desmarca card 2 (seleção vazia encerra modo de seleção)
+        card2_updated = view.expenses_list_col.controls[1]
+        card2_updated.on_click(None)
+        assert len(view.selected_expense_ids) == 0
+        assert view.floating_selection_bar.visible is False
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_desktop_table_maintains_checkbox(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "exp-1", "description": "Luz", "amount": 100.0, "status": "pendente", "due_date": "2026-09-10"}
+        ]
+        mock_summary.return_value = {"total_despesas": 100.0, "total_pago": 0.0, "total_pendente": 100.0, "qtd_pendente": 1, "percent_pago": 0.0}
+
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.width = 1200  # Modo desktop
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        assert view.is_compact is False
+        desktop_row = view.expenses_list_col.controls[0]
+        assert isinstance(desktop_row, ft.Container)
+
+        # Na tabela desktop, a primeira coluna da linha contém o ft.Checkbox
+        col_cb = desktop_row.content.controls[0]
+        assert isinstance(col_cb, ft.Container)
+        assert isinstance(col_cb.content, ft.Checkbox)
+
+
 
 
 
