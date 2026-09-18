@@ -86,23 +86,7 @@ jobs:
           echo "Iniciando compilação do MAI Finance v${VERSION} (build ${BUILD_NUMBER})..."
 
           # Injetar a versão oficial calculada no código Python e no version.json para que o app saiba sua versão real
-          python -c "
-import json, re
-with open('services/updater.py', 'r', encoding='utf-8') as f:
-    code = f.read()
-code = re.sub(r'CURRENT_VERSION\s*=\s*[\"\\'].*?[\"\\']', f'CURRENT_VERSION = \"${VERSION}\"', code)
-with open('services/updater.py', 'w', encoding='utf-8') as f:
-    f.write(code)
-
-version_data = {'version': '${VERSION}', 'build_number': '${BUILD_NUMBER}'}
-with open('version.json', 'w', encoding='utf-8') as f:
-    json.dump(version_data, f, indent=2)
-import os
-os.makedirs('assets', exist_ok=True)
-with open('assets/version.json', 'w', encoding='utf-8') as f:
-    json.dump(version_data, f, indent=2)
-print(f'Versão ${VERSION} (build ${BUILD_NUMBER}) gravada com sucesso!')
-"
+          python scripts/inject_version.py --version "${VERSION}" --build-number "${BUILD_NUMBER}"
 
           flet build apk \
             --yes \
@@ -139,10 +123,21 @@ print(f'Versão ${VERSION} (build ${BUILD_NUMBER}) gravada com sucesso!')
           cp "$APK_FILE" "$DIST_NAME"
           echo "APK gerado com sucesso: $DIST_NAME"
 
+          # Metadados dinâmicos para a Release
+          APK_SIZE=$(du -h "$DIST_NAME" | cut -f1)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          BUILD_DATE=$(TZ="America/Sao_Paulo" date +"%d/%m/%Y %H:%M:%S" 2>/dev/null || date +"%d/%m/%Y %H:%M:%S")
+
           # Exportar variáveis para as próximas etapas
           echo "APK_DIST_PATH=mai_finance_flet/$DIST_NAME" >> $GITHUB_ENV
+          echo "APK_FILENAME=$DIST_NAME" >> $GITHUB_ENV
+          echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "BUILD_NUM=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "COMMIT_MSG=$COMMIT_MSG" >> $GITHUB_ENV
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
 
       - name: Upload do APK como Artefato do Workflow
         uses: actions/upload-artifact@v4
@@ -158,17 +153,22 @@ print(f'Versão ${VERSION} (build ${BUILD_NUMBER}) gravada com sucesso!')
           tag_name: v${{ env.APP_VERSION }}
           name: "MAI Finance v${{ env.APP_VERSION }} (Instalador Android)"
           body: |
-            ### 📱 MAI Finance — Instalador Oficial Android (APK)
-            
-            - **Versão:** `v${{ env.APP_VERSION }}` (Build `${{ env.BUILD_NUM }}`)
-            - **Disparo:** Commit automático no branch `main`
-            - **Identidade Visual:** Logo oficial MAI Finance integrado com ícone adaptativo e splash escuro.
-            
-            #### 📥 Como Instalar:
-            1. Baixe o arquivo `.apk` anexado abaixo diretamente no celular.
-            2. Toque na notificação de download ou no arquivo baixado.
-            3. Se solicitado, permita a instalação a partir desta fonte nas configurações do Android.
-            4. Abra o MAI Finance e faça login com suas credenciais.
+            ### MAI Finance - Instalador Oficial Android (APK)
+
+            Detalhes da versao:
+            - Versao: v${{ env.APP_VERSION }}
+            - Build: ${{ env.BUILD_NUM }}
+            - Arquivo: ${{ env.APK_FILENAME }} (${{ env.APK_SIZE }})
+            - Data de compilacao: ${{ env.BUILD_DATE }}
+            - Commit: ${{ env.COMMIT_HASH }} - ${{ env.COMMIT_MSG }}
+            - Autor: ${{ github.actor }}
+            - Origem do disparo: ${{ github.event_name == 'push' && 'Commit automatico no branch main' || 'Disparo manual via workflow_dispatch' }}
+
+            Instrucoes de instalacao:
+            - Baixe o arquivo .apk anexado nesta versao diretamente no celular.
+            - Toque na notificacao de conclusao de download ou acesse a pasta Downloads no seu gerenciador de arquivos.
+            - Se solicitado pelo sistema Android, autorize a instalacao a partir desta fonte.
+            - Conclua a instalacao e abra o MAI Finance com suas credenciais de acesso.
           files: ${{ env.APK_DIST_PATH }}
           draft: false
           prerelease: false
