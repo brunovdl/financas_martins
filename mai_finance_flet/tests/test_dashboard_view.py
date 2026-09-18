@@ -1106,6 +1106,9 @@ class TestDashboardPrivacyAndHideValues:
         view.load_data(silent=True)
 
         assert view.hide_values is False
+        assert view.btn_toggle_hide_values in view.action_filter_bar.controls
+        card_total_header = view.card_total.content.controls[0]
+        assert view.btn_toggle_hide_values not in card_total_header.controls
         assert view.btn_toggle_hide_values.icon == ft.Icons.VISIBILITY_OUTLINED
         assert view.btn_toggle_hide_values.tooltip == "Ocultar valores"
         assert view.text_toggle_hide_values.value == "Ocultar Valores"
