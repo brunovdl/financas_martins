@@ -58,5 +58,5 @@ PLUGGY_ITEM_IDS: list[str] = [
 ]
 
 # Flet Web / Container (0.0.0.0 para suportar proxy reverso/Easypanel)
-FLET_HOST: str = os.getenv("FLET_HOST", "0.0.0.0")
+FLET_HOST: str = os.getenv("FLET_HOST", "192.168.1.137")
 FLET_PORT: int = int(os.getenv("PORT", os.getenv("FLET_PORT", "8550")))
