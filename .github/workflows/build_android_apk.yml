@@ -88,29 +88,47 @@ jobs:
           # Injetar a versão oficial calculada no código Python e no version.json para que o app saiba sua versão real
           python scripts/inject_version.py --version "${VERSION}" --build-number "${BUILD_NUMBER}"
 
-          flet build apk \
-            --yes \
-            --no-rich-output \
-            --module-name main \
-            --python-version 3.12 \
-            --project mai_finance \
-            --product "MAI Finance" \
-            --org com.martinsautomation \
-            --company "Martins Automation" \
-            --copyright "Copyright (c) 2026 Martins Automation" \
-            --description "MAI Finance — Gestão Financeira Pessoal" \
-            --build-version "${VERSION}" \
-            --build-number "${BUILD_NUMBER}" \
-            --android-adaptive-icon-background "#121828" \
-            --splash-color "#121828" \
-            --splash-dark-color "#121828" \
-            --android-signing-key-store "$(pwd)/keystore/mai_finance.jks" \
-            --android-signing-key-store-password "mai_finance_release_key_2026" \
-            --android-signing-key-password "mai_finance_release_key_2026" \
-            --android-signing-key-alias "maifinance" \
-            --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true \
-            --exclude "tests/*" "Mai Finance QA.pdf" \
-            --verbose
+          build_success=0
+          for attempt in 1 2; do
+            echo "::group::Compilação do APK (Tentativa $attempt de 2)"
+            if flet build apk \
+              --yes \
+              --no-rich-output \
+              --module-name main \
+              --python-version 3.12 \
+              --project mai_finance \
+              --product "MAI Finance" \
+              --org com.martinsautomation \
+              --company "Martins Automation" \
+              --copyright "Copyright (c) 2026 Martins Automation" \
+              --description "MAI Finance — Gestão Financeira Pessoal" \
+              --build-version "${VERSION}" \
+              --build-number "${BUILD_NUMBER}" \
+              --android-adaptive-icon-background "#121828" \
+              --splash-color "#121828" \
+              --splash-dark-color "#121828" \
+              --android-signing-key-store "$(pwd)/keystore/mai_finance.jks" \
+              --android-signing-key-store-password "mai_finance_release_key_2026" \
+              --android-signing-key-password "mai_finance_release_key_2026" \
+              --android-signing-key-alias "maifinance" \
+              --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true \
+              --exclude "tests/*" "Mai Finance QA.pdf" \
+              --verbose; then
+              echo "::endgroup::"
+              build_success=1
+              break
+            fi
+            echo "::endgroup::"
+            if [ "$attempt" -lt 2 ]; then
+              echo "::warning::Falha transitória na compilação do APK (instabilidade de rede/CDN). Aguardando 20 segundos antes de retentar..."
+              sleep 20
+            fi
+          done
+
+          if [ "$build_success" -ne 1 ]; then
+            echo "::error::Falha ao compilar o APK após retentativas."
+            exit 1
+          fi
 
           # Localizar o arquivo APK gerado em build/apk
           APK_FILE=$(find build/apk -name "*.apk" | head -n 1)
