@@ -67,6 +67,7 @@ class DashboardView(ft.Container):
         on_open_backups: Callable[[], None] | None = None,
         on_open_import: Callable[[], None] | None = None,
         on_open_chat: Callable[[], None] | None = None,
+        on_open_shopping: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
         self.page_ref = page
@@ -76,6 +77,7 @@ class DashboardView(ft.Container):
         self.on_open_backups = on_open_backups
         self.on_open_import = on_open_import
         self.on_open_chat = on_open_chat
+        self.on_open_shopping = on_open_shopping
 
         self.expand = True
         self.bgcolor = "#08090F"
@@ -281,6 +283,40 @@ class DashboardView(ft.Container):
             on_click=lambda _: self._open_prev_month_alert_modal(),
         )
 
+        # Ícone e Badge da Lista de Compras no Cabeçalho (AC-030)
+        self.shopping_badge_text = ft.Text("0", size=9, weight=ft.FontWeight.BOLD, color="#08090F")
+        self.shopping_badge = ft.Container(
+            content=self.shopping_badge_text,
+            bgcolor=self.T["accent"],
+            border_radius=8,
+            padding=ft.Padding.symmetric(horizontal=4, vertical=1),
+            visible=False,
+        )
+        self.btn_shopping_header_icon = ft.IconButton(
+            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+            tooltip="Lista de Compras",
+            icon_color=self.T["accent"],
+            icon_size=20,
+            on_click=lambda _: self.on_open_shopping() if self.on_open_shopping else None,
+        )
+        self.btn_shopping_header_box = ft.Container(
+            content=ft.Stack(
+                [
+                    self.btn_shopping_header_icon,
+                    ft.Container(
+                        content=self.shopping_badge,
+                        alignment=ft.Alignment.TOP_RIGHT,
+                        padding=ft.Padding.only(top=2, right=2),
+                        on_click=lambda _: self.on_open_shopping() if self.on_open_shopping else None,
+                    ),
+                ],
+                width=36,
+                height=36,
+            ),
+            tooltip="Lista de Compras",
+            on_click=lambda _: self.on_open_shopping() if self.on_open_shopping else None,
+        )
+
         self.btn_theme = ft.IconButton(
             icon=ft.Icons.LIGHT_MODE_OUTLINED if self.theme_mode == "dark" else ft.Icons.DARK_MODE_OUTLINED,
             tooltip="Alternar Tema Claro/Escuro",
@@ -307,7 +343,7 @@ class DashboardView(ft.Container):
         )
 
         self.account_row = ft.Row(
-            [self.btn_check_update, self.btn_alert_box, self.btn_theme, self.btn_logout],
+            [self.btn_check_update, self.btn_shopping_header_box, self.btn_alert_box, self.btn_theme, self.btn_logout],
             spacing=4,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             tight=True,
@@ -423,6 +459,38 @@ class DashboardView(ft.Container):
             border_radius=10,
             padding=ft.Padding.all(12),
             expand=True,
+        )
+
+        # Card de Destaque da Lista de Compras Inteligente (AC-030)
+        self.card_shopping_title = ft.Text("LISTA COMPRAS", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
+        self.card_shopping_val = ft.Text("Ver lista", size=18, weight=ft.FontWeight.BOLD, color=self.T["accent"])
+        self.card_shopping_icon = ft.Icon(ft.Icons.SHOPPING_BAG_OUTLINED, size=18, color=self.T["accent"])
+        self.card_shopping_badge = ft.Text("0 itens", size=11, color=self.T["accent"])
+        self.card_shopping = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            self.card_shopping_icon,
+                            self.card_shopping_title,
+                            ft.Text("•", size=11, color=self.T["border"]),
+                            self.card_shopping_badge,
+                        ],
+                        spacing=6,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    self.card_shopping_val,
+                ],
+                spacing=4,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            bgcolor=self.T["surfaceSolid"],
+            border=ft.Border.all(1, self.T["border"]),
+            border_radius=10,
+            padding=ft.Padding.all(12),
+            expand=False,
+            tooltip="Abrir Lista de Compras Inteligente",
+            on_click=lambda _: self.on_open_shopping() if self.on_open_shopping else None,
         )
 
         self.summary_bar = self._build_summary_bar()
@@ -547,10 +615,12 @@ class DashboardView(ft.Container):
         self.btn_categorias = self._build_action_button("Categorias", ft.Icons.LABEL_OUTLINED, self.on_open_categories)
         self.btn_clonar = self._build_action_button("Clonar Mês", ft.Icons.COPY_ALL_OUTLINED, self.on_open_clone_month)
         self.btn_backups = self._build_action_button("Backups", ft.Icons.BACKUP_OUTLINED, self.on_open_backups)
+        self.btn_shopping = self._build_action_button("Lista de Compras", ft.Icons.SHOPPING_BAG_OUTLINED, self.on_open_shopping)
 
         self.btn_categorias.visible = not self.is_compact
         self.btn_clonar.visible = not self.is_compact
         self.btn_backups.visible = not self.is_compact
+        self.btn_shopping.visible = not self.is_compact
 
         self.item_check_update = ft.PopupMenuItem(
             content=ft.Row([ft.Icon(ft.Icons.SYSTEM_UPDATE_ALT_OUTLINED, size=18, color=self.T["accent"]), ft.Text("Verificar Atualizações", size=13)]),
@@ -612,6 +682,7 @@ class DashboardView(ft.Container):
                 self.search_field,
                 self.filter_dropdown,
                 self.btn_nova_despesa,
+                self.btn_shopping,
                 self.btn_categorias,
                 self.btn_clonar,
                 self.btn_backups,
@@ -1112,6 +1183,36 @@ class DashboardView(ft.Container):
             self.btn_alert_icon.icon = ft.Icons.NOTIFICATIONS_OUTLINED
             self.btn_alert_icon.icon_color = self.T["textMuted"]
             self.btn_alert_icon.tooltip = f"Nenhuma pendência em {month_label(prev_ref)}"
+
+        self._update_shopping_card_ui()
+
+    def _update_shopping_card_ui(self) -> None:
+        """Atualiza badge e métricas do ícone e card de Lista de Compras (AC-030)."""
+        try:
+            from db.shopping import list_shopping_items
+            items = list_shopping_items()
+            pending_count = sum(1 for it in items if not it.get("is_bought"))
+            self.card_shopping_badge.value = f"{pending_count} pendente" if pending_count == 1 else f"{pending_count} pendentes"
+            if pending_count > 0:
+                self.card_shopping_val.value = f"{pending_count} item" if pending_count == 1 else f"{pending_count} itens"
+                if hasattr(self, "shopping_badge"):
+                    self.shopping_badge.visible = True
+                    self.shopping_badge_text.value = str(pending_count)
+                if hasattr(self, "btn_shopping_header_box"):
+                    self.btn_shopping_header_box.tooltip = f"Lista de Compras ({pending_count} pendente{'s' if pending_count != 1 else ''})"
+            else:
+                self.card_shopping_val.value = "Tudo comprado!" if items else "Lista vazia"
+                if hasattr(self, "shopping_badge"):
+                    self.shopping_badge.visible = False
+                if hasattr(self, "btn_shopping_header_box"):
+                    self.btn_shopping_header_box.tooltip = "Lista de Compras"
+        except Exception:
+            self.card_shopping_badge.value = "0 itens"
+            self.card_shopping_val.value = "Ver lista"
+            if hasattr(self, "shopping_badge"):
+                self.shopping_badge.visible = False
+            if hasattr(self, "btn_shopping_header_box"):
+                self.btn_shopping_header_box.tooltip = "Lista de Compras"
 
     def _start_inline_edit(self, expense_id: str, field: str) -> None:
         self.editing_cell = (str(expense_id), field)

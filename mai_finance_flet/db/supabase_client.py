@@ -11,7 +11,8 @@ from __future__ import annotations
 import asyncio
 from typing import Callable
 
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
+import httpx
 
 import sys
 import os
@@ -22,10 +23,19 @@ _client: Client | None = None
 
 
 def get_client() -> Client:
-    """Retorna o cliente Supabase singleton (Anon Key)."""
+    """Retorna o cliente Supabase singleton (Anon Key) com transporte HTTP resiliente."""
     global _client
     if _client is None:
-        _client = create_client(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
+        try:
+            transport = httpx.HTTPTransport(
+                retries=3,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=20, keepalive_expiry=5.0),
+            )
+            http_client = httpx.Client(http2=False, transport=transport, timeout=15.0)
+            options = ClientOptions(httpx_client=http_client)
+            _client = create_client(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, options=options)
+        except Exception:
+            _client = create_client(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
     return _client
 
 

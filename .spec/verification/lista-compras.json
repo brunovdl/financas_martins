@@ -1,0 +1,62 @@
+{
+  "feature": "lista-compras",
+  "timestamp": "2026-09-20T16:04:35.794Z",
+  "gitRev": "f56591a",
+  "command": ".venv\\Scripts\\python.exe -m pytest mai_finance_flet/tests/ -v",
+  "reporter": "exitcode",
+  "exitCode": 0,
+  "testsParsed": 0,
+  "results": {
+    "AC-021": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-022": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-023": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-024": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-025": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-026": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-027": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-028": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-029": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    },
+    "AC-030": {
+      "status": "pass",
+      "testName": null,
+      "method": "exitcode"
+    }
+  },
+  "principles": {}
+}

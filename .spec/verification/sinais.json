@@ -131,46 +131,46 @@
       "codigo": "GLOB_SEM_ARQUIVOS",
       "feature": "—",
       "ref": "P-002",
-      "ocorrencias": 3,
+      "ocorrencias": 7,
       "primeiraVez": "2026-09-15T03:16:26.213Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ID_DUPLICADO::teste-formato::US-001": {
       "codigo": "ID_DUPLICADO",
       "feature": "teste-formato",
       "ref": "US-001",
-      "ocorrencias": 2,
+      "ocorrencias": 6,
       "primeiraVez": "2026-09-15T03:18:58.409Z",
-      "ultimaVez": "2026-09-15T14:02:26.175Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.641Z",
+      "gitRev": "f56591a"
     },
     "ID_DUPLICADO::teste-formato::AC-001": {
       "codigo": "ID_DUPLICADO",
       "feature": "teste-formato",
       "ref": "AC-001",
-      "ocorrencias": 2,
+      "ocorrencias": 6,
       "primeiraVez": "2026-09-15T03:18:58.413Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ID_DUPLICADO::teste-formato::ASM-001": {
       "codigo": "ID_DUPLICADO",
       "feature": "teste-formato",
       "ref": "ASM-001",
-      "ocorrencias": 2,
+      "ocorrencias": 6,
       "primeiraVez": "2026-09-15T03:18:58.413Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ID_DUPLICADO::teste-formato::Q-001": {
       "codigo": "ID_DUPLICADO",
       "feature": "teste-formato",
       "ref": "Q-001",
-      "ocorrencias": 2,
+      "ocorrencias": 6,
       "primeiraVez": "2026-09-15T03:18:58.413Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_INEXISTENTE::migracao-flet::T-001": {
       "codigo": "ARQUIVO_INEXISTENTE",
@@ -239,10 +239,10 @@
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "migracao-flet",
       "ref": "T-008",
-      "ocorrencias": 2,
+      "ocorrencias": 10,
       "primeiraVez": "2026-09-15T03:18:58.413Z",
-      "ultimaVez": "2026-09-15T03:18:58.413Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_INEXISTENTE::migracao-flet::T-009": {
       "codigo": "ARQUIVO_INEXISTENTE",
@@ -257,10 +257,10 @@
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "migracao-flet",
       "ref": "T-010",
-      "ocorrencias": 2,
+      "ocorrencias": 10,
       "primeiraVez": "2026-09-15T03:18:58.413Z",
-      "ultimaVez": "2026-09-15T03:18:58.413Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_INEXISTENTE::migracao-flet::T-011": {
       "codigo": "ARQUIVO_INEXISTENTE",
@@ -401,10 +401,10 @@
       "codigo": "AC_SEM_TESTE",
       "feature": "migracao-flet",
       "ref": "AC-013",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T03:18:58.414Z",
-      "ultimaVez": "2026-09-15T03:18:58.414Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "AC_SEM_TESTE::migracao-flet::AC-014": {
       "codigo": "AC_SEM_TESTE",
@@ -428,19 +428,19 @@
       "codigo": "AC_SEM_TESTE",
       "feature": "migracao-flet",
       "ref": "AC-016",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T03:18:58.414Z",
-      "ultimaVez": "2026-09-15T03:18:58.414Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "AC_SEM_TESTE::migracao-flet::AC-017": {
       "codigo": "AC_SEM_TESTE",
       "feature": "migracao-flet",
       "ref": "AC-017",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T03:18:58.414Z",
-      "ultimaVez": "2026-09-15T03:18:58.414Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "AC_SEM_TESTE::migracao-flet::AC-018": {
       "codigo": "AC_SEM_TESTE",
@@ -473,10 +473,10 @@
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "teste-formato",
       "ref": "T-001",
-      "ocorrencias": 2,
+      "ocorrencias": 6,
       "primeiraVez": "2026-09-15T03:18:58.414Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "AC_SEM_TESTE::teste-formato::AC-001": {
       "codigo": "AC_SEM_TESTE",
@@ -491,127 +491,127 @@
       "codigo": "REF_QUEBRADA",
       "feature": "migracao-flet",
       "ref": "T-001",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "REF_QUEBRADA::migracao-flet::T-012": {
       "codigo": "REF_QUEBRADA",
       "feature": "migracao-flet",
       "ref": "T-012",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-001": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-001",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-002": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-002",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-003": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-003",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-004": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-004",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-005": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-005",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-006": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-006",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-007": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-007",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-008": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-008",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.176Z",
-      "ultimaVez": "2026-09-15T14:02:26.176Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-009": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-009",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-010": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-010",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-011": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-011",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-012": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-012",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-013": {
       "codigo": "PROVA_FRACA",
@@ -626,19 +626,19 @@
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-014",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-015": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-015",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-016": {
       "codigo": "PROVA_FRACA",
@@ -662,280 +662,1198 @@
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-019",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "PROVA_FRACA::migracao-flet::AC-020": {
       "codigo": "PROVA_FRACA",
       "feature": "migracao-flet",
       "ref": "AC-020",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "AC_SEM_PROVA::teste-formato::AC-001": {
       "codigo": "AC_SEM_PROVA",
       "feature": "teste-formato",
       "ref": "AC-001",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/__init__.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/__init__.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/__pycache__/__init__.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/__pycache__/__init__.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/__pycache__/config.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/__pycache__/config.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/db/__init__.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/db/__init__.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/__init__.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/db/__pycache__/__init__.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/auth.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/db/__pycache__/auth.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/supabase_client.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/db/__pycache__/supabase_client.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__init__.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__init__.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/__init__.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/__init__.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/auth_service.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/auth_service.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/backups.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/backups.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/categories.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/categories.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/chat.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/chat.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/clone_month.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/clone_month.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/expenses.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/expenses.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/import_expenses.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/__pycache__/import_expenses.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/services/auth_service.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/services/auth_service.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__init__.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__init__.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/__init__.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/__init__.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/auth_view.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/auth_view.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/dashboard_view.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/dashboard_view.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/nav.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/nav.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/storage_util.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/storage_util.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/theme.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/__pycache__/theme.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__init__.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/components/__init__.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/__init__.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/components/__pycache__/__init__.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/progress_ring.cpython-314.pyc": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/components/__pycache__/progress_ring.cpython-314.pyc",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     },
     "ARQUIVO_ORFAO::—::mai_finance_flet/ui/storage_util.py": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "mai_finance_flet/ui/storage_util.py",
-      "ocorrencias": 1,
+      "ocorrencias": 5,
       "primeiraVez": "2026-09-15T14:02:26.177Z",
-      "ultimaVez": "2026-09-15T14:02:26.177Z",
-      "gitRev": "9f537e7"
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::ASM-004": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "ASM-004",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.074Z",
+      "ultimaVez": "2026-09-20T14:43:02.993Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::ASM-005": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "ASM-005",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::ASM-006": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "ASM-006",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::ASM-007": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "ASM-007",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::Q-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "Q-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::Q-002": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "Q-002",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::Q-003": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "Q-003",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ID_DUPLICADO::migracao-flet::Q-004": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "migracao-flet",
+      "ref": "Q-004",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-015": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-015",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-016": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-016",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-017": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-017",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-018": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-018",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-019": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-019",
+      "ocorrencias": 12,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-020": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-020",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_INEXISTENTE::lista-compras::T-021": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "lista-compras",
+      "ref": "T-021",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-021": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-021",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-022": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-022",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-023": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-023",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-024": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-024",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-025": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-025",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-026": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-026",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-027": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-027",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-028": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-028",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-029": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-029",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_TESTE::lista-compras::AC-030": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "lista-compras",
+      "ref": "AC-030",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T14:43:02.995Z",
+      "gitRev": "f56591a"
+    },
+    "VERIFY_OBSOLETO::migracao-flet::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "migracao-flet",
+      "ref": "—",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.dockerignore": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.dockerignore",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.env": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.env",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/.gitignore": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/.gitignore",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/README.md": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/README.md",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmp2fowky_g/index.html": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmp2fowky_g/index.html",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmp2fowky_g/manifest.json": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmp2fowky_g/manifest.json",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmpa_o9bbhp/index.html": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmpa_o9bbhp/index.html",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmpa_o9bbhp/manifest.json": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmpa_o9bbhp/manifest.json",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.075Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmpwrc6ls7r/index.html": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmpwrc6ls7r/index.html",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/.flet/storage/temp/tmpwrc6ls7r/manifest.json": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/.flet/storage/temp/tmpwrc6ls7r/manifest.json",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/Mai Finance QA.pdf": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/Mai Finance QA.pdf",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/__pycache__/app.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/__pycache__/app.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/favicon.ico": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/favicon.ico",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/favicon.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/favicon.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/icon.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/icon.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/icon_android.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/icon_android.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/icons/icon-192.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/icons/icon-192.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/icons/icon-512.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/icons/icon-512.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/icons/loading-animation.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/icons/loading-animation.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/logo.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/logo.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/logo.svg": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/logo.svg",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/test_logo.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/test_logo.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/assets/version.json": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/assets/version.json",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/icon.png": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/icon.png",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/keystore/mai_finance.jks": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/keystore/mai_finance.jks",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/main.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/main.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/requirements-dev.txt": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/requirements-dev.txt",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/scripts/__pycache__/inject_version.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/scripts/__pycache__/inject_version.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/scripts/generate_official_logo.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/scripts/generate_official_logo.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/scripts/inject_version.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/scripts/inject_version.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/updater.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/updater.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/updater.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/updater.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/backup_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/backup_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/categories_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/categories_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/chat_widget.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/chat_widget.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/clone_month_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/clone_month_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/import_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/import_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/calendar_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/calendar_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/mai_loading.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/mai_loading.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/modal_header.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/modal_header.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/update_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/update_modal.cpython-314.pyc",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/calendar_modal.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/calendar_modal.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/mai_loading.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/mai_loading.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/modal_header.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/modal_header.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/update_modal.py": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/update_modal.py",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/version.json": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/version.json",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-09-20T14:42:59.076Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-021": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-021",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-022": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-022",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-023": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-023",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-024": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-024",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-025": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-025",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-026": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-026",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-027": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-027",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-028": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-028",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-029": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-029",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "AC_SEM_PROVA::lista-compras::AC-030": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "lista-compras",
+      "ref": "AC-030",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T14:45:09.849Z",
+      "ultimaVez": "2026-09-20T14:45:09.849Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-021": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-021",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-022": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-022",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-023": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-023",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-024": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-024",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-025": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-025",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-026": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-026",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-027": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-027",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-028": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-028",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-029": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-029",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "PROVA_FRACA::lista-compras::AC-030": {
+      "codigo": "PROVA_FRACA",
+      "feature": "lista-compras",
+      "ref": "AC-030",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/db/__pycache__/shopping.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/db/__pycache__/shopping.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.642Z",
+      "ultimaVez": "2026-09-20T15:04:11.642Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/geo_service.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/geo_service.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/market_ai_service.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/market_ai_service.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/shopping_realtime.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/shopping_realtime.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/services/__pycache__/shopping_service.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/services/__pycache__/shopping_service.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/shopping_market_mode.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/shopping_market_mode.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/__pycache__/shopping_view.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/__pycache__/shopping_view.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/market_quote_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/market_quote_modal.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/shopping_finish_modal.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/shopping_finish_modal.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
+    },
+    "ARQUIVO_ORFAO::—::mai_finance_flet/ui/components/__pycache__/shopping_item_card.cpython-314.pyc": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "mai_finance_flet/ui/components/__pycache__/shopping_item_card.cpython-314.pyc",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-09-20T15:04:11.643Z",
+      "ultimaVez": "2026-09-20T15:04:11.643Z",
+      "gitRev": "f56591a"
     }
   }
 }

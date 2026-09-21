@@ -37,37 +37,47 @@ def toggle_theme(page: ft.Page) -> str:
 def create_bottom_nav_bar(
     on_change_tab: Callable[[int], None],
     selected_index: int = 0,
+    include_shopping: bool = False,
 ) -> ft.NavigationBar:
     """
-    Cria a barra de navegação com 4 destinos conforme as diretrizes do MAI Finance:
-    0: Início / Dashboard
-    1: Categorias
-    2: Assistente IA
-    3: Mais (Importar, Clonar, Backups)
+    Cria a barra de navegação responsiva do MAI Finance.
+    Se include_shopping=True, adiciona o destino Compras (AC-030).
     """
+    destinations = [
+        ft.NavigationBarDestination(
+            icon=ft.Icons.HOME_OUTLINED,
+            selected_icon=ft.Icons.HOME,
+            label="Início",
+        ),
+        ft.NavigationBarDestination(
+            icon=ft.Icons.LABEL_OUTLINED,
+            selected_icon=ft.Icons.LABEL,
+            label="Categorias",
+        ),
+        ft.NavigationBarDestination(
+            icon=ft.Icons.COPY_ALL_OUTLINED,
+            selected_icon=ft.Icons.COPY_ALL,
+            label="Clonar",
+        ),
+        ft.NavigationBarDestination(
+            icon=ft.Icons.BACKUP_OUTLINED,
+            selected_icon=ft.Icons.BACKUP,
+            label="Backups",
+        ),
+    ]
+
+    if include_shopping:
+        destinations.insert(
+            2,
+            ft.NavigationBarDestination(
+                icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                selected_icon=ft.Icons.SHOPPING_BAG,
+                label="Compras",
+            ),
+        )
+
     return ft.NavigationBar(
-        destinations=[
-            ft.NavigationBarDestination(
-                icon=ft.Icons.HOME_OUTLINED,
-                selected_icon=ft.Icons.HOME,
-                label="Início",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.LABEL_OUTLINED,
-                selected_icon=ft.Icons.LABEL,
-                label="Categorias",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.COPY_ALL_OUTLINED,
-                selected_icon=ft.Icons.COPY_ALL,
-                label="Clonar",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.BACKUP_OUTLINED,
-                selected_icon=ft.Icons.BACKUP,
-                label="Backups",
-            ),
-        ],
+        destinations=destinations,
         selected_index=selected_index,
         on_change=lambda e: on_change_tab(int(e.data or 0)),
         bgcolor="#151B2E",

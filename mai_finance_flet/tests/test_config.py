@@ -26,3 +26,14 @@ class TestConfig:
                 assert config.SUPABASE_URL.startswith("https://")
                 assert config.SUPABASE_ANON_KEY.startswith("ey")
                 assert config.JWT_SECRET != ""
+                assert config.FLET_HOST == "127.0.0.1"
+                assert config.FLET_PORT == 8550
+
+    def test_config_custom_flet_host_and_port(self):
+        """Valida que FLET_HOST e FLET_PORT aceitam sobrescrita via variáveis de ambiente."""
+        with patch.dict(os.environ, {"FLET_HOST": "0.0.0.0", "PORT": "9000"}):
+            import config
+            importlib.reload(config)
+            assert config.FLET_HOST == "0.0.0.0"
+            assert config.FLET_PORT == 9000
+

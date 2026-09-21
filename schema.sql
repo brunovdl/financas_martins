@@ -177,3 +177,95 @@ DO $$ BEGIN
       TO authenticated USING (true) WITH CHECK (true);
   END IF;
 END $$;
+
+-- -------------------------------------------------------------
+-- shopping_items (Itens da Lista de Compras Ativa)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.shopping_items (
+  id                uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              text           NOT NULL,
+  quantity          numeric(10,2)  NOT NULL DEFAULT 1,
+  unit              text           NOT NULL DEFAULT 'un',
+  corridor_category text           NOT NULL DEFAULT 'Geral',
+  is_bought         boolean        NOT NULL DEFAULT false,
+  estimated_price   numeric(10,2)  DEFAULT 0,
+  actual_price      numeric(10,2)  DEFAULT NULL,
+  market_name       text           DEFAULT NULL,
+  created_at        timestamptz    NOT NULL DEFAULT now(),
+  updated_at        timestamptz    NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shopping_items_is_bought ON public.shopping_items(is_bought);
+CREATE INDEX IF NOT EXISTS idx_shopping_items_corridor ON public.shopping_items(corridor_category);
+
+CREATE TRIGGER trg_shopping_items_updated_at
+  BEFORE UPDATE ON public.shopping_items
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.shopping_items ENABLE ROW LEVEL SECURITY;
+
+-- -------------------------------------------------------------
+-- shopping_history (Histórico de Compras Finalizadas)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.shopping_history (
+  id             uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
+  closed_at      timestamptz    NOT NULL DEFAULT now(),
+  total_amount   numeric(12,2)  NOT NULL DEFAULT 0,
+  market_name    text           DEFAULT NULL,
+  items_count    integer        NOT NULL DEFAULT 0,
+  items_snapshot jsonb          NOT NULL DEFAULT '[]'::jsonb,
+  expense_id     uuid           REFERENCES public.expenses(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_shopping_history_closed_at ON public.shopping_history(closed_at DESC);
+ALTER TABLE public.shopping_history ENABLE ROW LEVEL SECURITY;
+
+-- -------------------------------------------------------------
+-- shopping_frequent_items (Sugestões e Atalhos Rápidos)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.shopping_frequent_items (
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              text        NOT NULL UNIQUE,
+  default_unit      text        NOT NULL DEFAULT 'un',
+  corridor_category text        NOT NULL DEFAULT 'Geral',
+  usage_count       integer     NOT NULL DEFAULT 1,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.shopping_frequent_items ENABLE ROW LEVEL SECURITY;
+
+-- Políticas RLS para tabelas de compras
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on shopping_items') THEN
+    CREATE POLICY "authenticated full access on shopping_items"
+      ON public.shopping_items FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'public access on shopping_items') THEN
+    CREATE POLICY "public access on shopping_items"
+      ON public.shopping_items FOR ALL
+      TO public USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on shopping_history') THEN
+    CREATE POLICY "authenticated full access on shopping_history"
+      ON public.shopping_history FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'public access on shopping_history') THEN
+    CREATE POLICY "public access on shopping_history"
+      ON public.shopping_history FOR ALL
+      TO public USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'authenticated full access on shopping_frequent_items') THEN
+    CREATE POLICY "authenticated full access on shopping_frequent_items"
+      ON public.shopping_frequent_items FOR ALL
+      TO authenticated USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'public access on shopping_frequent_items') THEN
+    CREATE POLICY "public access on shopping_frequent_items"
+      ON public.shopping_frequent_items FOR ALL
+      TO public USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+
