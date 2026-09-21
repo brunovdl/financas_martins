@@ -200,16 +200,27 @@ def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[st
     Abre o instalador do APK no Android.
     Retorna True se acionou com sucesso, False caso contrário.
     """
+    # 1. No ambiente Android real, URLs de APK acionam o PackageInstaller do sistema operacional
+    # sem esbarrar no bloqueio de FileUriExposedException que impede file:// no Android 7.0+.
+    is_android = os.path.isdir("/storage/emulated/0") or "ANDROID_ROOT" in os.environ or "ANDROID_DATA" in os.environ
+    if is_android and download_url:
+        try:
+            page.launch_url(download_url)
+            return True
+        except Exception as e:
+            print(f"[Updater] Falha ao lançar instalador via download_url no Android: {e}")
+
+    # 2. Em ambiente desktop ou onde não há download_url, dispara o arquivo local
     try:
         if os.path.exists(apk_path):
             abs_path = os.path.abspath(apk_path)
-            # Tenta disparar intent de visualização de arquivo
             file_url = f"file://{abs_path}"
             page.launch_url(file_url)
             return True
     except Exception as e:
         print(f"[Updater] Falha ao lançar arquivo local: {e}")
 
+    # 3. Fallback genérico caso file:// falhe
     if download_url:
         try:
             page.launch_url(download_url)

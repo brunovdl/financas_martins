@@ -101,6 +101,20 @@ class TestUpdaterService:
             success = launch_apk_installer(mock_page, "/non_existent.apk", download_url=None)
             assert success is False
 
+    def test_launch_apk_installer_android_prioritizes_download_url(self):
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.launch_url = MagicMock()
+
+        # Simula ambiente Android
+        with patch("os.path.isdir", return_value=True):
+            success = launch_apk_installer(
+                mock_page,
+                "/storage/emulated/0/Download/app.apk",
+                download_url="https://github.com/releases/app.apk",
+            )
+            assert success is True
+            mock_page.launch_url.assert_called_with("https://github.com/releases/app.apk")
+
     @patch("urllib.request.urlopen")
     def test_download_apk_progress(self, mock_urlopen, tmp_path):
         mock_resp = MagicMock()

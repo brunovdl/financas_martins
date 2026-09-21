@@ -180,7 +180,10 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
                 status_text.color = T.get("success", "#3FD6C4")
                 status_text.weight = ft.FontWeight.BOLD
 
-                file_info_text.value = f"Arquivo salvo em: {apk_path}"
+                file_info_text.value = (
+                    f"Arquivo salvo em: {apk_path}\n"
+                    "Se o instalador não abrir sozinho, toque em 'Instalar Agora'."
+                )
                 file_info_box.visible = True
 
                 # Dispara tentativa automática de abertura do instalador nativo
@@ -189,45 +192,34 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
                 btn_install_apk = ft.Button(
                     content=ft.Row(
                         [
-                            ft.Icon(ft.Icons.INSTALL_MOBILE_ROUNDED, size=16, color=T.get("accentOnBrand", "#08090F")),
-                            ft.Text("Instalar APK", size=13, weight=ft.FontWeight.BOLD, color=T.get("accentOnBrand", "#08090F")),
+                            ft.Icon(ft.Icons.INSTALL_MOBILE_ROUNDED, size=17, color=T.get("accentOnBrand", "#08090F")),
+                            ft.Text("Instalar Agora", size=13, weight=ft.FontWeight.BOLD, color=T.get("accentOnBrand", "#08090F")),
                         ],
-                        spacing=4,
+                        spacing=6,
                         tight=True,
                     ),
                     bgcolor=T["accent"],
                     style=ft.ButtonStyle(
                         shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+                        padding=ft.Padding.symmetric(horizontal=16, vertical=10),
                     ),
                     on_click=lambda _: launch_apk_installer(page, apk_path, download_url),
                 )
 
-                btn_browser = ft.Button(
-                    content=ft.Row(
-                        [
-                            ft.Icon(ft.Icons.OPEN_IN_BROWSER, size=15, color=T.get("textPrimary", "#EDF0F7")),
-                            ft.Text("Instalar pelo Navegador", size=12, color=T.get("textPrimary", "#EDF0F7")),
-                        ],
-                        spacing=4,
-                        tight=True,
-                    ),
-                    bgcolor=T["surfaceSolid"],
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.Padding.symmetric(horizontal=10, vertical=8),
-                    ),
-                    on_click=lambda _: page.launch_url(download_url),
-                )
-
                 btn_close_done = ft.Button(
-                    content=ft.Text("Fechar", color=T["textMuted"], size=12),
-                    style=ft.ButtonStyle(bgcolor=ft.Colors.TRANSPARENT, elevation=0),
+                    content=ft.Text("Fechar", color=T["textMuted"], size=13),
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        elevation=0,
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+                    ),
                     on_click=lambda _: _close_dialog(page, dlg),
                 )
 
-                actions_row.controls = [btn_close_done, btn_browser, btn_install_apk]
+                actions_row.controls = [btn_close_done, btn_install_apk]
                 actions_row.alignment = ft.MainAxisAlignment.END
+                actions_row.spacing = 10
                 page.update()
 
             except Exception as exc:
