@@ -119,7 +119,6 @@ jobs:
               --android-signing-key-password "mai_finance_release_key_2026" \
               --android-signing-key-alias "maifinance" \
               --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true \
-              --flutter-build-args --target-platform=android-arm64,android-arm \
               --exclude "tests/*" "Mai Finance QA.pdf" \
               --verbose; then
               build_success=1
