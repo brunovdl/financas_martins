@@ -88,9 +88,22 @@ jobs:
           # Injetar a versão oficial calculada no código Python e no version.json para que o app saiba sua versão real
           python scripts/inject_version.py --version "${VERSION}" --build-number "${BUILD_NUMBER}"
 
+          # Configurar timeouts generosos para o Gradle para evitar falhas transitórias em downloads de rede
+          mkdir -p ~/.gradle
+          cat << 'EOF' > ~/.gradle/gradle.properties
+org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
+systemProp.http.connectionTimeout=60000
+systemProp.http.socketTimeout=120000
+systemProp.https.connectionTimeout=60000
+systemProp.https.socketTimeout=120000
+EOF
+
           build_success=0
           for attempt in 1 2; do
-            echo "::group::Compilação do APK (Tentativa $attempt de 2)"
+            echo "--- Compilação do APK: Tentativa $attempt de 2 ---"
+            # Limpa qualquer resquício de compilações anteriores para evitar inconsistência de diretórios
+            rm -rf build /tmp/serious_python_*
+
             if flet build apk \
               --yes \
               --no-rich-output \
@@ -112,16 +125,16 @@ jobs:
               --android-signing-key-password "mai_finance_release_key_2026" \
               --android-signing-key-alias "maifinance" \
               --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true \
+              --flutter-build-args --target-platform=android-arm64,android-arm \
               --exclude "tests/*" "Mai Finance QA.pdf" \
               --verbose; then
-              echo "::endgroup::"
               build_success=1
               break
             fi
-            echo "::endgroup::"
+
             if [ "$attempt" -lt 2 ]; then
-              echo "::warning::Falha transitória na compilação do APK (instabilidade de rede/CDN). Aguardando 20 segundos antes de retentar..."
-              sleep 20
+              echo "::warning::Falha na compilação do APK na tentativa $attempt. Limpando diretórios e aguardando 15 segundos antes de retentar..."
+              sleep 15
             fi
           done
 
