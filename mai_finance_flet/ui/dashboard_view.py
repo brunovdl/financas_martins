@@ -22,7 +22,7 @@ import threading
 from typing import Any, Callable
 import flet as ft
 
-from services.updater import check_for_updates, get_current_app_version, CURRENT_VERSION
+from services.updater import check_for_updates, get_current_app_version, CURRENT_VERSION, safe_launch_url
 from ui.components.update_modal import open_update_dialog
 
 from services.categories import list_categories
@@ -1924,7 +1924,7 @@ class DashboardView(ft.Container):
                         icon_size=14,
                         icon_color=self.T["accent"],
                         tooltip=f"Abrir link: {obs}",
-                        on_click=lambda _, u=obs: self.page_ref.launch_url(u),
+                        on_click=lambda _, u=obs: safe_launch_url(self.page_ref, u),
                     )
                 )
             obs_elements.append(

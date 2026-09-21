@@ -195,6 +195,47 @@ def download_apk(
     return target_path
 
 
+def safe_launch_url(page: ft.Page, url: str) -> bool:
+    """
+    Abre uma URL de forma segura e compatível tanto com Flet 1.0+ (UrlLauncher / run_task)
+    quanto com instâncias mock de testes unitários (hasattr launch_url).
+    """
+    if not page or not url:
+        return False
+
+    # 1. Se page possuir launch_url (ex.: mocks de teste ou flet legado)
+    if hasattr(page, "launch_url") and callable(getattr(page, "launch_url")):
+        try:
+            page.launch_url(url)
+            return True
+        except Exception as e:
+            print(f"[safe_launch_url] Falha em page.launch_url: {e}")
+
+    # 2. Flet 1.0+: usa ft.UrlLauncher().launch_url assíncrono via page.run_task
+    if hasattr(page, "run_task") and callable(getattr(page, "run_task")):
+        try:
+            async def _launch():
+                await ft.UrlLauncher().launch_url(url)
+            page.run_task(_launch)
+            return True
+        except Exception as e:
+            print(f"[safe_launch_url] Falha em page.run_task(UrlLauncher): {e}")
+
+    # 3. Fallback via asyncio
+    try:
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(ft.UrlLauncher().launch_url(url))
+        else:
+            loop.run_until_complete(ft.UrlLauncher().launch_url(url))
+        return True
+    except Exception as e:
+        print(f"[safe_launch_url] Falha em asyncio fallback: {e}")
+
+    return False
+
+
 def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[str] = None) -> bool:
     """
     Abre o instalador do APK no Android.
@@ -204,28 +245,22 @@ def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[st
     # sem esbarrar no bloqueio de FileUriExposedException que impede file:// no Android 7.0+.
     is_android = os.path.isdir("/storage/emulated/0") or "ANDROID_ROOT" in os.environ or "ANDROID_DATA" in os.environ
     if is_android and download_url:
-        try:
-            page.launch_url(download_url)
+        if safe_launch_url(page, download_url):
             return True
-        except Exception as e:
-            print(f"[Updater] Falha ao lançar instalador via download_url no Android: {e}")
 
     # 2. Em ambiente desktop ou onde não há download_url, dispara o arquivo local
     try:
         if os.path.exists(apk_path):
             abs_path = os.path.abspath(apk_path)
             file_url = f"file://{abs_path}"
-            page.launch_url(file_url)
-            return True
+            if safe_launch_url(page, file_url):
+                return True
     except Exception as e:
         print(f"[Updater] Falha ao lançar arquivo local: {e}")
 
     # 3. Fallback genérico caso file:// falhe
     if download_url:
-        try:
-            page.launch_url(download_url)
+        if safe_launch_url(page, download_url):
             return True
-        except Exception:
-            pass
 
     return False

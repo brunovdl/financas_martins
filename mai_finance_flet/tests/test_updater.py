@@ -15,6 +15,7 @@ from services.updater import (
     get_current_app_version,
     get_android_download_dir,
     CURRENT_VERSION,
+    safe_launch_url,
 )
 from ui.components.update_modal import open_update_dialog
 
@@ -114,6 +115,20 @@ class TestUpdaterService:
             )
             assert success is True
             mock_page.launch_url.assert_called_with("https://github.com/releases/app.apk")
+
+    def test_safe_launch_url_flet_1_run_task(self):
+        # Simula Flet 1.0 onde Page NÃO tem launch_url mas tem run_task
+        mock_page = MagicMock(spec=ft.Page)
+        del mock_page.launch_url
+        mock_page.run_task = MagicMock()
+
+        success = safe_launch_url(mock_page, "https://example.com/app.apk")
+        assert success is True
+        assert mock_page.run_task.called
+
+    def test_safe_launch_url_invalid(self):
+        assert safe_launch_url(None, "https://example.com") is False
+        assert safe_launch_url(MagicMock(), "") is False
 
     @patch("urllib.request.urlopen")
     def test_download_apk_progress(self, mock_urlopen, tmp_path):
