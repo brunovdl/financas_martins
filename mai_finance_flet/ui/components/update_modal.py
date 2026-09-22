@@ -187,7 +187,18 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
                 file_info_box.visible = True
 
                 # Dispara tentativa automática de abertura do instalador nativo
-                launch_apk_installer(page, apk_path, download_url)
+                launched = launch_apk_installer(page, apk_path, download_url)
+
+                is_android = (
+                    os.path.isdir("/storage/emulated/0")
+                    or "ANDROID_ROOT" in os.environ
+                    or "ANDROID_DATA" in os.environ
+                )
+                # Se o instalador nativo foi acionado com sucesso no Android (DEC-035),
+                # fecha o modal para transferir o foco total para o instalador oficial do sistema
+                if launched and is_android:
+                    _close_dialog(page, dlg)
+                    return
 
                 btn_install_apk = ft.Button(
                     content=ft.Row(

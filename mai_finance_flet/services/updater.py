@@ -1,6 +1,7 @@
 """
 updater.py — Serviço de Verificação, Download e Atualização Automática do APK Android
 """
+import logging
 import os
 import re
 import sys
@@ -9,6 +10,8 @@ import urllib.request
 from typing import Any, Callable, Optional
 import httpx
 import flet as ft
+
+logger = logging.getLogger(__name__)
 
 # Versão local do aplicativo instalada (fallback padrão se version.json não existir)
 CURRENT_VERSION = "1.0.10"
@@ -199,6 +202,7 @@ def safe_launch_url(page: ft.Page, url: str) -> bool:
     """
     Abre uma URL de forma segura e compatível tanto com Flet 1.0+ (UrlLauncher / run_task)
     quanto com instâncias mock de testes unitários (hasattr launch_url).
+    Garante o registro prévio do serviço UrlLauncher em page.services para evitar RuntimeError.
     """
     if not page or not url:
         return False
@@ -209,46 +213,219 @@ def safe_launch_url(page: ft.Page, url: str) -> bool:
             page.launch_url(url)
             return True
         except Exception as e:
-            print(f"[safe_launch_url] Falha em page.launch_url: {e}")
+            logger.warning(f"[safe_launch_url] Falha em page.launch_url: {e}")
 
-    # 2. Flet 1.0+: usa ft.UrlLauncher().launch_url assíncrono via page.run_task
+    # 2. Garante registro de UrlLauncher em page.services no Flet 1.0+
+    launcher = None
+    if hasattr(page, "services") and isinstance(page.services, list):
+        for s in page.services:
+            if isinstance(s, ft.UrlLauncher):
+                launcher = s
+                break
+        if not launcher:
+            launcher = ft.UrlLauncher()
+            page.services.append(launcher)
+            try:
+                page.update()
+            except Exception:
+                pass
+    else:
+        launcher = ft.UrlLauncher()
+
+    # 3. Flet 1.0+: usa launcher.launch_url assíncrono via page.run_task
     if hasattr(page, "run_task") and callable(getattr(page, "run_task")):
         try:
             async def _launch():
-                await ft.UrlLauncher().launch_url(url)
+                await launcher.launch_url(url)
             page.run_task(_launch)
             return True
         except Exception as e:
-            print(f"[safe_launch_url] Falha em page.run_task(UrlLauncher): {e}")
+            logger.warning(f"[safe_launch_url] Falha em page.run_task(UrlLauncher): {e}")
 
-    # 3. Fallback via asyncio
+    # 4. Fallback via asyncio
     try:
         import asyncio
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            asyncio.create_task(ft.UrlLauncher().launch_url(url))
+            asyncio.create_task(launcher.launch_url(url))
         else:
-            loop.run_until_complete(ft.UrlLauncher().launch_url(url))
+            loop.run_until_complete(launcher.launch_url(url))
         return True
     except Exception as e:
-        print(f"[safe_launch_url] Falha em asyncio fallback: {e}")
+        logger.warning(f"[safe_launch_url] Falha em asyncio fallback: {e}")
 
     return False
 
 
+def install_apk_android_native(apk_path: str) -> bool:
+    """
+    Aciona o PackageInstaller oficial do Android diretamente via PyJNIus / JNI (DEC-035).
+    Monta Intent(ACTION_VIEW) com FileProvider e flags de permissão de leitura.
+    """
+    if not apk_path or not os.path.exists(apk_path):
+        logger.warning(f"[Updater] APK não encontrado no caminho: {apk_path}")
+        return False
+
+    try:
+        import jnius
+        # Garante vinculação segura da thread atual ao JavaVM do Android
+        if hasattr(jnius, "attach_thread"):
+            jnius.attach_thread()
+
+        from jnius import autoclass
+
+        # 1. Obtém a Activity host através da variável de ambiente do Flet / SeriousPython
+        activity_host_class_name = os.getenv("MAIN_ACTIVITY_HOST_CLASS_NAME")
+        activity = None
+
+        if activity_host_class_name:
+            try:
+                host_cls = autoclass(activity_host_class_name)
+                activity = getattr(host_cls, "mActivity", None)
+            except Exception as e:
+                logger.warning(f"[Updater] Falha ao obter Activity via {activity_host_class_name}: {e}")
+
+        if activity is None:
+            for candidate in [
+                "com.flet.serious_python_android.PythonActivity",
+                "com.flet.serious_python.PythonActivity",
+                "org.kivy.android.PythonActivity",
+                "com.martinsautomation.mai_finance.MainActivity",
+            ]:
+                try:
+                    c = autoclass(candidate)
+                    if hasattr(c, "mActivity") and c.mActivity:
+                        activity = c.mActivity
+                        break
+                except Exception:
+                    continue
+
+        if activity is None:
+            logger.warning("[Updater] PyJNIus disponível mas nenhuma Activity ativa foi encontrada.")
+            return False
+
+        # 2. Classes do Android
+        Intent = autoclass("android.content.Intent")
+        Uri = autoclass("android.net.Uri")
+        File = autoclass("java.io.File")
+        FileProvider = autoclass("androidx.core.content.FileProvider")
+        Build = autoclass("android.os.Build")
+
+        file_obj = File(os.path.abspath(apk_path))
+        context = activity.getApplicationContext()
+        package_name = context.getPackageName()
+
+        # 3. URI via FileProvider (compatível com Android 7.0+ a 15)
+        uri = None
+        if Build.VERSION.SDK_INT >= 24:
+            for auth_candidate in [
+                f"{package_name}.provider",
+                f"{package_name}.fileprovider",
+                f"{package_name}.flutter.share_provider",
+            ]:
+                try:
+                    uri = FileProvider.getUriForFile(context, auth_candidate, file_obj)
+                    if uri:
+                        break
+                except Exception as auth_err:
+                    logger.debug(f"[Updater] FileProvider com authority {auth_candidate} falhou: {auth_err}")
+                    continue
+
+        if uri is None:
+            uri = Uri.fromFile(file_obj)
+
+        # 4. Intent com tipo MIME oficial de instalação de pacotes APK
+        intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "application/vnd.android.package-archive")
+        # FLAG_GRANT_READ_URI_PERMISSION = 1
+        intent.addFlags(1)
+        # FLAG_ACTIVITY_NEW_TASK = 268435456 (0x10000000)
+        intent.addFlags(268435456)
+
+        activity.startActivity(intent)
+        logger.info(f"[Updater] PackageInstaller do Android disparado com sucesso para {apk_path}")
+        return True
+
+    except Exception as exc:
+        logger.warning(f"[Updater] Falha no acionamento nativo via PyJNIus: {exc}")
+        return False
+
+
+def share_apk_installer(page: ft.Page, apk_path: str) -> bool:
+    """
+    Fallback usando ft.Share para abrir a folha de ações do sistema com o APK.
+    Permite ao usuário selecionar o Instalador de Pacotes do Android.
+    """
+    try:
+        if not os.path.exists(apk_path):
+            return False
+
+        share_service = None
+        if hasattr(page, "services") and isinstance(page.services, list):
+            for s in page.services:
+                if isinstance(s, ft.Share):
+                    share_service = s
+                    break
+            if not share_service:
+                share_service = ft.Share()
+                page.services.append(share_service)
+                try:
+                    page.update()
+                except Exception:
+                    pass
+        else:
+            share_service = ft.Share()
+
+        async def _share():
+            await share_service.share_files(
+                [
+                    ft.ShareFile.from_path(
+                        os.path.abspath(apk_path),
+                        mime_type="application/vnd.android.package-archive",
+                        name="MAI Finance Atualização",
+                    )
+                ]
+            )
+
+        if hasattr(page, "run_task") and callable(getattr(page, "run_task")):
+            page.run_task(_share)
+            return True
+        else:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(_share())
+            else:
+                loop.run_until_complete(_share())
+            return True
+    except Exception as exc:
+        logger.warning(f"[Updater] Falha no fallback via ft.Share: {exc}")
+        return False
+
+
 def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[str] = None) -> bool:
     """
-    Abre o instalador do APK no Android.
+    Abre o instalador do APK no Android (PackageInstaller) com prioridade nativa (DEC-035).
     Retorna True se acionou com sucesso, False caso contrário.
     """
-    # 1. No ambiente Android real, URLs de APK acionam o PackageInstaller do sistema operacional
-    # sem esbarrar no bloqueio de FileUriExposedException que impede file:// no Android 7.0+.
     is_android = os.path.isdir("/storage/emulated/0") or "ANDROID_ROOT" in os.environ or "ANDROID_DATA" in os.environ
-    if is_android and download_url:
-        if safe_launch_url(page, download_url):
+
+    if is_android:
+        # Prioridade 1: Acionamento nativo direto do PackageInstaller via PyJNIus
+        if install_apk_android_native(apk_path):
             return True
 
-    # 2. Em ambiente desktop ou onde não há download_url, dispara o arquivo local
+        # Prioridade 2: Fallback via ft.Share com MIME de APK
+        if share_apk_installer(page, apk_path):
+            return True
+
+        # Prioridade 3: Fallback via download_url se houver
+        if download_url and safe_launch_url(page, download_url):
+            return True
+
+        return False
+
+    # Ambiente Desktop / Testes
     try:
         if os.path.exists(apk_path):
             abs_path = os.path.abspath(apk_path)
@@ -256,9 +433,8 @@ def launch_apk_installer(page: ft.Page, apk_path: str, download_url: Optional[st
             if safe_launch_url(page, file_url):
                 return True
     except Exception as e:
-        print(f"[Updater] Falha ao lançar arquivo local: {e}")
+        logger.warning(f"[Updater] Falha ao lançar arquivo local: {e}")
 
-    # 3. Fallback genérico caso file:// falhe
     if download_url:
         if safe_launch_url(page, download_url):
             return True

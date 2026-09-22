@@ -274,3 +274,123 @@ class TestUpdateModalUI:
         assert view_native.item_check_update.visible is True
 
 
+class TestDEC035NativePackageInstaller:
+    """Valida o acionamento direto do PackageInstaller do Android via PyJNIus e fechamento do modal (DEC-035)."""
+
+    def test_install_apk_android_native_success(self):
+        """Valida que install_apk_android_native monta Intent(ACTION_VIEW) com FileProvider e startActivity."""
+        from services.updater import install_apk_android_native
+        import sys
+        from types import ModuleType
+
+        fake_jnius = ModuleType("jnius")
+        mock_autoclass = MagicMock()
+        fake_jnius.autoclass = mock_autoclass
+        fake_jnius.attach_thread = MagicMock()
+
+        # Mocks das classes Android
+        mock_activity = MagicMock()
+        mock_activity.getApplicationContext.return_value.getPackageName.return_value = "com.martinsautomation.mai_finance"
+        mock_host = MagicMock()
+        mock_host.mActivity = mock_activity
+
+        mock_intent_cls = MagicMock()
+        mock_intent_instance = MagicMock()
+        mock_intent_cls.return_value = mock_intent_instance
+
+        mock_file_cls = MagicMock()
+        mock_file_provider = MagicMock()
+        mock_file_provider.getUriForFile.return_value = "content://com.martinsautomation.mai_finance.provider/app.apk"
+
+        mock_build = MagicMock()
+        mock_build.VERSION.SDK_INT = 34
+
+        def autoclass_side_effect(name):
+            if "PythonActivity" in name or "MainActivity" in name:
+                return mock_host
+            elif name == "android.content.Intent":
+                return mock_intent_cls
+            elif name == "java.io.File":
+                return mock_file_cls
+            elif name == "androidx.core.content.FileProvider":
+                return mock_file_provider
+            elif name == "android.os.Build":
+                return mock_build
+            return MagicMock()
+
+        mock_autoclass.side_effect = autoclass_side_effect
+
+        with patch.dict(sys.modules, {"jnius": fake_jnius}):
+            with patch("os.path.exists", return_value=True):
+                success = install_apk_android_native("/storage/emulated/0/Download/MAI-Finance-v1.0.31.apk")
+                assert success is True
+                assert fake_jnius.attach_thread.called
+                assert mock_intent_cls.called
+                mock_intent_instance.setDataAndType.assert_called_with(
+                    "content://com.martinsautomation.mai_finance.provider/app.apk",
+                    "application/vnd.android.package-archive",
+                )
+                assert mock_intent_instance.addFlags.call_count == 2
+                assert mock_activity.startActivity.called
+
+    def test_launch_apk_installer_prioritizes_native_on_android(self):
+        """Valida que no Android o launch_apk_installer chama install_apk_android_native com prioridade máxima."""
+        mock_page = MagicMock(spec=ft.Page)
+        with patch("services.updater.install_apk_android_native", return_value=True) as mock_native:
+            with patch("os.path.isdir", return_value=True):  # Android
+                success = launch_apk_installer(mock_page, "/storage/emulated/0/Download/app.apk", "https://example.com/app.apk")
+                assert success is True
+                assert mock_native.called
+
+    def test_safe_launch_url_ensures_url_launcher_service_registered(self):
+        """Valida que UrlLauncher é registrado em page.services no Flet 1.0+ para evitar RuntimeError."""
+        mock_page = MagicMock(spec=ft.Page)
+        del mock_page.launch_url
+        mock_page.services = []
+        mock_page.run_task = MagicMock()
+
+        success = safe_launch_url(mock_page, "https://github.com/releases/app.apk")
+        assert success is True
+        assert len(mock_page.services) == 1
+        assert isinstance(mock_page.services[0], ft.UrlLauncher)
+
+    def test_modal_auto_closes_on_android_when_installer_launched(self):
+        """Valida que o diálogo fecha no Android quando launch_apk_installer retorna sucesso."""
+        from ui.components.update_modal import open_update_dialog, _close_dialog
+
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.theme_mode = ft.ThemeMode.DARK
+        mock_page.show_dialog = MagicMock()
+        mock_page.update = MagicMock()
+
+        update_info = {
+            "current_version": "1.0.0",
+            "latest_version": "1.0.5",
+            "download_url": "https://example.com/app.apk",
+            "apk_size_bytes": 1000,
+        }
+
+        with patch("ui.components.update_modal.download_apk", return_value="/storage/emulated/0/Download/app.apk"):
+            with patch("ui.components.update_modal.launch_apk_installer", return_value=True):
+                with patch("os.path.isdir", return_value=True):
+                    with patch("ui.components.update_modal._close_dialog") as mock_close:
+                        with patch("threading.Thread") as mock_thread_cls:
+                            mock_t = MagicMock()
+                            mock_thread_cls.return_value = mock_t
+                            def fake_start():
+                                # Executa o worker síncronamente
+                                mock_thread_cls.call_args[1]["target"]()
+                            mock_t.start = fake_start
+
+                            open_update_dialog(mock_page, update_info)
+                            dlg = mock_page.dialog if hasattr(mock_page, "dialog") and mock_page.dialog else mock_page.show_dialog.call_args[0][0]
+                            # Localiza actions_row dentro do Column de conteúdo do diálogo
+                            inner_column = dlg.content.content.controls[1].content
+                            actions_row = inner_column.controls[5]
+                            btn_update = actions_row.controls[1]
+                            btn_update.on_click(MagicMock())
+
+                            assert mock_close.called
+
+
+

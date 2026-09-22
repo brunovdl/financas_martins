@@ -126,7 +126,7 @@ jobs:
               --android-signing-key-store-password "mai_finance_release_key_2026" \
               --android-signing-key-password "mai_finance_release_key_2026" \
               --android-signing-key-alias "maifinance" \
-              --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true android.permission.CAMERA=true android.permission.ACCESS_FINE_LOCATION=true android.permission.ACCESS_COARSE_LOCATION=true \
+              --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true android.permission.CAMERA=true android.permission.ACCESS_FINE_LOCATION=true android.permission.ACCESS_COARSE_LOCATION=true android.permission.READ_EXTERNAL_STORAGE=true android.permission.WRITE_EXTERNAL_STORAGE=true \
               --exclude "tests/*" "Mai Finance QA.pdf" \
               --verbose; then
               build_success=1
@@ -185,7 +185,7 @@ jobs:
           tag_name: v${{ env.APP_VERSION }}
           name: "MAI Finance v${{ env.APP_VERSION }} (Instalador Android)"
           body: |
-            ### MAI Finance - Instalador Oficial Android (APK)
+            MAI Finance - Instalador Oficial Android (APK)
 
             Detalhes da versao:
             - Versao: v${{ env.APP_VERSION }}
