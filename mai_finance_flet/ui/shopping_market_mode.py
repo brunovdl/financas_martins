@@ -22,7 +22,7 @@ from services.shopping_service import (
 )
 from db.shopping import update_shopping_item
 from services.shopping_realtime import ShoppingRealtimeSync
-from services.price_scanner_service import extract_price_from_file_path, extract_price_from_base64
+from ui.components.camera_price_scanner_modal import open_camera_price_scanner
 from ui.components.shopping_item_card import build_shopping_item_card
 from ui.components.shopping_finish_modal import open_shopping_finish_modal
 from ui.components.shopping_add_item_modal import open_shopping_add_item_modal
@@ -57,11 +57,6 @@ class ShoppingMarketModeView(ft.Container):
             on_change_callback=self._handle_realtime_update,
             interval_seconds=2.5,
         )
-
-        self.file_picker = ft.FilePicker()
-        if hasattr(self.page_ref, "services") and isinstance(self.page_ref.services, list):
-            if self.file_picker not in self.page_ref.services:
-                self.page_ref.services.append(self.file_picker)
 
         self._build_ui()
 
@@ -227,61 +222,22 @@ class ShoppingMarketModeView(ft.Container):
         )
 
     def _handle_scan_price(self, item: dict[str, Any]) -> None:
-        """Aciona a câmera/seletor para fotografar a etiqueta de gôndola e ler o preço."""
-        item_name = item.get("name", "Produto")
+        """Abre o scanner de câmera zero-toque para ler a etiqueta de gôndola (DEC-026)."""
+        def _on_price_detected(item_id: str, price: float) -> None:
+            update_shopping_item(item_id, {
+                "actual_price": price,
+                "estimated_price": price,
+                "is_bought": True,
+            })
+            self.load_data()
+            self._show_snack(f"✅ {item.get('name', 'Item')}: {format_brl(price)} adicionado ao carrinho!")
 
-        async def _pick_and_scan():
-            try:
-                files = await self.file_picker.pick_files(
-                    dialog_title=f"Fotografar Etiqueta: {item_name}",
-                    file_type=ft.FilePickerFileType.IMAGE,
-                    allow_multiple=False,
-                )
-                if not files:
-                    return
-
-                picked_file = files[0]
-                self._show_snack(f"Lendo etiqueta de '{item_name}' com IA...")
-
-                def _process_image():
-                    import base64
-                    res: dict[str, Any] = {"success": False}
-                    try:
-                        if getattr(picked_file, "path", None):
-                            res = extract_price_from_file_path(picked_file.path, item_name=item_name)
-                        elif getattr(picked_file, "bytes", None):
-                            b64 = base64.b64encode(picked_file.bytes).decode("utf-8")
-                            res = extract_price_from_base64(b64, item_name=item_name)
-                    except Exception as ex:
-                        res = {"success": False, "error": str(ex)}
-
-                    def _update_ui():
-                        if res.get("success") and res.get("price") is not None:
-                            new_price = float(res["price"])
-                            # No modo mercado, atualiza preço real e marca como no carrinho
-                            update_shopping_item(item["id"], {
-                                "actual_price": new_price,
-                                "estimated_price": new_price,
-                                "is_bought": True,
-                            })
-                            self.load_data()
-                            self._show_snack(f"✅ {item_name}: {format_brl(new_price)} adicionado ao carrinho!")
-                        else:
-                            err_msg = res.get("error") or "Preço não identificado na foto"
-                            self._show_snack(f"⚠️ {err_msg}. Tente aproximar a foto da etiqueta.")
-
-                    if hasattr(self.page_ref, "run_thread"):
-                        self.page_ref.run_thread(_update_ui)
-                    else:
-                        _update_ui()
-
-                threading.Thread(target=_process_image, daemon=True).start()
-
-            except Exception as ex:
-                self._show_snack(f"Não foi possível abrir o seletor/câmera: {ex}")
-
-        if hasattr(self.page_ref, "run_task"):
-            self.page_ref.run_task(_pick_and_scan)
+        open_camera_price_scanner(
+            page=self.page_ref,
+            item=item,
+            theme_mode=self.theme_mode,
+            on_price_detected=_on_price_detected,
+        )
 
     def _show_snack(self, message: str) -> None:
         """Exibe mensagem de feedback rápido na tela."""

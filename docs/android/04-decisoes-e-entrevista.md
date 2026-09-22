@@ -33,6 +33,12 @@ Uma pergunta por vez, com alternativas claras e recomendação explicada. A resp
 | DEC-023 | Edição Completa e Leitor Inteligente de Preços: edição de itens da lista de compras e captura fotográfica de etiquetas de gôndola com IA (Groq Llama 3.2 Vision) | Resposta do usuário em 2026-09-21 |
 | DEC-024 | Geolocalização Automática em Background: detecção via GeoIP sem permissões invasivas e enriquecimento dinâmico de redes de supermercado para qualquer cidade brasileira | Resposta do usuário em 2026-09-21 |
 | DEC-025 | Orientações de Permissão de Instalação do APK: mensagem amigável para ativar 'Instalar apps desconhecidos' no Android 8.0+ em atualizações automáticas in-app | Resposta do usuário em 2026-09-21 |
+| DEC-026 | Scanner de gôndola zero-toque: abertura de câmera direta, leitura automática da etiqueta por IA/OCR com moldura de foco que acende em verde e fechamento instantâneo | Resposta do usuário em 2026-09-22 |
+| DEC-027 | Seletor de Marcas e Valores por item no modal de cotação com IA, com chips/seletor e recálculo dinâmico do total do carrinho antes de aplicar à lista | Resposta do usuário em 2026-09-22 |
+| DEC-028 | Comparativo de múltiplos mercados com nomes reais de redes locais e navegação por abas/cartões expansíveis com seus respectivos itens cotados | Resposta do usuário em 2026-09-22 |
+| DEC-029 | Geolocalização nativa no dispositivo (GPS via `flet-geolocator` com permissão Android `ACCESS_FINE_LOCATION`), com geocoding reverso e fallback por IP, gravando no aparelho | Resposta do usuário em 2026-09-22 |
+| DEC-030 | Redesenho do `shopping_item_card.py` em 2 linhas limpas (Linha 1: checkbox e nome com largura total; Linha 2: quantidade, preço cotado e ações de câmera, edição e exclusão) eliminando encavalamento | Resposta do usuário em 2026-09-22 |
+| DEC-031 | Build Android com permissões de hardware no APK: `android.permission.CAMERA`, `android.permission.ACCESS_FINE_LOCATION`, `android.permission.ACCESS_COARSE_LOCATION` no GitHub Actions | Resposta do usuário em 2026-09-22 |
 
 ## P01 respondida: contas e compartilhamento
 
@@ -156,6 +162,29 @@ Como você prefere que seja realizado o empacotamento e a instalação do aplica
 
 Resposta: **opção 1 confirmada** pelo usuário. O app será distribuído diretamente em pacote APK Release assinado, otimizado para arquiteturas ARM64 / ARMv7 e pronto para sideloading no Android. Não haverá submissão na Google Play Store. As atualizações serão distribuídas via download direto do novo APK assinado com numeração incremental (`build_number` / `version`).
 
-## Conclusão da entrevista de planejamento
+## Conclusão da entrevista de planejamento original (2026-09-08 / 2026-09-21)
 
-Todas as 12 perguntas fundamentais do projeto foram respondidas e validadas pelo usuário (DEC-001 até DEC-020). Todas as decisões foram registradas formalmente na documentação e cobertas na suíte de testes automatizados do aplicativo (`android/tests/`). O aplicativo Android do MAI Finance está integralmente especificado e validado com paridade completa com a versão web.
+As perguntas fundamentais do projeto foram respondidas e validadas (DEC-001 até DEC-025).
+
+---
+
+## Rodada de Entrevista — Correções e Melhorias da Lista de Compras (2026-09-22)
+
+### P01 respondida: fluxo da câmera e leitura de etiqueta na gôndola
+- **Decisão (DEC-026)**: Ao clicar no ícone da câmera, a câmera é aberta diretamente; o usuário aponta para a gôndola, o sistema detecta a etiqueta de preço em tempo real/auto-disparo com IA, extrai o valor e fecha a câmera gravando o preço no item sem qualquer clique adicional (zero toques após a abertura).
+
+### P02 respondida: seletor de marcas e valores na cotação com IA
+- **Decisão (DEC-027)**: No próprio modal de cotação com IA, os itens contam com chips/seletor interativo com as marcas e valores encontrados (ex: `[Pilão R$ 18,90]`, `[Melitta R$ 21,50]`), já vindo marcada a melhor opção e recalculando o total do carrinho instantaneamente caso o usuário queira trocar a marca antes de aplicar à lista.
+
+### P03 respondida: múltiplos mercados reais e navegação
+- **Decisão (DEC-028)**: Quando a cotação for realizada para "Todos os mercados", o sistema consulta e apresenta 3 supermercados reais da região em abas/cartões expansíveis, permitindo inspecionar e personalizar os itens e marcas de cada mercado antes de aplicar à lista.
+
+### P04 respondida: método de geolocalização automática
+- **Decisão (DEC-029)**: Utilização do GPS nativo do aparelho (Android Location via `flet-geolocator` e permissão `ACCESS_FINE_LOCATION`) com reverse geocoding para detectar com exatidão a cidade e bairro em redes móveis (4G/5G) e Wi-Fi, com fallback resiliente multi-provedor por IP e persistência local.
+
+### P05 respondida: eliminação de encavalamento no card de compras
+- **Decisão (DEC-030)**: Redesenho do card em 2 linhas limpas sem o badge redundante de corredor (já presente no cabeçalho do agrupador): Linha 1 com checkbox e nome do produto com largura total expansível; Linha 2 com quantidade, preço cotado e botões de ação à direita.
+
+### P06 respondida: feedback do scanner de gôndola
+- **Decisão (DEC-026)**: Moldura de foco inteligente sobre a etiqueta que acende em verde no momento exato em que o valor for identificado, emitindo notificação/vibração rápida e fechando o visor em menos de 1 segundo.
+

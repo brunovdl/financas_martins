@@ -1,4 +1,7 @@
 flet>=1.0.0
+flet-camera>=0.1.0
+flet-permission-handler>=0.1.0
+flet-geolocator>=0.1.0
 supabase>=2.0.0
 python-dotenv>=1.0.0
 PyJWT>=2.8.0

@@ -233,14 +233,18 @@ class TestShoppingModals:
             is_market_mode=False,
         )
 
-        row_controls = card.content.controls
-        # Primeiro elemento: checkbox à esquerda
-        btn_check = row_controls[0]
+        # Layout em 2 linhas (DEC-030): row1 (checkbox + nome), row2 (preço + ações)
+        column_rows = card.content.controls
+        row1 = column_rows[0]
+        row2 = column_rows[1]
+
+        # Primeiro elemento da Linha 1: checkbox à esquerda
+        btn_check = row1.controls[0]
         assert isinstance(btn_check, ft.IconButton)
         assert btn_check.icon == ft.Icons.CHECK_BOX_OUTLINE_BLANK
 
-        # Último elemento: grupo de ações à direita contendo a lixeira
-        actions_group = row_controls[-1]
+        # Último elemento da Linha 2: grupo de ações à direita contendo a lixeira
+        actions_group = row2.controls[-1]
         if isinstance(actions_group, ft.Row):
             btn_delete = actions_group.controls[-1]
         else:

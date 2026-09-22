@@ -110,16 +110,20 @@ def call_groq_to_structure_quote(
         "Você é um especialista em compras de supermercado e cotação de varejo brasileiro. "
         f"Sua missão é cotar a lista de compras para a rede de supermercado especificada{city_info}.\n"
         "Regras obrigatórias:\n"
-        "1. Priorize MARCAS LÍDERES/CONHECIDAS com o MELHOR CUSTO-BENEFÍCIO (ex: Camil, Tio João, Nestlé, Pilão, Ypê, Omo, Sadia, Piracanjuba).\n"
-        "2. Responda ESTRITAMENTE em formato JSON puro, sem blocos markdown ou texto adicional.\n"
+        "1. Para CADA item, forneça 2 ou 3 opções de marcas disponíveis com preços diferentes (da mais barata à mais cara).\n"
+        "2. Priorize MARCAS LÍDERES/CONHECIDAS com o MELHOR CUSTO-BENEFÍCIO (ex: Camil, Tio João, Nestlé, Pilão, Ypê, Omo, Sadia, Piracanjuba).\n"
+        "3. Responda ESTRITAMENTE em formato JSON puro, sem blocos markdown ou texto adicional.\n"
         "Estrutura JSON exigida:\n"
         "{\n"
         '  "market_name": "Nome do Mercado",\n'
         '  "items": [\n'
-        '    {"name": "Item Original", "brand": "Marca Escolhida", "unit_price": 0.00, "quantity": 1, "product_title": "Descrição do Produto 1kg"}\n'
+        '    {"name": "Item Original", "selected_brand": "Marca Melhor Custo-Benefício", "selected_price": 0.00, "brand_options": ['
+        '{"brand": "Marca A", "price": 0.00, "product_title": "Descrição Produto A 1kg"}, '
+        '{"brand": "Marca B", "price": 0.00, "product_title": "Descrição Produto B 1kg"}, '
+        '{"brand": "Marca C", "price": 0.00, "product_title": "Descrição Produto C 1kg"}'
+        '], "quantity": 1}\n'
         "  ]\n"
-        "}"
-    )
+        "}")
 
     user_prompt = (
         f"Rede de Supermercado: {market_name}{city_info}\n"
@@ -247,7 +251,7 @@ def _format_market_quote_data(
     original_items: list[dict[str, Any]],
     ai_items: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Formata os itens cotados calculando o total do carrinho."""
+    """Formata os itens cotados com múltiplas opções de marca (DEC-027) e calcula o total do carrinho."""
     ai_by_name = {it.get("name", "").lower(): it for it in ai_items}
     formatted_items: list[dict[str, Any]] = []
     total_amount = 0.0
@@ -257,9 +261,22 @@ def _format_market_quote_data(
         qty = float(it.get("quantity", 1.0) or 1.0)
         ai_it = ai_by_name.get(orig_name.lower())
 
-        if ai_it and ai_it.get("unit_price"):
-            unit_price = float(ai_it["unit_price"])
-            brand = ai_it.get("brand", "Marca Líder")
+        if ai_it:
+            # Novo formato com brand_options (DEC-027)
+            brand_options = ai_it.get("brand_options", [])
+            selected_brand = ai_it.get("selected_brand") or ai_it.get("brand", "Marca Líder")
+            selected_price = float(ai_it.get("selected_price") or ai_it.get("unit_price") or 0)
+
+            # Se não veio brand_options mas veio brand/unit_price no formato antigo, cria opção única
+            if not brand_options and ai_it.get("unit_price"):
+                brand_options = [{
+                    "brand": selected_brand,
+                    "price": selected_price,
+                    "product_title": ai_it.get("product_title", f"{orig_name} ({selected_brand})"),
+                }]
+
+            unit_price = selected_price if selected_price > 0 else (brand_options[0]["price"] if brand_options else 0)
+            brand = selected_brand
             title = ai_it.get("product_title", f"{orig_name} ({brand})")
         else:
             ref = _get_reference_item(orig_name)
@@ -267,6 +284,7 @@ def _format_market_quote_data(
             unit_price = round(ref["price"] * factor, 2)
             brand = ref["brand"]
             title = f"{orig_name} - {brand}"
+            brand_options = _generate_brand_variants(orig_name, ref, factor)
 
         item_total = round(unit_price * qty, 2)
         total_amount += item_total
@@ -281,6 +299,7 @@ def _format_market_quote_data(
             "product_title": title,
             "unit_price": unit_price,
             "total_price": item_total,
+            "brand_options": brand_options,
         })
 
     return {
@@ -309,6 +328,7 @@ def _build_fallback_market_quote(
         unit_price = round(ref["price"] * factor, 2)
         item_total = round(unit_price * qty, 2)
         total_amount += item_total
+        brand_options = _generate_brand_variants(orig_name, ref, factor)
 
         formatted_items.append({
             "id": it.get("id"),
@@ -320,6 +340,7 @@ def _build_fallback_market_quote(
             "product_title": f"{orig_name} ({ref['brand']})",
             "unit_price": unit_price,
             "total_price": item_total,
+            "brand_options": brand_options,
         })
 
     return {
@@ -328,6 +349,40 @@ def _build_fallback_market_quote(
         "total_amount": round(total_amount, 2),
         "items": formatted_items,
     }
+
+
+def _generate_brand_variants(name: str, ref: dict[str, Any], factor: float) -> list[dict[str, Any]]:
+    """Gera 2-3 variantes de marca com preços calibrados para fallback (DEC-027)."""
+    base_price = round(ref["price"] * factor, 2)
+    primary_brand = ref["brand"]
+
+    # Gera variantes com ajuste de +/- 10-15%
+    variants = [
+        {
+            "brand": primary_brand.split(" / ")[0].strip() if " / " in primary_brand else primary_brand,
+            "price": base_price,
+            "product_title": f"{name} ({primary_brand.split(' / ')[0].strip()})",
+        },
+    ]
+
+    if " / " in primary_brand:
+        alt_brand = primary_brand.split(" / ")[1].strip()
+        alt_price = round(base_price * 1.08, 2)
+        variants.append({
+            "brand": alt_brand,
+            "price": alt_price,
+            "product_title": f"{name} ({alt_brand})",
+        })
+
+    # Opção econômica
+    eco_price = round(base_price * 0.85, 2)
+    variants.append({
+        "brand": "Marca Própria",
+        "price": eco_price,
+        "product_title": f"{name} (Marca Própria do Mercado)",
+    })
+
+    return variants
 
 
 def _get_reference_item(name: str) -> dict[str, Any]:

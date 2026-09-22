@@ -2,13 +2,17 @@
 geo_service.py — Serviço de geolocalização e identificação de mercados regionais (T-017).
 
 Implementa:
-- Detecção de localização física (GPS / IP / Configuração) (AC-023)
+- Detecção de localização física nativa via GPS (flet-geolocator, DEC-029) com reverse geocoding
+- Fallback resiliente multi-provedor por GeoIP (ip-api.com, ipwho.is, ipapi.co)
 - Mapeamento de redes de supermercado que atendem a região do usuário
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Localização padrão configurada
 _configured_location: dict[str, str] = {
@@ -110,12 +114,171 @@ REGIONAL_MARKETS: dict[str, list[dict[str, str]]] = {
 }
 
 
+async def detect_location_gps(page) -> dict[str, str] | None:
+    """
+    Detecta localização via GPS nativo do aparelho Android usando flet-geolocator (DEC-029).
+    Requer permissão ACCESS_FINE_LOCATION. Retorna dict com city/state ou None em caso de falha.
+    API validada via flet-mcp: Geolocator.request_permission(), get_current_position() -> GeolocatorPosition.
+    """
+    try:
+        from flet_geolocator import Geolocator, GeolocatorPermissionStatus
+
+        geo = Geolocator()
+        if hasattr(page, "services") and isinstance(page.services, list):
+            if geo not in page.services:
+                page.services.append(geo)
+                page.update()
+
+        # Solicita permissão de localização
+        perm = await geo.request_permission()
+        if perm not in (GeolocatorPermissionStatus.ALWAYS, GeolocatorPermissionStatus.WHILE_IN_USE):
+            logger.info("[Geo] Permissão de localização negada pelo usuário.")
+            return None
+
+        # Obtém posição GPS
+        position = await geo.get_current_position()
+        if position is None or position.latitude is None or position.longitude is None:
+            logger.info("[Geo] Posição GPS não disponível.")
+            return None
+
+        lat = float(position.latitude)
+        lon = float(position.longitude)
+        logger.info(f"[Geo] GPS detectou: lat={lat}, lon={lon}")
+
+        # Reverse geocoding via Nominatim OpenStreetMap
+        result = _reverse_geocode(lat, lon)
+        if result:
+            return result
+
+    except ImportError:
+        logger.debug("[Geo] flet-geolocator não disponível (ambiente desktop/web).")
+    except Exception as exc:
+        logger.warning(f"[Geo] Falha na detecção GPS: {exc}")
+
+    return None
+
+
+def _reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
+    """Reverse geocoding via OpenStreetMap Nominatim para converter coordenadas em cidade/estado."""
+    try:
+        import httpx
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=pt-BR"
+        headers = {"User-Agent": "MAIFinance/1.0 (bruno@martinsautomation.com)"}
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.get(url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                address = data.get("address", {})
+                city = address.get("city") or address.get("town") or address.get("municipality") or ""
+                state = address.get("state", "")
+                # Abreviação do estado (ex: "São Paulo" -> "SP")
+                state_abbr = _abbreviate_state(state)
+                neighborhood = address.get("suburb") or address.get("neighbourhood") or ""
+                cep = address.get("postcode") or ""
+                if city:
+                    return {
+                        "city": f"{city}, {state_abbr}" if state_abbr else city,
+                        "state": state_abbr or "SP",
+                        "neighborhood": neighborhood,
+                        "cep": cep,
+                    }
+    except Exception as exc:
+        logger.debug(f"[Geo] Reverse geocoding falhou: {exc}")
+    return None
+
+
+def _abbreviate_state(state_name: str) -> str:
+    """Converte nome completo do estado brasileiro em abreviação de 2 letras."""
+    STATES = {
+        "acre": "AC", "alagoas": "AL", "amapá": "AP", "amazonas": "AM",
+        "bahia": "BA", "ceará": "CE", "distrito federal": "DF",
+        "espírito santo": "ES", "goiás": "GO", "maranhão": "MA",
+        "mato grosso": "MT", "mato grosso do sul": "MS",
+        "minas gerais": "MG", "pará": "PA", "paraíba": "PB",
+        "paraná": "PR", "pernambuco": "PE", "piauí": "PI",
+        "rio de janeiro": "RJ", "rio grande do norte": "RN",
+        "rio grande do sul": "RS", "rondônia": "RO", "roraima": "RR",
+        "santa catarina": "SC", "são paulo": "SP", "sergipe": "SE",
+        "tocantins": "TO",
+    }
+    if not state_name:
+        return ""
+    normalized = state_name.strip().lower()
+    # Se já é abreviação de 2 letras
+    if len(normalized) == 2:
+        return normalized.upper()
+    return STATES.get(normalized, normalized[:2].upper())
+
+
 def detect_device_location_auto() -> dict[str, str]:
     """
     Detecta automaticamente a localização geográfica (cidade e UF) do dispositivo
-    em segundo plano via serviço de GeoIP, sem necessidade de permissões invasivas.
+    em segundo plano via GeoIP com fallback multi-provedor resiliente (DEC-029).
     """
     global _configured_location
+    providers = [
+        _geoip_via_ip_api,
+        _geoip_via_ipwho,
+        _geoip_via_ipapi_co,
+    ]
+    for provider in providers:
+        try:
+            result = provider()
+            if result:
+                _configured_location = result
+                return dict(_configured_location)
+        except Exception:
+            continue
+    return dict(_configured_location)
+
+
+def _geoip_via_ip_api() -> dict[str, str] | None:
+    """Provedor GeoIP 1: ip-api.com (sem limite para uso não-comercial)."""
+    try:
+        import httpx
+        with httpx.Client(timeout=2.5) as client:
+            resp = client.get("http://ip-api.com/json/?fields=status,city,regionName,region,zip&lang=pt-BR")
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("status") == "success":
+                    city = (data.get("city") or "").strip()
+                    region = (data.get("region") or "").strip().upper()
+                    if city:
+                        return {
+                            "city": f"{city}, {region}" if region else city,
+                            "state": region or "SP",
+                            "neighborhood": "",
+                            "cep": (data.get("zip") or "").strip(),
+                        }
+    except Exception:
+        pass
+    return None
+
+
+def _geoip_via_ipwho() -> dict[str, str] | None:
+    """Provedor GeoIP 2: ipwho.is (rápido e gratuito)."""
+    try:
+        import httpx
+        with httpx.Client(timeout=2.5) as client:
+            resp = client.get("https://ipwho.is/?fields=city,region_code,postal&lang=pt-BR")
+            if resp.status_code == 200:
+                data = resp.json()
+                city = (data.get("city") or "").strip()
+                region = (data.get("region_code") or "").strip().upper()
+                if city:
+                    return {
+                        "city": f"{city}, {region}" if region else city,
+                        "state": region or "SP",
+                        "neighborhood": "",
+                        "cep": (data.get("postal") or "").strip(),
+                    }
+    except Exception:
+        pass
+    return None
+
+
+def _geoip_via_ipapi_co() -> dict[str, str] | None:
+    """Provedor GeoIP 3: ipapi.co (fallback original)."""
     try:
         import httpx
         with httpx.Client(timeout=2.5) as client:
@@ -125,16 +288,15 @@ def detect_device_location_auto() -> dict[str, str]:
                 city = (data.get("city") or "").strip()
                 region = (data.get("region_code") or data.get("region") or "").strip().upper()
                 if city:
-                    _configured_location = {
+                    return {
                         "city": f"{city}, {region}" if region else city,
                         "state": region or "SP",
                         "neighborhood": (data.get("org") or "").strip(),
                         "cep": (data.get("postal") or "").strip(),
                     }
-                    return dict(_configured_location)
     except Exception:
         pass
-    return dict(_configured_location)
+    return None
 
 
 def get_device_location() -> dict[str, Any]:
@@ -194,5 +356,3 @@ def get_regional_markets(city: str | None = None) -> list[dict[str, str]]:
         {"id": "atacadao_regional", "name": f"Atacadão / Atacarejo em {clean_city_name}", "domain": "atacadao.com.br", "badge": "Preço de Atacado"},
         {"id": "hiper_regional", "name": f"Hipermercados de {clean_city_name}", "domain": "", "badge": "Variedade & Ofertas"},
     ]
-
-
