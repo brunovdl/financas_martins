@@ -24,6 +24,7 @@ class TestShoppingMarketMode:
         mock_page.theme_mode = ft.ThemeMode.DARK
         mock_page.client_storage = MagicMock()
         mock_page.client_storage.get.return_value = "dark"
+        mock_page.services = []
 
         sample_items = [
             {"id": "1", "name": "Banana", "quantity": 1, "estimated_price": 8.0, "is_bought": True, "corridor_category": "Hortifruti"},

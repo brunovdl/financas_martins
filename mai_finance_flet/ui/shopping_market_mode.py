@@ -65,10 +65,6 @@ class ShoppingMarketModeView(ft.Container):
         if hasattr(self.page_ref, "floating_action_button"):
             self.page_ref.floating_action_button = None
 
-        if hasattr(self.page_ref, "services") and isinstance(self.page_ref.services, list):
-            if self.file_picker not in self.page_ref.services:
-                self.page_ref.services.append(self.file_picker)
-
         self.load_data()
         self.realtime_sync.start()
 
