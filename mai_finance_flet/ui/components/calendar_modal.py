@@ -31,6 +31,8 @@ def open_calendar_modal(
     on_date_selected: Callable[[str, str], None] | None = None,
     theme_tokens: dict[str, str] | None = None,
     title: str = "Selecionar Data",
+    on_dismiss_callback: Callable[[], None] | None = None,
+    parent_dialog: ft.AlertDialog | None = None,
 ) -> ft.AlertDialog:
     """Abre um modal de calendário personalizado em pt-BR no padrão MAI Finance.
 
@@ -40,6 +42,8 @@ def open_calendar_modal(
         on_date_selected: Callback que recebe (iso_date: str, br_date: str).
         theme_tokens: Dicionário de tokens de design system (se None, usa tema dark).
         title: Título exibido no cabeçalho padronizado.
+        on_dismiss_callback: Callback acionado ao fechar/cancelar sem selecionar.
+        parent_dialog: Modal pai anterior que deve ser restaurado ao fechar/selecionar.
     """
     T = theme_tokens or THEMES["dark"]
 
@@ -75,17 +79,45 @@ def open_calendar_modal(
 
     def close_dlg() -> None:
         dlg.open = False
-        if hasattr(page, "pop_dialog"):
+        try:
+            dlg.update()
+        except Exception:
+            pass
+
+        if hasattr(page, "_remove_dialog"):
+            try:
+                page._remove_dialog(dlg)
+            except Exception:
+                pass
+        elif hasattr(page, "pop_dialog"):
             try:
                 page.pop_dialog()
             except Exception:
                 pass
-        if hasattr(page, "dialog") and page.dialog == dlg:
+
+        if parent_dialog is not None:
+            parent_dialog.open = True
+            if hasattr(page, "dialog"):
+                page.dialog = parent_dialog
+            try:
+                parent_dialog.update()
+            except Exception:
+                pass
+        elif hasattr(page, "dialog") and getattr(page, "dialog", None) == dlg:
             page.dialog = None
+
         try:
             page.update()
         except Exception:
             pass
+
+    def cancel_action() -> None:
+        close_dlg()
+        if on_dismiss_callback:
+            try:
+                on_dismiss_callback()
+            except Exception:
+                pass
 
     def select_and_confirm(target_date: date) -> None:
         iso_str = target_date.strftime("%Y-%m-%d")
@@ -227,12 +259,12 @@ def open_calendar_modal(
             bgcolor=T.get("surfaceSolid", "#151B2E"),
             shape=ft.RoundedRectangleBorder(radius=8),
         ),
-        on_click=lambda _: close_dlg(),
+        on_click=lambda _: cancel_action(),
     )
 
     modal_header = build_modal_header(
         title=title,
-        on_close=close_dlg,
+        on_close=cancel_action,
         theme_tokens=T,
     )
 
@@ -250,6 +282,7 @@ def open_calendar_modal(
     )
 
     dlg = ft.AlertDialog(
+        modal=True,
         title=modal_header,
         content=dlg_content,
         bgcolor=T.get("surface", "#121628"),
@@ -260,11 +293,11 @@ def open_calendar_modal(
 
     render_calendar()
 
+    dlg.open = True
     if hasattr(page, "show_dialog"):
         page.show_dialog(dlg)
     else:
         page.dialog = dlg
-        dlg.open = True
         try:
             page.update()
         except Exception:

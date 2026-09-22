@@ -2685,17 +2685,31 @@ class DashboardView(ft.Container):
             focused_border_color=self.T["accent"],
             color=self.T["textPrimary"],
             border_radius=8,
-            read_only=True,
+            keyboard_type=ft.KeyboardType.DATETIME,
         )
 
+        active_form_dlg: list[ft.AlertDialog | None] = [None]
+
         def open_cal_for_due_modal(_=None):
+            parent_dlg = active_form_dlg[0]
+
             def on_sel_due(iso_d: str, br_d: str):
                 due_date_field.value = br_d
+                due_picker_container.value = br_d
                 try:
                     due_date_field.update()
                 except Exception:
-                    if self.page_ref:
+                    pass
+                if parent_dlg:
+                    try:
+                        parent_dlg.update()
+                    except Exception:
+                        pass
+                elif self.page_ref:
+                    try:
                         self.page_ref.update()
+                    except Exception:
+                        pass
 
             open_calendar_modal(
                 page=self.page_ref,
@@ -2703,9 +2717,8 @@ class DashboardView(ft.Container):
                 on_date_selected=on_sel_due,
                 theme_tokens=self.T,
                 title="Vencimento",
+                parent_dialog=parent_dlg,
             )
-
-        due_date_field.on_click = open_cal_for_due_modal
 
         btn_pick_calendar = ft.IconButton(
             icon=ft.Icons.CALENDAR_MONTH,
@@ -2968,6 +2981,7 @@ class DashboardView(ft.Container):
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        active_form_dlg[0] = dlg
         self._open_dialog(dlg)
 
     # -----------------------------------------------------------------------

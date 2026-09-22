@@ -239,8 +239,12 @@ class TestShoppingModals:
         assert isinstance(btn_check, ft.IconButton)
         assert btn_check.icon == ft.Icons.CHECK_BOX_OUTLINE_BLANK
 
-        # Último elemento: lixeira à direita
-        btn_delete = row_controls[-1]
+        # Último elemento: grupo de ações à direita contendo a lixeira
+        actions_group = row_controls[-1]
+        if isinstance(actions_group, ft.Row):
+            btn_delete = actions_group.controls[-1]
+        else:
+            btn_delete = actions_group
         assert isinstance(btn_delete, ft.IconButton)
         assert btn_delete.icon == ft.Icons.DELETE_OUTLINE
 

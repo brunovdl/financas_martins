@@ -181,8 +181,8 @@ def open_update_dialog(page: ft.Page, update_info: dict[str, Any]) -> None:
                 status_text.weight = ft.FontWeight.BOLD
 
                 file_info_text.value = (
-                    f"Arquivo salvo em: {apk_path}\n"
-                    "Se o instalador não abrir sozinho, toque em 'Instalar Agora'."
+                    f"APK salvo com sucesso.\n"
+                    "Dica: Se o Android exibir 'Bloqueado', toque em 'Configurações' e autorize 'Instalar apps desconhecidos' para o MAI Finance."
                 )
                 file_info_box.visible = True
 

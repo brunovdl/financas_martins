@@ -11,14 +11,62 @@ import os
 from typing import Any
 import flet as ft
 
-_CACHE_DIR = os.path.join(os.path.expanduser("~"), ".mai_finance")
-_CACHE_FILE = os.path.join(_CACHE_DIR, "session_cache.json")
-_LEGACY_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".mai_session_cache.json")
+def _get_cache_dir() -> str:
+    """Retorna o diretório persistente adequado para a plataforma (Android / Desktop / Web)."""
+    # 1. Variável oficial do Flet no Android (Serious Python aponta para dados do app)
+    flet_storage = os.environ.get("FLET_APP_STORAGE_DATA")
+    if flet_storage and os.path.isdir(flet_storage):
+        target = os.path.join(flet_storage, ".mai_finance")
+        try:
+            os.makedirs(target, exist_ok=True)
+            return target
+        except Exception:
+            pass
+
+    # 2. Caminhos do sandbox Android
+    for p in (
+        os.environ.get("ANDROID_DATA"),
+        "/data/data/com.martinsautomation.mai_finance/files",
+        "/data/user/0/com.martinsautomation.mai_finance/files",
+    ):
+        if p and os.path.isdir(p):
+            target = os.path.join(p, ".mai_finance")
+            try:
+                os.makedirs(target, exist_ok=True)
+                return target
+            except Exception:
+                pass
+
+    # 3. Diretório home do usuário (Desktop)
+    try:
+        home = os.path.expanduser("~")
+        if home and home != "/" and os.path.isdir(home):
+            target = os.path.join(home, ".mai_finance")
+            os.makedirs(target, exist_ok=True)
+            return target
+    except Exception:
+        pass
+
+    # 4. Fallback relativo ao app
+    local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".mai_cache")
+    try:
+        os.makedirs(local, exist_ok=True)
+        return local
+    except Exception:
+        return os.path.dirname(os.path.abspath(__file__))
+
+
+def _get_cache_file() -> str:
+    return os.path.join(_get_cache_dir(), "session_cache.json")
 
 
 def _read_disk_cache() -> dict[str, Any]:
-    # Tenta ler do cache principal (fora da pasta monitorada pelo watcher do Flet)
-    for path in (_CACHE_FILE, _LEGACY_CACHE_FILE):
+    # Tenta ler do diretório dinâmico prioritário e fallbacks legados
+    current_file = _get_cache_file()
+    legacy_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".mai_session_cache.json")
+    old_home_file = os.path.join(os.path.expanduser("~"), ".mai_finance", "session_cache.json")
+
+    for path in (current_file, old_home_file, legacy_file):
         try:
             if os.path.exists(path) and os.path.getsize(path) > 0:
                 with open(path, "r", encoding="utf-8") as f:
@@ -32,13 +80,14 @@ def _read_disk_cache() -> dict[str, Any]:
 
 def _write_disk_cache(data: dict[str, Any]) -> None:
     try:
-        os.makedirs(_CACHE_DIR, exist_ok=True)
-        tmp_file = f"{_CACHE_FILE}.tmp"
+        cache_file = _get_cache_file()
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        tmp_file = f"{cache_file}.tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp_file, _CACHE_FILE)
+        os.replace(tmp_file, cache_file)
     except Exception as exc:
         print(f"[storage_util] Erro ao gravar cache em disco: {exc}")
 

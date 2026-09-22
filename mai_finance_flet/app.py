@@ -101,6 +101,8 @@ def main(page: ft.Page) -> None:
                     current_dashboard.will_unmount()
                 except Exception:
                     pass
+            if hasattr(page, "overlay"):
+                page.overlay.clear()
             page.controls.clear()
             dashboard = DashboardView(
                 page=page,
@@ -141,6 +143,8 @@ def main(page: ft.Page) -> None:
             current_dashboard = None
         if hasattr(page, "floating_action_button"):
             page.floating_action_button = None
+        if hasattr(page, "overlay"):
+            page.overlay.clear()
         page.controls.clear()
         shopping_view = ShoppingView(
             page=page,
@@ -168,6 +172,8 @@ def main(page: ft.Page) -> None:
             current_dashboard = None
         if hasattr(page, "floating_action_button"):
             page.floating_action_button = None
+        if hasattr(page, "overlay"):
+            page.overlay.clear()
         page.controls.clear()
         market_view = ShoppingMarketModeView(
             page=page,
@@ -193,13 +199,39 @@ def main(page: ft.Page) -> None:
         msg = f"{count} despesa(s) clonada(s) para {month_label(clean_target)} com sucesso!" if count else f"Despesas clonadas para {month_label(clean_target)} com sucesso!"
         dashboard._show_snack(msg)
 
-    # Verifica sessão existente
+    # Verifica sessão existente e auto-login
     token = get_local_item(page, "auth_token")
     if token:
         payload = verify_token(token)
         if payload:
             show_dashboard()
             return
+
+    # Auto-login com credenciais salvas se "Lembrar de mim" estiver ativo
+    remember_login = get_local_item(page, "remember_login")
+    saved_email = get_local_item(page, "saved_email")
+    saved_password = get_local_item(page, "saved_password")
+
+    if remember_login and saved_email and saved_password:
+        try:
+            from services.auth_service import login_user
+            success, result = login_user(email=saved_email, password=saved_password)
+            if success and isinstance(result, dict) and result.get("token"):
+                new_token = result["token"]
+                user = result.get("user", {})
+                from ui.storage_util import set_local_items
+                set_local_items(page, {
+                    "auth_token": new_token,
+                    "user": user,
+                    "user_data": user,
+                    "remember_login": True,
+                    "saved_email": saved_email,
+                    "saved_password": saved_password,
+                })
+                show_dashboard()
+                return
+        except Exception as exc:
+            print(f"[app.py] Auto-login com credenciais salvas falhou: {exc}")
 
     show_auth()
 

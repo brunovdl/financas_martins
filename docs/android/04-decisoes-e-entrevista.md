@@ -28,6 +28,11 @@ Uma pergunta por vez, com alternativas claras e recomendação explicada. A resp
 | DEC-018 | Notificações locais: lembretes diários matinais no celular para despesas que vencem no dia e pendências em atraso, com cards em destaque na aba Início e opção de ativação/desativação na aba Mais | Resposta P10 em 2026-09-08 |
 | DEC-019 | Plataforma e compatibilidade: Android 8.0+ (Oreo / API 26 ou superior) como versão mínima suportada, com alvo em telas compactas (360x640) e alvos de toque >= 48x48 | Resposta P11 em 2026-09-08 |
 | DEC-020 | Distribuição: APK Release assinado diretamente para instalação via download/sideloading no casal, sem publicação pública na Google Play Store | Resposta P12 em 2026-09-08 |
+| DEC-021 | Persistência de Login em Disco Seguro: salvar credenciais com auto-login imediato e caminhos protegidos do Android (`FLET_APP_STORAGE_DATA`) evitando deslogar ao fechar o app | Resposta do usuário em 2026-09-21 |
+| DEC-022 | Modais Aninhados Determinísticos: restauração do modal de despesa ao selecionar data no calendário, preservando campos preenchidos | Resposta do usuário em 2026-09-21 |
+| DEC-023 | Edição Completa e Leitor Inteligente de Preços: edição de itens da lista de compras e captura fotográfica de etiquetas de gôndola com IA (Groq Llama 3.2 Vision) | Resposta do usuário em 2026-09-21 |
+| DEC-024 | Geolocalização Automática em Background: detecção via GeoIP sem permissões invasivas e enriquecimento dinâmico de redes de supermercado para qualquer cidade brasileira | Resposta do usuário em 2026-09-21 |
+| DEC-025 | Orientações de Permissão de Instalação do APK: mensagem amigável para ativar 'Instalar apps desconhecidos' no Android 8.0+ em atualizações automáticas in-app | Resposta do usuário em 2026-09-21 |
 
 ## P01 respondida: contas e compartilhamento
 

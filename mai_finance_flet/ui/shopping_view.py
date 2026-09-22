@@ -24,7 +24,7 @@ from services.shopping_service import (
 )
 from db.shopping import delete_shopping_item, update_shopping_item
 from services.market_ai_service import quote_shopping_list
-from services.geo_service import set_custom_location, set_configured_market, get_device_location
+from services.geo_service import set_custom_location, set_configured_market, get_device_location, detect_device_location_auto
 from services.shopping_realtime import ShoppingRealtimeSync
 from ui.components.shopping_item_card import build_shopping_item_card
 from ui.components.shopping_add_item_modal import open_shopping_add_item_modal
@@ -33,8 +33,9 @@ from ui.components.shopping_quote_summary_modal import open_shopping_quote_summa
 from ui.components.market_quote_modal import open_market_quote_modal
 from ui.components.mai_loading import MaiLoading
 from ui.nav import toggle_theme, get_current_theme
-from ui.theme import get_tokens
+from ui.theme import get_tokens, format_brl
 from ui.storage_util import get_local_item, set_local_item
+from services.price_scanner_service import extract_price_from_file_path, extract_price_from_base64
 
 
 class ShoppingView(ft.Container):
@@ -78,13 +79,49 @@ class ShoppingView(ft.Container):
             interval_seconds=3.0,
         )
 
+        self.file_picker = ft.FilePicker()
+        if hasattr(self.page_ref, "services") and isinstance(self.page_ref.services, list):
+            if self.file_picker not in self.page_ref.services:
+                self.page_ref.services.append(self.file_picker)
+
         self._build_ui()
 
     def did_mount(self) -> None:
-        """Inicializa carregamento de dados, conexão em tempo real e FAB."""
+        """Inicializa carregamento de dados, conexão em tempo real, FAB e detecção de cidade."""
+        if hasattr(self.page_ref, "services") and isinstance(self.page_ref.services, list):
+            if self.file_picker not in self.page_ref.services:
+                self.page_ref.services.append(self.file_picker)
+
         self._setup_fab()
         self.load_data()
         self.realtime_sync.start()
+        self._trigger_auto_location()
+
+    def _trigger_auto_location(self) -> None:
+        """Detecta automaticamente a cidade/UF do usuário em segundo plano se não configurada manualmente."""
+        saved_city = get_local_item(self.page_ref, "shopping_city")
+        if saved_city and saved_city.strip():
+            return
+
+        def _worker():
+            loc = detect_device_location_auto()
+            detected_city = loc.get("city")
+            if detected_city and detected_city != self.city:
+                self.city = detected_city
+                set_custom_location(city=self.city)
+                def _update_ui():
+                    self.market_city_label.value = self.city
+                    try:
+                        self.market_city_label.update()
+                    except Exception:
+                        if self.page_ref:
+                            self.page_ref.update()
+                if hasattr(self.page_ref, "run_thread"):
+                    self.page_ref.run_thread(_update_ui)
+                else:
+                    _update_ui()
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     def will_unmount(self) -> None:
         """Encerra listener de realtime e limpa o FAB ao sair da tela."""
@@ -429,6 +466,70 @@ class ShoppingView(ft.Container):
         delete_shopping_item(item_id)
         self.load_data()
 
+    def _handle_edit_item(self, item: dict[str, Any]) -> None:
+        """Abre o diálogo de edição do item selecionado."""
+        open_shopping_add_item_modal(
+            page=self.page_ref,
+            on_item_added=lambda _: self.load_data(),
+            current_market=self.selected_market,
+            item_to_edit=item,
+        )
+
+    def _handle_scan_price(self, item: dict[str, Any]) -> None:
+        """Aciona a câmera/seletor para fotografar a etiqueta de gôndola e ler o preço."""
+        item_name = item.get("name", "Produto")
+
+        async def _pick_and_scan():
+            try:
+                files = await self.file_picker.pick_files(
+                    dialog_title=f"Fotografar Etiqueta: {item_name}",
+                    file_type=ft.FilePickerFileType.IMAGE,
+                    allow_multiple=False,
+                )
+                if not files:
+                    return
+
+                picked_file = files[0]
+                self._show_snack(f"Lendo etiqueta de '{item_name}' com IA...")
+
+                def _process_image():
+                    import base64
+                    res: dict[str, Any] = {"success": False}
+                    try:
+                        if getattr(picked_file, "path", None):
+                            res = extract_price_from_file_path(picked_file.path, item_name=item_name)
+                        elif getattr(picked_file, "bytes", None):
+                            b64 = base64.b64encode(picked_file.bytes).decode("utf-8")
+                            res = extract_price_from_base64(b64, item_name=item_name)
+                    except Exception as ex:
+                        res = {"success": False, "error": str(ex)}
+
+                    def _update_ui():
+                        if res.get("success") and res.get("price") is not None:
+                            new_price = float(res["price"])
+                            update_shopping_item(item["id"], {
+                                "actual_price": new_price,
+                                "estimated_price": new_price,
+                            })
+                            self.load_data()
+                            self._show_snack(f"✅ Preço de {format_brl(new_price)} aplicado a '{item_name}'!")
+                        else:
+                            err_msg = res.get("error") or "Preço não identificado na foto"
+                            self._show_snack(f"⚠️ {err_msg}. Tente aproximar a foto da etiqueta.")
+
+                    if hasattr(self.page_ref, "run_thread"):
+                        self.page_ref.run_thread(_update_ui)
+                    else:
+                        _update_ui()
+
+                threading.Thread(target=_process_image, daemon=True).start()
+
+            except Exception as ex:
+                self._show_snack(f"Não foi possível abrir o seletor/câmera: {ex}")
+
+        if hasattr(self.page_ref, "run_task"):
+            self.page_ref.run_task(_pick_and_scan)
+
     def _refresh_list_content(self) -> None:
         """Re-renderiza a listagem agrupada por corredores."""
         grouped = get_items_grouped_by_corridor(self.items)
@@ -471,6 +572,8 @@ class ShoppingView(ft.Container):
                         theme_mode=self.theme_mode,
                         on_delete=self._handle_delete_item,
                         on_toggle=self._handle_toggle_bought,
+                        on_edit=self._handle_edit_item,
+                        on_scan_price=self._handle_scan_price,
                     )
                     controls.append(card)
 
