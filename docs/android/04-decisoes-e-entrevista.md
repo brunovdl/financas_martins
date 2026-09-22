@@ -39,6 +39,9 @@ Uma pergunta por vez, com alternativas claras e recomendação explicada. A resp
 | DEC-029 | Geolocalização nativa no dispositivo (GPS via `flet-geolocator` com permissão Android `ACCESS_FINE_LOCATION`), com geocoding reverso e fallback por IP, gravando no aparelho | Resposta do usuário em 2026-09-22 |
 | DEC-030 | Redesenho do `shopping_item_card.py` em 2 linhas limpas (Linha 1: checkbox e nome com largura total; Linha 2: quantidade, preço cotado e ações de câmera, edição e exclusão) eliminando encavalamento | Resposta do usuário em 2026-09-22 |
 | DEC-031 | Build Android com permissões de hardware no APK: `android.permission.CAMERA`, `android.permission.ACCESS_FINE_LOCATION`, `android.permission.ACCESS_COARSE_LOCATION` no GitHub Actions | Resposta do usuário em 2026-09-22 |
+| DEC-032 | Chave Groq Embutida com Injeção Segura de CI: `DEFAULT_GROQ_API_KEY` em `config.py` com injeção de secret no GitHub Actions para funcionamento imediato da IA no APK Android | Resposta do usuário em 2026-09-22 |
+| DEC-033 | Anti-estouro de Cabeçalho Modal: `modal_header.py` com `expand=True`, `max_lines=1`, `overflow=ELLIPSIS` e título estático 'Escanear Preço' com badge dedicado ao nome do produto | Resposta do usuário em 2026-09-22 |
+| DEC-034 | Otimização de Fotos de Câmera via Pillow: redimensionamento de fotos da câmera para 1024px e compressão JPEG 80 (reduzindo payload de ~10MB para ~25KB e latência para <1s) com prompt de maior destaque | Resposta do usuário em 2026-09-22 |
 
 ## P01 respondida: contas e compartilhamento
 

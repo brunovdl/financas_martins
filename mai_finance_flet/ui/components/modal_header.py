@@ -30,11 +30,19 @@ def build_modal_header(
             ft.Row(
                 controls=[
                     ft.Image(src="logo.png", width=22, height=22, fit=ft.BoxFit.CONTAIN),
-                    ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=tokens.get("textPrimary", "#EDF0F7")),
+                    ft.Text(
+                        title,
+                        size=15,
+                        weight=ft.FontWeight.BOLD,
+                        color=tokens.get("textPrimary", "#EDF0F7"),
+                        overflow=ft.TextOverflow.ELLIPSIS,
+                        max_lines=1,
+                        expand=True,
+                    ),
                 ],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                tight=True,
+                expand=True,
             ),
             ft.IconButton(
                 icon=ft.Icons.CLOSE,

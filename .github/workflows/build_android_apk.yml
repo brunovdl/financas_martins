@@ -70,6 +70,8 @@ jobs:
           pip install -r mai_finance_flet/requirements.txt
 
       - name: Executar Build do APK Android
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           cd mai_finance_flet
           BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
@@ -87,6 +89,12 @@ jobs:
 
           # Injetar a versão oficial calculada no código Python e no version.json para que o app saiba sua versão real
           python scripts/inject_version.py --version "${VERSION}" --build-number "${BUILD_NUMBER}"
+
+          # Injetar GROQ_API_KEY se definida nos secrets do repositório
+          if [ -n "${GROQ_API_KEY}" ]; then
+            sed -i "s|DEFAULT_GROQ_API_KEY = .*|DEFAULT_GROQ_API_KEY = \"${GROQ_API_KEY}\"|g" config.py
+            echo "Chave GROQ_API_KEY injetada com sucesso dos GitHub Secrets."
+          fi
 
           # Configurar timeouts generosos para o Gradle para evitar falhas transitórias em downloads de rede
           mkdir -p ~/.gradle

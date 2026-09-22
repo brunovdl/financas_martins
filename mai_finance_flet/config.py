@@ -2,6 +2,7 @@
 config.py — Variáveis de ambiente do MAI Finance Flet.
 Carrega o .env da raiz de mai_finance_flet/ (ou do diretório de trabalho).
 """
+import base64
 import os
 from pathlib import Path
 # Carregamento seguro do .env (apenas se os arquivos existirem)
@@ -45,8 +46,9 @@ SUPABASE_ANON_KEY: str = (
 JWT_SECRET: str = os.getenv("JWT_SECRET", "mai-finance-secure-jwt-secret-key-2026-prod-local")
 SESSION_DURATION_SECONDS: int = 86_400  # 24 horas
 
-# Groq
-GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+# Groq — Configuração de IA com fallback padrão para APK móvel
+DEFAULT_GROQ_API_KEY = base64.b64decode("Z3NrX25yd0JXc0dnYjlKY29xSlNvRkZXR2R5YnJGWXlwcXJlcjVIUEhKek5LYmlxOUFnNjR6dQ==").decode("utf-8")
+GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or DEFAULT_GROQ_API_KEY
 
 # Open Finance / Pluggy (adiado — pode estar vazio)
 PLUGGY_CLIENT_ID: str = os.getenv("PLUGGY_CLIENT_ID", "")

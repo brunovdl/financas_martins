@@ -308,3 +308,68 @@ class TestDEC026CameraPriceScanner:
         assert dialog is not None
         assert isinstance(dialog, ft.AlertDialog)
         assert dialog.modal is True
+
+
+class TestDEC032To034CameraAndHeaderEnhancements:
+    """Valida as correções e melhorias de DEC-032 a DEC-034."""
+
+    def test_dec_032_groq_api_key_configured_in_config(self):
+        """Valida que o config.py possui fallback seguro para GROQ_API_KEY no APK nativo."""
+        import config
+        assert hasattr(config, "DEFAULT_GROQ_API_KEY")
+        assert len(config.DEFAULT_GROQ_API_KEY) > 10
+        assert getattr(config, "GROQ_API_KEY", "") != ""
+
+    def test_dec_033_modal_header_prevents_overflow_with_long_title(self):
+        """Valida que o cabeçalho modal padronizado trunca títulos longos com ellipsis e não espreme o botão fechar."""
+        from ui.components.modal_header import build_modal_header
+        
+        long_title = "Sabão em Pó Omo Lavagem Perfeita 1.6kg com Toque de Confort Caixa Econômica"
+        on_close = MagicMock()
+        header = build_modal_header(title=long_title, on_close=on_close, theme_mode="dark")
+        
+        assert isinstance(header, ft.Row)
+        
+        # O Row esquerdo com logo e título
+        left_row = header.controls[0]
+        assert isinstance(left_row, ft.Row)
+        assert left_row.expand is True
+        
+        # O Text do título deve conter expand=True e ellipsis
+        title_text = left_row.controls[1]
+        assert isinstance(title_text, ft.Text)
+        assert title_text.expand is True
+        assert title_text.max_lines == 1
+        assert title_text.overflow == ft.TextOverflow.ELLIPSIS
+
+    def test_dec_034_optimize_image_bytes_downscales_large_photo(self):
+        """Valida que imagens brutas de alta resolução da câmera são redimensionadas para max 1024px e formato JPEG."""
+        from io import BytesIO
+        from PIL import Image
+        from services.price_scanner_service import optimize_image_bytes
+
+        # Cria uma imagem sintética grande de 2400x1600 pixels (~5MB descompactada)
+        large_img = Image.new("RGB", (2400, 1600), color=(255, 128, 0))
+        buf = BytesIO()
+        large_img.save(buf, format="JPEG", quality=95)
+        raw_bytes = buf.getvalue()
+        assert len(raw_bytes) > 20000
+
+        opt_bytes, mime = optimize_image_bytes(raw_bytes, max_dim=1024, quality=80)
+        assert mime == "image/jpeg"
+        assert len(opt_bytes) < len(raw_bytes)
+
+        # Verifica dimensões após otimização
+        with Image.open(BytesIO(opt_bytes)) as result_img:
+            w, h = result_img.size
+            assert max(w, h) <= 1024
+            assert w == 1024
+            assert h == 682
+
+    def test_dec_034_optimize_image_bytes_graceful_fallback_on_invalid_data(self):
+        """Valida que optimize_image_bytes lida defensivamente com dados inválidos sem lançar exceção."""
+        from services.price_scanner_service import optimize_image_bytes
+        corrupted_bytes = b"nao_e_uma_imagem_valida"
+        res_bytes, mime = optimize_image_bytes(corrupted_bytes)
+        assert res_bytes == corrupted_bytes
+

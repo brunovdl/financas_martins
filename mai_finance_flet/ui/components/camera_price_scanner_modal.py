@@ -151,7 +151,7 @@ def open_camera_price_scanner(
             if back_camera:
                 await camera.initialize(
                     description=back_camera,
-                    resolution_preset=ResolutionPreset.HIGH,
+                    resolution_preset=ResolutionPreset.MEDIUM,
                 )
                 # Inicia auto-captura periódica
                 _start_auto_capture(camera, page)
@@ -299,9 +299,33 @@ def open_camera_price_scanner(
 
     # Montagem do diálogo
     dlg_header = build_modal_header(
-        title=f"Escanear: {item_name}",
+        title="Escanear Preço",
         on_close=close_dlg,
         theme_tokens=T,
+    )
+
+    product_badge = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.SHOPPING_BAG_OUTLINED, size=15, color=T["accent"]),
+                ft.Text(
+                    item_name,
+                    size=12,
+                    weight=ft.FontWeight.W_600,
+                    color=T["textPrimary"],
+                    overflow=ft.TextOverflow.ELLIPSIS,
+                    max_lines=2,
+                    expand=True,
+                ),
+            ],
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        bgcolor=T["surfaceSolid"] if theme_mode == "dark" else "#EDF2F7",
+        border=ft.Border.all(1, T["borderSubtle"]),
+        border_radius=8,
+        padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+        width=340,
     )
 
     camera_container = ft.Container(
@@ -334,6 +358,7 @@ def open_camera_price_scanner(
     dlg_body = ft.Container(
         content=ft.Column(
             [
+                product_badge,
                 camera_container,
                 ft.Container(
                     content=ft.Text(

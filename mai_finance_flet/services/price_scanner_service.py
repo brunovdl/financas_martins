@@ -64,6 +64,42 @@ def extract_price_from_text(text: str) -> float | None:
     return None
 
 
+def optimize_image_bytes(image_bytes: bytes, max_dim: int = 1024, quality: int = 80) -> tuple[bytes, str]:
+    """
+    Otimiza e redimensiona imagem de câmera para envio ultra-rápido à API de visão.
+    Reduz fotos brutas de smartphones (5-12MB) para ~25-70KB preservando os dígitos da etiqueta.
+    Retorna (bytes_otimizados, mime_type).
+    """
+    if not image_bytes:
+        return image_bytes, "image/jpeg"
+    try:
+        from io import BytesIO
+        from PIL import Image
+
+        with Image.open(BytesIO(image_bytes)) as img:
+            if img.mode in ("RGBA", "P", "LA"):
+                img = img.convert("RGB")
+
+            w, h = img.size
+            if max(w, h) > max_dim:
+                scale = max_dim / float(max(w, h))
+                new_w = max(1, int(w * scale))
+                new_h = max(1, int(h * scale))
+                img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+            out_buf = BytesIO()
+            img.save(out_buf, format="JPEG", quality=quality, optimize=True)
+            return out_buf.getvalue(), "image/jpeg"
+    except Exception as err:
+        logger.warning(f"[PriceScanner] Falha ao otimizar imagem com Pillow, usando bytes originais: {err}")
+        mime_type = "image/jpeg"
+        if image_bytes.startswith(b"\x89PNG"):
+            mime_type = "image/png"
+        elif image_bytes.startswith(b"RIFF") and b"WEBP" in image_bytes[:16]:
+            mime_type = "image/webp"
+        return image_bytes, mime_type
+
+
 def extract_price_from_image_bytes(image_bytes: bytes, item_name: str = "") -> dict[str, Any]:
     """
     Envia a imagem da etiqueta para a API Groq com modelo multimodal de visão
@@ -81,14 +117,10 @@ def extract_price_from_image_bytes(image_bytes: bytes, item_name: str = "") -> d
         from groq import Groq
         groq_client = Groq(api_key=api_key)
 
-        # Detecta tipo MIME
-        mime_type = "image/jpeg"
-        if image_bytes.startswith(b"\x89PNG"):
-            mime_type = "image/png"
-        elif image_bytes.startswith(b"RIFF") and b"WEBP" in image_bytes[:16]:
-            mime_type = "image/webp"
+        # Otimiza e comprime bytes da imagem para upload ultra-rápido no celular
+        opt_bytes, mime_type = optimize_image_bytes(image_bytes)
 
-        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        b64_image = base64.b64encode(opt_bytes).decode("utf-8")
         data_uri = f"data:{mime_type};base64,{b64_image}"
 
         # Modelos ativos no Groq com suporte nativo a visão multimodal
@@ -102,10 +134,11 @@ def extract_price_from_image_bytes(image_bytes: bytes, item_name: str = "") -> d
             "Você é um leitor óptico especialista em etiquetas de preço de gôndola de supermercados brasileiros.\n"
             f"Analise a imagem da etiqueta e identifique o PREÇO DE VENDA PRINCIPAL{target_hint} em reais.\n"
             "Regras obrigatórias:\n"
-            "1. O preço principal é o valor numérico em MAIOR DESTAQUE / MAIOR FONTE na etiqueta (ex: ao lado ou acima de R$).\n"
+            "1. O preço principal é o valor numérico em MAIOR DESTAQUE / MAIOR FONTE na etiqueta (geralmente ao lado ou acima de R$).\n"
             "2. IGNORE completamente valores secundários como impostos ('VL. APROX. TRIB', 'IBPT'), código de barras ou 'PRECO LITRO' / 'PRECO KG'.\n"
-            "3. Responda ESTRITAMENTE com o número decimal no formato X.XX ou X,XX (exemplo: 99.99 ou 12.90).\n"
-            "4. Não inclua 'R$', explicações ou outros textos."
+            "3. Se houver divergência no nome do produto, foque no valor principal impresso na etiqueta.\n"
+            "4. Responda ESTRITAMENTE com o número decimal no formato X.XX ou X,XX (exemplo: 99.99 ou 1.99).\n"
+            "5. Não inclua 'R$', explicações, tags <think> ou outros textos."
         )
 
         for model in vision_models:
