@@ -78,33 +78,24 @@ def open_calendar_modal(
     grid_column = ft.Column(spacing=4, tight=True)
 
     def close_dlg() -> None:
+        if hasattr(page, "pop_dialog"):
+            try:
+                page.pop_dialog()
+            except Exception:
+                pass
+
         dlg.open = False
         try:
             dlg.update()
         except Exception:
             pass
 
-        if hasattr(page, "_remove_dialog"):
-            try:
-                page._remove_dialog(dlg)
-            except Exception:
-                pass
-        elif hasattr(page, "pop_dialog"):
-            try:
-                page.pop_dialog()
-            except Exception:
-                pass
-
         if parent_dialog is not None:
             parent_dialog.open = True
-            if hasattr(page, "dialog"):
-                page.dialog = parent_dialog
             try:
                 parent_dialog.update()
             except Exception:
                 pass
-        elif hasattr(page, "dialog") and getattr(page, "dialog", None) == dlg:
-            page.dialog = None
 
         try:
             page.update()
@@ -122,12 +113,12 @@ def open_calendar_modal(
     def select_and_confirm(target_date: date) -> None:
         iso_str = target_date.strftime("%Y-%m-%d")
         br_str = target_date.strftime("%d/%m/%Y")
-        close_dlg()
         if on_date_selected:
             try:
                 on_date_selected(iso_str, br_str)
             except Exception:
                 pass
+        close_dlg()
 
     def render_calendar() -> None:
         y = current_state["year"]
