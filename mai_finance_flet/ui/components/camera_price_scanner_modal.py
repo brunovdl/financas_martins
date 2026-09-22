@@ -165,29 +165,61 @@ def open_camera_price_scanner(
             status_text.color = T["danger"]
             page.update()
 
-    def _start_auto_capture(cam_ctrl, pg):
-        """Inicia thread de auto-captura a cada 2 segundos para leitura da etiqueta."""
+    _is_capturing = {"active": False}
 
-        def _auto_loop():
-            import time
-            time.sleep(1.5)  # Aguarda câmera estabilizar
-            while _scanning["active"] and not _scanning["found"]:
+    def _trigger_capture() -> None:
+        """Dispara captura e análise da imagem (acionado por auto-loop ou botão manual)."""
+        if not _scanning["active"] or _scanning["found"] or _is_capturing["active"]:
+            return
+        _is_capturing["active"] = True
+
+        async def _do_capture():
+            try:
+                status_text.value = "🔍 Analisando etiqueta..."
+                status_text.color = T["accent"]
+                status_text.weight = ft.FontWeight.BOLD
                 try:
-                    async def _capture_and_process():
-                        if not _scanning["active"] or _scanning["found"]:
-                            return
-                        try:
-                            image_bytes = await cam_ctrl.take_picture()
-                            if image_bytes and _scanning["active"]:
-                                _process_captured_image(image_bytes, pg)
-                        except Exception as cap_err:
-                            logger.debug(f"[Scanner] Erro na captura automática: {cap_err}")
-
-                    if hasattr(pg, "run_task"):
-                        pg.run_task(_capture_and_process)
+                    page.update()
                 except Exception:
                     pass
-                time.sleep(2.0)
+
+                image_bytes = await camera.take_picture()
+                if image_bytes and _scanning["active"]:
+                    _process_captured_image(image_bytes, page)
+                else:
+                    _is_capturing["active"] = False
+                    status_text.value = "Aponte para a etiqueta de preço..."
+                    status_text.color = T["textMuted"]
+                    status_text.weight = ft.FontWeight.W_500
+                    try:
+                        page.update()
+                    except Exception:
+                        pass
+            except Exception as cap_err:
+                logger.debug(f"[Scanner] Erro na captura: {cap_err}")
+                _is_capturing["active"] = False
+                status_text.value = "Aponte para a etiqueta de preço..."
+                status_text.color = T["textMuted"]
+                status_text.weight = ft.FontWeight.W_500
+                try:
+                    page.update()
+                except Exception:
+                    pass
+
+        if hasattr(page, "run_task"):
+            page.run_task(_do_capture)
+        else:
+            _is_capturing["active"] = False
+
+    def _start_auto_capture(cam_ctrl, pg):
+        """Inicia thread de auto-captura contínua a cada 1.8 segundos para leitura da etiqueta."""
+        def _auto_loop():
+            import time
+            time.sleep(1.2)  # Aguarda estabilização da câmera
+            while _scanning["active"] and not _scanning["found"]:
+                if not _is_capturing["active"]:
+                    _trigger_capture()
+                time.sleep(1.8)
 
         threading.Thread(target=_auto_loop, daemon=True).start()
 
@@ -197,12 +229,15 @@ def open_camera_price_scanner(
 
         def _worker():
             if not _scanning["active"] or _scanning["found"]:
+                _is_capturing["active"] = False
                 return
             result = extract_price_from_image_bytes(image_bytes, item_name=item_name)
 
             def _handle_result():
                 if not _scanning["active"] or _scanning["found"]:
+                    _is_capturing["active"] = False
                     return
+
                 if result.get("success") and result.get("price") is not None:
                     _scanning["found"] = True
                     detected_price = float(result["price"])
@@ -219,8 +254,13 @@ def open_camera_price_scanner(
 
                     # Vibração háptica
                     try:
-                        if hasattr(pg, "haptic_feedback"):
-                            pg.haptic_feedback(ft.HapticFeedbackType.MEDIUM_IMPACT)
+                        from flet import HapticFeedback
+                        haptic = HapticFeedback()
+                        if hasattr(pg, "services") and isinstance(pg.services, list):
+                            if haptic not in pg.services:
+                                pg.services.append(haptic)
+                        if hasattr(pg, "run_task"):
+                            pg.run_task(haptic.vibrate)
                     except Exception:
                         pass
 
@@ -240,6 +280,15 @@ def open_camera_price_scanner(
                             _finalize()
 
                     threading.Thread(target=_close_and_apply, daemon=True).start()
+                else:
+                    _is_capturing["active"] = False
+                    status_text.value = "Ajuste o foco sobre a etiqueta..."
+                    status_text.color = T["textMuted"]
+                    status_text.weight = ft.FontWeight.W_500
+                    try:
+                        pg.update()
+                    except Exception:
+                        pass
 
             if hasattr(pg, "run_thread"):
                 pg.run_thread(_handle_result)
@@ -258,9 +307,28 @@ def open_camera_price_scanner(
     camera_container = ft.Container(
         content=camera,
         width=340,
-        height=300,
+        height=280,
         border_radius=12,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
+    )
+
+    btn_scan_manual = ft.Button(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.CAMERA_ALT_OUTLINED, size=16, color="#08090F"),
+                ft.Text("Ler Etiqueta Agora", size=12, weight=ft.FontWeight.BOLD, color="#08090F"),
+            ],
+            spacing=6,
+            alignment=ft.MainAxisAlignment.CENTER,
+            tight=True,
+        ),
+        style=ft.ButtonStyle(
+            bgcolor=T["accent"],
+            shape=ft.RoundedRectangleBorder(radius=8),
+            padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+        ),
+        height=38,
+        on_click=lambda _: _trigger_capture(),
     )
 
     dlg_body = ft.Container(
@@ -275,8 +343,9 @@ def open_camera_price_scanner(
                         text_align=ft.TextAlign.CENTER,
                     ),
                     alignment=ft.Alignment.CENTER,
-                    padding=ft.Padding.only(top=4),
+                    padding=ft.Padding.only(top=2, bottom=4),
                 ),
+                btn_scan_manual,
             ],
             spacing=4,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -343,6 +412,22 @@ def _fallback_file_picker_scan(
 
             picked_file = files[0]
 
+            # Feedback imediato de leitura
+            loading_snack = ft.SnackBar(
+                content=ft.Row(
+                    [
+                        ft.ProgressRing(width=16, height=16, stroke_width=2, color="#08090F"),
+                        ft.Text(f"Analisando etiqueta de {item_name}...", color="#08090F", weight=ft.FontWeight.BOLD),
+                    ],
+                    spacing=8,
+                ),
+                bgcolor=T["accent"],
+                duration=4000,
+            )
+            page.snack_bar = loading_snack
+            loading_snack.open = True
+            page.update()
+
             def _process():
                 import base64
                 res: dict[str, Any] = {"success": False}
@@ -357,13 +442,26 @@ def _fallback_file_picker_scan(
 
                 def _update():
                     if res.get("success") and res.get("price") is not None:
-                        on_price_detected(item_id, float(res["price"]))
+                        detected_val = float(res["price"])
+                        on_price_detected(item_id, detected_val)
+                        snack = ft.SnackBar(
+                            content=ft.Text(
+                                f"✅ {item_name}: {format_brl(detected_val)} detectado!",
+                                color="#08090F",
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            bgcolor=T["success"],
+                            duration=3500,
+                        )
+                        page.snack_bar = snack
+                        snack.open = True
+                        page.update()
                     else:
                         err_msg = res.get("error") or "Preço não identificado na foto"
                         snack = ft.SnackBar(
                             content=ft.Text(f"⚠️ {err_msg}", color="#08090F", weight=ft.FontWeight.BOLD),
                             bgcolor=T["warning"],
-                            duration=3000,
+                            duration=3500,
                         )
                         page.snack_bar = snack
                         snack.open = True

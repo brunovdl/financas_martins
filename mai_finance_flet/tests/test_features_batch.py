@@ -42,6 +42,9 @@ class TestPriceScannerService:
         assert extract_price_from_text("R$ 14,90") == 14.90
         assert extract_price_from_text("RS 8,50") == 8.50
         assert extract_price_from_text("$ 25.00") == 25.00
+        assert extract_price_from_text("99,99") == 99.99
+        assert extract_price_from_text("99,99 R$") == 99.99
+        assert extract_price_from_text("<think>O valor é</think> 99,99") == 99.99
         assert extract_price_from_text("PROMOÇÃO DE 12,00 POR 9,99 UN") == 12.00 or extract_price_from_text("PROMOÇÃO DE 12,00 POR 9,99 UN") == 9.99
         assert extract_price_from_text("Preço: 4,75") == 4.75
         assert extract_price_from_text("") is None
