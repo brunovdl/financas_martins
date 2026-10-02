@@ -7,7 +7,7 @@ Paridade visual com AuthPage.tsx e Design System MAI Finance:
 - Validações inline com feedback em tempo real
 - Medidor dinâmico de força de senha
 - Submissão com tecla ENTER em todos os campos de entrada
-- Opção para salvar e lembrar e-mail e senha no dispositivo
+- Opção "Manter conectado": salva o e-mail e um token de 30 dias (nunca a senha)
 - Alvos de toque otimizados (mínimo 48px)
 - Salva token e dados do usuário com persistência garantida
 """
@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Callable
 import flet as ft
 
+from db.auth import create_remember_token
 from services.auth_service import login_user, register_user
 from ui.storage_util import get_local_item, set_local_item, set_local_items, remove_local_item
 from ui.components.mai_loading import MaiLoading
@@ -39,9 +40,8 @@ class AuthView(ft.Container):
         self.alignment = ft.Alignment.CENTER
         self.padding = 20
 
-        # Carrega credenciais salvas do armazenamento local / disco
+        # Pré-preenche apenas o e-mail salvo (a senha nunca é armazenada)
         saved_email = get_local_item(page, "saved_email") or ""
-        saved_password = get_local_item(page, "saved_password") or ""
         remember_login = get_local_item(page, "remember_login")
         if remember_login is None:
             remember_login = True
@@ -80,7 +80,6 @@ class AuthView(ft.Container):
 
         self.password_field = ft.TextField(
             label="Senha (Mínimo 8 caracteres)",
-            value=saved_password,
             hint_text="••••••••",
             password=True,
             can_reveal_password=True,
@@ -93,9 +92,9 @@ class AuthView(ft.Container):
             on_submit=self._handle_submit,
         )
 
-        # Checkbox para salvar e-mail e senha
+        # Checkbox "Lembrar de mim": salva o e-mail e um token de acesso de 30 dias
         self.remember_checkbox = ft.Checkbox(
-            label="Lembrar e-mail e senha neste dispositivo",
+            label="Manter conectado neste dispositivo",
             value=bool(remember_login),
             check_color="#08090F",
             active_color="#3FD6C4",
@@ -335,9 +334,6 @@ class AuthView(ft.Container):
             ),
         )
 
-        if saved_password:
-            self._update_password_meter(saved_password)
-
     def _on_email_submit(self, _: ft.ControlEvent | None = None) -> None:
         """Pressionar Enter no e-mail foca na senha se vazia, ou submete."""
         if not (self.password_field.value or "").strip():
@@ -473,10 +469,15 @@ class AuthView(ft.Container):
         }
         if self.remember_checkbox.value:
             batch_items["saved_email"] = email
-            batch_items["saved_password"] = password
+            batch_items["remember_token"] = create_remember_token(
+                user_id=str(user.get("id", "")),
+                name=user.get("name", ""),
+                email=user.get("email", email),
+            )
         else:
             remove_local_item(self.page_ref, "saved_email")
-            remove_local_item(self.page_ref, "saved_password")
+            remove_local_item(self.page_ref, "remember_token")
+        remove_local_item(self.page_ref, "saved_password")  # legado: nunca guardar senha
 
         set_local_items(self.page_ref, batch_items)
 

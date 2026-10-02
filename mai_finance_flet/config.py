@@ -2,8 +2,8 @@
 config.py — Variáveis de ambiente do MAI Finance Flet.
 Carrega o .env da raiz de mai_finance_flet/ (ou do diretório de trabalho).
 """
-import base64
 import os
+import secrets
 from pathlib import Path
 # Carregamento seguro do .env (apenas se os arquivos existirem)
 # Evita chamadas sem path (find_dotenv) que causam AssertionError em runtimes embarcados (Android Serious Python)
@@ -43,11 +43,63 @@ SUPABASE_ANON_KEY: str = (
 )
 
 # JWT caseiro — assinatura de sessão
-JWT_SECRET: str = os.getenv("JWT_SECRET", "mai-finance-secure-jwt-secret-key-2026-prod-local")
-SESSION_DURATION_SECONDS: int = 86_400  # 24 horas
+# Ordem: variável de ambiente > segredo aleatório gerado e persistido no diretório
+# de dados do app (estável entre reinícios e atualizações do APK). Nunca hard-coded.
+_JWT_SECRET_FILENAME = "jwt_secret"
 
-# Groq — Configuração de IA com fallback padrão para APK móvel
-DEFAULT_GROQ_API_KEY = base64.b64decode("Z3NrX25yd0JXc0dnYjlKY29xSlNvRkZXR2R5YnJGWXlwcXJlcjVIUEhKek5LYmlxOUFnNjR6dQ==").decode("utf-8")
+
+def _local_data_dirs() -> list[Path]:
+    dirs: list[Path] = []
+    flet_storage = os.environ.get("FLET_APP_STORAGE_DATA")
+    if flet_storage:
+        dirs.append(Path(flet_storage) / ".mai_finance")
+    # Sandbox do app no Android (persiste entre atualizações do APK)
+    for android_dir in (
+        os.environ.get("ANDROID_DATA"),
+        "/data/data/com.martinsautomation.mai_finance/files",
+        "/data/user/0/com.martinsautomation.mai_finance/files",
+    ):
+        if android_dir and os.path.isdir(android_dir):
+            dirs.append(Path(android_dir) / ".mai_finance")
+    try:
+        home = Path.home()
+        if str(home) not in ("", "/"):
+            dirs.append(home / ".mai_finance")
+    except Exception:
+        pass
+    dirs.append(Path(__file__).parent / ".mai_cache")
+    return dirs
+
+
+def _load_or_create_local_secret() -> str:
+    for directory in _local_data_dirs():
+        secret_file = directory / _JWT_SECRET_FILENAME
+        try:
+            if secret_file.is_file():
+                existing = secret_file.read_text(encoding="utf-8").strip()
+                if len(existing) >= 32:
+                    return existing
+            directory.mkdir(parents=True, exist_ok=True)
+            new_secret = secrets.token_urlsafe(48)
+            secret_file.write_text(new_secret, encoding="utf-8")
+            try:
+                os.chmod(secret_file, 0o600)
+            except Exception:
+                pass
+            return new_secret
+        except Exception:
+            continue
+    # Último recurso: segredo apenas em memória (sessões não sobrevivem a reinício)
+    return secrets.token_urlsafe(48)
+
+
+JWT_SECRET: str = os.getenv("JWT_SECRET") or _load_or_create_local_secret()
+SESSION_DURATION_SECONDS: int = 86_400  # 24 horas
+REMEMBER_DURATION_SECONDS: int = 30 * 86_400  # "Lembrar de mim": 30 dias
+
+# Groq — a chave NUNCA fica no código-fonte. No APK, o CI injeta o secret
+# GROQ_API_KEY nesta linha durante o build; localmente/web, use a variável de ambiente.
+DEFAULT_GROQ_API_KEY = ""
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or DEFAULT_GROQ_API_KEY
 
 # Open Finance / Pluggy (adiado — pode estar vazio)

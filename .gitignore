@@ -72,3 +72,7 @@ workspace/
 # cache local de sessao
 .mai_session_cache.json
 **/.mai_session_cache.json
+
+# segredo JWT local gerado em runtime (fallback de config.py)
+**/.mai_cache/
+**/jwt_secret
