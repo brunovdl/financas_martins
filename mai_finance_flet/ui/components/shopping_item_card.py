@@ -80,25 +80,32 @@ def build_shopping_item_card(
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # --- Linha 2: Quantidade + Preço à esquerda | Ações à direita ---
-    qty_text = ft.Text(
-        f"{quantity:g} {unit}",
-        size=12,
-        color=T["textMuted"] if is_bought else T["accent"],
-        weight=ft.FontWeight.BOLD,
+    # --- Linha 2: Quantidade (pílula) + Preço à esquerda | Ações à direita ---
+    qty_pill = ft.Container(
+        content=ft.Text(
+            f"{quantity:g} {unit}",
+            size=11,
+            color=T["textMuted"] if is_bought else T["accent"],
+            weight=ft.FontWeight.BOLD,
+        ),
+        bgcolor=T["pageBg"] if is_bought else T["successBg"],
+        border=ft.Border.all(1, T["borderSubtle"] if is_bought else T["successBorder"]),
+        border_radius=10,
+        padding=ft.Padding.symmetric(horizontal=8, vertical=2),
     )
 
     price_str = format_brl(total_price) if total_price > 0 else "Sem cotação"
     price_text = ft.Text(
         price_str,
-        size=12,
-        color=T["textMuted"] if is_bought else (T["success"] if total_price > 0 else T["textMuted"]),
-        weight=ft.FontWeight.W_500,
+        size=13 if total_price > 0 else 12,
+        color=T["textMuted"] if (is_bought or total_price <= 0) else T["textPrimary"],
+        weight=ft.FontWeight.BOLD if total_price > 0 else ft.FontWeight.W_400,
+        italic=total_price <= 0,
     )
 
     info_left = ft.Row(
-        [qty_text, ft.Text("•", size=10, color=T["borderSubtle"]), price_text],
-        spacing=4,
+        [qty_pill, price_text],
+        spacing=8,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         expand=True,
     )
@@ -144,17 +151,24 @@ def build_shopping_item_card(
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
+    if on_toggle:
+        row2.margin = ft.Margin.only(left=44)
 
-    card_bg = T["surfaceSolid"] if theme_mode == "dark" else "#FFFFFF"
-    card_border = T["accent"] if is_bought and is_market_mode else T["borderSubtle"]
+    # Card marcado ganha destaque suave em vez de apenas riscar o texto
+    if is_bought:
+        card_bg = T["successBg"]
+        card_border = T["accent"] if is_market_mode else T["successBorder"]
+    else:
+        card_bg = T["surfaceSolid"] if theme_mode == "dark" else "#FFFFFF"
+        card_border = T["borderSubtle"]
 
     return ft.Container(
         content=ft.Column([row1, row2], spacing=2),
         bgcolor=card_bg,
         border=ft.Border.all(1, card_border),
-        border_radius=8,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=6) if on_toggle else ft.Padding.symmetric(horizontal=12, vertical=10),
-        margin=ft.Margin.only(bottom=6),
+        border_radius=12,
+        padding=ft.Padding.only(left=4, right=4, top=4, bottom=6) if on_toggle else ft.Padding.symmetric(horizontal=12, vertical=10),
+        margin=ft.Margin.only(bottom=8),
         on_click=lambda _: on_edit(item) if on_edit else None,
         tooltip="Toque para editar o item" if on_edit else None,
     )

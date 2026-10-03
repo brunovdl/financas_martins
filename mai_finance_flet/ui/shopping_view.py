@@ -73,6 +73,9 @@ class ShoppingView(ft.Container):
 
         self.is_loading = False
 
+        # Corredores recolhidos pelo usuário (mantidos entre recargas e sincronizações)
+        self.collapsed_corridors: set[str] = set()
+
         # Inicia escuta Realtime
         self.realtime_sync = ShoppingRealtimeSync(
             on_change_callback=self._handle_realtime_update,
@@ -332,6 +335,50 @@ class ShoppingView(ft.Container):
             on_click=lambda _: self.on_open_market_mode(self.selected_market),
         )
 
+        # Card de progresso da compra: contador, barra e total estimado
+        self.progress_count_text = ft.Text("0/0", size=11, weight=ft.FontWeight.BOLD, color=self.T["accent"])
+        self.progress_count_pill = ft.Container(
+            content=self.progress_count_text,
+            bgcolor=self.T["successBg"],
+            border=ft.Border.all(1, self.T["successBorder"]),
+            border_radius=10,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+        )
+        self.progress_label = ft.Text("Progresso da compra", size=12, weight=ft.FontWeight.W_600, color=self.T["textPrimary"])
+        self.progress_bar = ft.ProgressBar(
+            value=0,
+            color=self.T["accent"],
+            bgcolor=self.T["ringTrack"],
+            bar_height=6,
+            border_radius=3,
+        )
+        self.progress_total_label = ft.Text("Total estimado", size=11, color=self.T["textMuted"])
+        self.progress_total_value = ft.Text(format_brl(0), size=13, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"])
+        self.progress_card = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [self.progress_label, self.progress_count_pill],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    self.progress_bar,
+                    ft.Row(
+                        [self.progress_total_label, self.progress_total_value],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                ],
+                spacing=8,
+                tight=True,
+            ),
+            bgcolor=banner_bg,
+            border=ft.Border.all(1, self.T["borderSubtle"]),
+            border_radius=12,
+            padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+            visible=False,
+        )
+
         # Lista de Itens por Corredor
         self.items_list_col = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
 
@@ -342,6 +389,7 @@ class ShoppingView(ft.Container):
                 self.chips_row,
                 self.market_banner,
                 self.btn_market_mode,
+                self.progress_card,
                 self.items_list_col,
             ],
             spacing=10,
@@ -528,12 +576,22 @@ class ShoppingView(ft.Container):
         """Re-renderiza a listagem agrupada por corredores."""
         grouped = get_items_grouped_by_corridor(self.items)
         controls: list[ft.Control] = []
+        self._refresh_progress()
 
         if not grouped:
             empty_box = ft.Container(
                 content=ft.Column(
                     [
-                        ft.Icon(ft.Icons.SHOPPING_BAG_OUTLINED, size=40, color=self.T["textMuted"]),
+                        ft.Container(
+                            content=ft.Icon(ft.Icons.SHOPPING_BAG_OUTLINED, size=30, color=self.T["accent"]),
+                            bgcolor=self.T["successBg"],
+                            border=ft.Border.all(1, self.T["successBorder"]),
+                            border_radius=18,
+                            width=64,
+                            height=64,
+                            alignment=ft.Alignment.CENTER,
+                            margin=ft.Margin.only(bottom=6),
+                        ),
                         ft.Text("Sua lista de compras está vazia!", size=14, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
                         ft.Text("Clique nos atalhos ou no botão '+' para adicionar.", size=12, color=self.T["textMuted"]),
                     ],
@@ -546,19 +604,51 @@ class ShoppingView(ft.Container):
             controls.append(empty_box)
         else:
             for corridor_name, corridor_items in grouped.items():
+                is_collapsed = corridor_name in self.collapsed_corridors
+                bought_count = sum(1 for it in corridor_items if it.get("is_bought"))
                 header = ft.Container(
                     content=ft.Row(
                         [
                             ft.Icon(ft.Icons.LOCAL_GROCERY_STORE_OUTLINED, size=14, color=self.T["accent"]),
-                            ft.Text(corridor_name.upper(), size=11, weight=ft.FontWeight.BOLD, color=self.T["accent"]),
-                            ft.Text(f"({len(corridor_items)})", size=11, color=self.T["textMuted"]),
+                            ft.Text(
+                                corridor_name.upper(),
+                                size=11,
+                                weight=ft.FontWeight.BOLD,
+                                color=self.T["accent"],
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                                expand=True,
+                            ),
+                            ft.Container(
+                                content=ft.Text(
+                                    f"{bought_count}/{len(corridor_items)}",
+                                    size=10,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=self.T["textMuted"],
+                                ),
+                                bgcolor=self.T["surfaceSolid"] if self.theme_mode == "dark" else "#FFFFFF",
+                                border=ft.Border.all(1, self.T["borderSubtle"]),
+                                border_radius=8,
+                                padding=ft.Padding.symmetric(horizontal=6, vertical=0),
+                            ),
+                            ft.Icon(
+                                ft.Icons.KEYBOARD_ARROW_RIGHT if is_collapsed else ft.Icons.KEYBOARD_ARROW_DOWN,
+                                size=20,
+                                color=self.T["textMuted"],
+                            ),
                         ],
                         spacing=4,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
-                    padding=ft.Padding.only(top=6, bottom=2),
+                    height=44,
+                    border_radius=8,
+                    padding=ft.Padding.only(left=2, right=4),
+                    tooltip="Expandir corredor" if is_collapsed else "Recolher corredor",
+                    on_click=lambda _, c=corridor_name: self._toggle_corridor(c),
                 )
                 controls.append(header)
+
+                if is_collapsed:
+                    continue
 
                 for item in corridor_items:
                     card = build_shopping_item_card(
@@ -572,6 +662,32 @@ class ShoppingView(ft.Container):
                     controls.append(card)
 
         self.items_list_col.controls = controls
+
+    def _toggle_corridor(self, corridor_name: str) -> None:
+        """Recolhe ou expande os itens de um corredor da lista."""
+        if corridor_name in self.collapsed_corridors:
+            self.collapsed_corridors.discard(corridor_name)
+        else:
+            self.collapsed_corridors.add(corridor_name)
+        self._refresh_list_content()
+        try:
+            self.page_ref.update()
+        except Exception:
+            pass
+
+    def _refresh_progress(self) -> None:
+        """Atualiza contador de comprados, barra de progresso e total estimado da lista."""
+        total = len(self.items)
+        bought = sum(1 for it in self.items if it.get("is_bought"))
+        estimated = 0.0
+        for it in self.items:
+            price = it.get("actual_price") if it.get("actual_price") is not None else it.get("estimated_price")
+            estimated += float(price or 0.0) * float(it.get("quantity", 1.0) or 1.0)
+
+        self.progress_card.visible = total > 0
+        self.progress_count_text.value = f"{bought}/{total} no carrinho"
+        self.progress_bar.value = (bought / total) if total else 0
+        self.progress_total_value.value = format_brl(estimated) if estimated > 0 else "Sem cotação"
 
     def _apply_theme(self) -> None:
         """Aplica dinamicamente todos os tokens de cor do tema na interface."""
@@ -603,6 +719,18 @@ class ShoppingView(ft.Container):
 
         # Botão Modo Mercado
         self.btn_market_mode.style.bgcolor = self.T["success"]
+
+        # Card de progresso
+        self.progress_card.bgcolor = banner_bg
+        self.progress_card.border = ft.Border.all(1, self.T["borderSubtle"])
+        self.progress_label.color = self.T["textPrimary"]
+        self.progress_count_text.color = self.T["accent"]
+        self.progress_count_pill.bgcolor = self.T["successBg"]
+        self.progress_count_pill.border = ft.Border.all(1, self.T["successBorder"])
+        self.progress_bar.color = self.T["accent"]
+        self.progress_bar.bgcolor = self.T["ringTrack"]
+        self.progress_total_label.color = self.T["textMuted"]
+        self.progress_total_value.color = self.T["textPrimary"]
 
         # FAB e listagem
         self._setup_fab()

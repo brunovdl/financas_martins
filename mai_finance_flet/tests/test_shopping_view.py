@@ -256,3 +256,78 @@ class TestShoppingModals:
         btn_check.on_click(None)
         assert toggled == [("item-123", True)]
 
+
+    def test_shopping_view_progress_card_counts_and_total(self):
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.theme_mode = ft.ThemeMode.DARK
+        mock_page.client_storage = MagicMock()
+
+        with patch("ui.shopping_view.get_all_items") as mock_get_items, \
+             patch("ui.shopping_view.ShoppingRealtimeSync"):
+            mock_get_items.return_value = [
+                {"id": "1", "name": "Arroz", "quantity": 2, "estimated_price": 10.0, "is_bought": True},
+                {"id": "2", "name": "Leite", "quantity": 1, "estimated_price": 5.0, "actual_price": 6.0},
+                {"id": "3", "name": "Pão", "quantity": 1},
+                {"id": "4", "name": "Café", "quantity": 1, "is_bought": False},
+            ]
+
+            view = ShoppingView(
+                page=mock_page,
+                on_back_to_dashboard=MagicMock(),
+                on_open_market_mode=MagicMock(),
+            )
+            assert view.progress_card.visible is False
+
+            view.load_data()
+
+            assert view.progress_card.visible is True
+            assert view.progress_count_text.value == "1/4 no carrinho"
+            assert view.progress_bar.value == 0.25
+            # 2 × 10,00 + 1 × 6,00 (preço real prevalece sobre o estimado)
+            assert view.progress_total_value.value == "R$ 26,00"
+
+    def test_shopping_view_collapse_and_expand_corridor(self):
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.theme_mode = ft.ThemeMode.DARK
+        mock_page.client_storage = MagicMock()
+
+        with patch("ui.shopping_view.get_all_items") as mock_get_items, \
+             patch("ui.shopping_view.ShoppingRealtimeSync"):
+            mock_get_items.return_value = [
+                {"id": "1", "name": "Banana", "quantity": 1, "corridor_category": "Hortifruti", "is_bought": True},
+                {"id": "2", "name": "Tomate", "quantity": 1, "corridor_category": "Hortifruti"},
+                {"id": "3", "name": "Leite", "quantity": 1, "corridor_category": "Laticínios & Frios"},
+            ]
+
+            view = ShoppingView(
+                page=mock_page,
+                on_back_to_dashboard=MagicMock(),
+                on_open_market_mode=MagicMock(),
+            )
+            view.load_data()
+            expanded_count = len(view.items_list_col.controls)
+            assert expanded_count == 5  # 2 cabeçalhos + 3 cards
+
+            hortifruti_header = next(
+                c for c in view.items_list_col.controls
+                if isinstance(c.content, ft.Row)
+                and any(isinstance(x, ft.Text) and x.value == "HORTIFRUTI" for x in c.content.controls)
+            )
+            # Contador de comprados/total no cabeçalho
+            assert any(
+                isinstance(x, ft.Container) and isinstance(x.content, ft.Text) and x.content.value == "1/2"
+                for x in hortifruti_header.content.controls
+            )
+
+            # Recolhe Hortifruti: seus 2 cards somem, o cabeçalho permanece
+            hortifruti_header.on_click(None)
+            assert "Hortifruti" in view.collapsed_corridors
+            assert len(view.items_list_col.controls) == 3
+
+            # Estado recolhido sobrevive a uma recarga (ex.: sincronização em tempo real)
+            view.load_data()
+            assert len(view.items_list_col.controls) == 3
+
+            # Expande novamente
+            view._toggle_corridor("Hortifruti")
+            assert len(view.items_list_col.controls) == expanded_count
