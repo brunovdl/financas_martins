@@ -52,6 +52,9 @@ class ShoppingMarketModeView(ft.Container):
 
         self.items: list[dict[str, Any]] = []
 
+        # Corredores recolhidos pelo usuário (mantidos entre recargas e sincronizações)
+        self.collapsed_corridors: set[str] = set()
+
         # Realtime Sync ativo a cada 2.5s no mercado
         self.realtime_sync = ShoppingRealtimeSync(
             on_change_callback=self._handle_realtime_update,
@@ -264,17 +267,38 @@ class ShoppingMarketModeView(ft.Container):
             badge_text = f"{corridor_pending} pendente(s)" if corridor_pending > 0 else "Concluído"
             badge_color = self.T["warning"] if corridor_pending > 0 else self.T["success"]
 
+            is_collapsed = corridor_name in self.collapsed_corridors
+
             header = ft.Container(
                 content=ft.Row(
                     [
-                        ft.Text(corridor_name.upper(), size=11, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
-                        ft.Text(f"• {badge_text}", size=11, color=badge_color, weight=ft.FontWeight.W_600),
+                        ft.Text(
+                            corridor_name.upper(),
+                            size=11,
+                            weight=ft.FontWeight.BOLD,
+                            color=self.T["textPrimary"],
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        ),
+                        ft.Text(f"• {badge_text}", size=11, color=badge_color, weight=ft.FontWeight.W_600, expand=True),
+                        ft.Icon(
+                            ft.Icons.KEYBOARD_ARROW_RIGHT if is_collapsed else ft.Icons.KEYBOARD_ARROW_DOWN,
+                            size=22,
+                            color=self.T["textMuted"],
+                        ),
                     ],
                     spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                padding=ft.Padding.only(top=6, bottom=2),
+                height=48,
+                border_radius=8,
+                padding=ft.Padding.only(left=2, right=4),
+                tooltip="Expandir corredor" if is_collapsed else "Recolher corredor",
+                on_click=lambda _, c=corridor_name: self._toggle_corridor(c),
             )
             controls.append(header)
+
+            if is_collapsed:
+                continue
 
             for item in corridor_items:
                 card = build_shopping_item_card(
@@ -288,6 +312,18 @@ class ShoppingMarketModeView(ft.Container):
                 controls.append(card)
 
         self.items_col.controls = controls
+
+    def _toggle_corridor(self, corridor_name: str) -> None:
+        """Recolhe ou expande os itens de um corredor no modo mercado."""
+        if corridor_name in self.collapsed_corridors:
+            self.collapsed_corridors.discard(corridor_name)
+        else:
+            self.collapsed_corridors.add(corridor_name)
+        self._update_metrics_and_list()
+        try:
+            self.page_ref.update()
+        except Exception:
+            pass
 
     def _open_finish_dialog(self) -> None:
         """Abre modal de fechamento no caixa para gerar despesa."""

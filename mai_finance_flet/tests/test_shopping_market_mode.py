@@ -45,6 +45,47 @@ class TestShoppingMarketMode:
             assert "2 de 3" in view.val_progresso.value
             assert view.btn_finish is not None
 
+
+    def test_market_mode_collapse_and_expand_corridor(self):
+        """Corredor recolhido esconde seus itens e mantém as métricas do carrinho."""
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.theme_mode = ft.ThemeMode.DARK
+        mock_page.client_storage = MagicMock()
+        mock_page.services = []
+
+        sample_items = [
+            {"id": "1", "name": "Banana", "quantity": 1, "estimated_price": 8.0, "is_bought": True, "corridor_category": "Hortifruti"},
+            {"id": "2", "name": "Maçã", "quantity": 1, "estimated_price": 10.0, "is_bought": False, "corridor_category": "Hortifruti"},
+            {"id": "3", "name": "Sabão", "quantity": 1, "estimated_price": 20.0, "is_bought": False, "corridor_category": "Limpeza & Higiene"},
+        ]
+
+        with patch("ui.shopping_market_mode.get_all_items", return_value=sample_items),              patch("ui.shopping_market_mode.ShoppingRealtimeSync"):
+            view = ShoppingMarketModeView(
+                page=mock_page,
+                market_name="Carrefour",
+                on_exit_market_mode=MagicMock(),
+            )
+            view.load_data()
+            assert len(view.items_col.controls) == 5  # 2 cabeçalhos + 3 cards
+
+            hortifruti_header = next(
+                c for c in view.items_col.controls
+                if isinstance(c.content, ft.Row)
+                and any(isinstance(x, ft.Text) and x.value == "HORTIFRUTI" for x in c.content.controls)
+            )
+            hortifruti_header.on_click(None)
+
+            assert "Hortifruti" in view.collapsed_corridors
+            assert len(view.items_col.controls) == 3
+            # Métricas consideram todos os itens, mesmo recolhidos
+            assert view.val_progresso.value == "1 de 3 itens comprados"
+
+            # Estado recolhido sobrevive à sincronização em tempo real
+            view._handle_realtime_update(list(sample_items))
+            assert len(view.items_col.controls) == 3
+
+            view._toggle_corridor("Hortifruti")
+            assert len(view.items_col.controls) == 5
     def test_shopping_finish_modal_creates_expense_and_archives(self):
         """Valida conversão em despesa e arquivamento no fechamento da compra (AC-029)."""
         mock_page = MagicMock(spec=ft.Page)

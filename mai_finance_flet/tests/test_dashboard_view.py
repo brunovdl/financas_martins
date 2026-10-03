@@ -285,6 +285,12 @@ class TestDashboardQAFixes:
         assert view.search_field.bgcolor == light_tokens["surfaceSolid"]
         assert view.progress_ring.label.color == light_tokens["textPrimary"]
         assert view.progress_ring.ring.bgcolor == light_tokens["ringTrack"]
+        # Pastilhas de ícone dos cards e do estado vazio acompanham o tema claro
+        assert view.card_total_icon_tile.bgcolor == light_tokens["successBg"]
+        assert view.card_pago_icon_tile.bgcolor == light_tokens["successBg"]
+        assert view.card_pendente_icon_tile.bgcolor == light_tokens["warningBg"]
+        assert view.empty_icon_tile.bgcolor == light_tokens["successBg"]
+        assert view.card_total_val.color == light_tokens["textPrimary"]
 
     def test_dashboard_initializes_with_json_string_user_data(self):
         mock_page = MagicMock(spec=ft.Page)

@@ -243,7 +243,7 @@ class DashboardView(ft.Container):
                 spacing=2,
             ),
             bgcolor=self.T["surfaceSolid"],
-            border_radius=8,
+            border_radius=12,
             border=ft.Border.all(1, self.T["border"]),
             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
         )
@@ -379,27 +379,29 @@ class DashboardView(ft.Container):
 
         # Cards de Resumo Mensal Espaçosos e Proeminentes (Métricas Modernas)
         self.card_total_title = ft.Text("TOTAL DESPESAS", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
-        self.card_total_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["accent"])
-        self.card_total_icon = ft.Icon(ft.Icons.PAYMENTS_OUTLINED, size=18, color=self.T["accent"])
+        self.card_total_val = ft.Text(self._format_money(0.0), size=24, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"])
+        self.card_total_icon = ft.Icon(ft.Icons.PAYMENTS_OUTLINED, size=16, color=self.T["accent"])
+        self.card_total_icon_tile = self._build_icon_tile(self.card_total_icon, "success")
         self.card_total = ft.Container(
             content=ft.Column(
                 [
-                    ft.Row([self.card_total_icon, self.card_total_title], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Row([self.card_total_icon_tile, self.card_total_title], spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     self.card_total_val,
                 ],
-                spacing=4,
+                spacing=6,
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
             bgcolor=self.T["surfaceSolid"],
             border=ft.Border.all(1, self.T["border"]),
-            border_radius=10,
-            padding=ft.Padding.all(12),
+            border_radius=12,
+            padding=ft.Padding.all(14),
             expand=True,
         )
 
         self.card_pago_title = ft.Text("TOTAL PAGO", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
         self.card_pago_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["success"])
-        self.card_pago_icon = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=18, color=self.T["success"])
+        self.card_pago_icon = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=16, color=self.T["success"])
+        self.card_pago_icon_tile = self._build_icon_tile(self.card_pago_icon, "success")
         self.progress_ring = FinancialProgressRing(
             pct=100.0,
             size=34,
@@ -413,10 +415,10 @@ class DashboardView(ft.Container):
                 [
                     ft.Column(
                         [
-                            ft.Row([self.card_pago_icon, self.card_pago_title], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                            ft.Row([self.card_pago_icon_tile, self.card_pago_title], spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                             self.card_pago_val,
                         ],
-                        spacing=4,
+                        spacing=6,
                         alignment=ft.MainAxisAlignment.CENTER,
                         expand=True,
                     ),
@@ -427,37 +429,37 @@ class DashboardView(ft.Container):
             ),
             bgcolor=self.T["surfaceSolid"],
             border=ft.Border.all(1, self.T["border"]),
-            border_radius=10,
-            padding=ft.Padding.all(12),
+            border_radius=12,
+            padding=ft.Padding.all(14),
             expand=True,
         )
 
         self.card_pendente_title = ft.Text("A PAGAR", size=11, weight=ft.FontWeight.W_600, color=self.T["textMuted"])
         self.card_pendente_val = ft.Text(self._format_money(0.0), size=18, weight=ft.FontWeight.BOLD, color=self.T["warning"])
-        self.card_pendente_icon = ft.Icon(ft.Icons.SCHEDULE, size=18, color=self.T["warning"])
+        self.card_pendente_icon = ft.Icon(ft.Icons.SCHEDULE, size=16, color=self.T["warning"])
+        self.card_pendente_icon_tile = self._build_icon_tile(self.card_pendente_icon, "warning")
         self.card_pendente_badge = ft.Text("0 pendências", size=11, color=self.T["warning"])
         self.card_pendente = ft.Container(
             content=ft.Column(
                 [
                     ft.Row(
                         [
-                            self.card_pendente_icon,
+                            self.card_pendente_icon_tile,
                             self.card_pendente_title,
-                            ft.Text("•", size=11, color=self.T["border"]),
-                            self.card_pendente_badge,
                         ],
-                        spacing=6,
+                        spacing=8,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     self.card_pendente_val,
+                    self.card_pendente_badge,
                 ],
-                spacing=4,
+                spacing=6,
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
             bgcolor=self.T["surfaceSolid"],
             border=ft.Border.all(1, self.T["border"]),
-            border_radius=10,
-            padding=ft.Padding.all(12),
+            border_radius=12,
+            padding=ft.Padding.all(14),
             expand=True,
         )
 
@@ -722,7 +724,7 @@ class DashboardView(ft.Container):
         self.empty_container = ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=48, color=self.T["textMuted"]),
+                    self._build_empty_icon_tile(),
                     self.empty_msg,
                     self.btn_empty_clear_filters,
                 ],
@@ -947,6 +949,35 @@ class DashboardView(ft.Container):
                 spacing=10,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
+
+    def _build_icon_tile(self, icon: ft.Icon, tone: str) -> ft.Container:
+        """Envolve um ícone em uma pastilha arredondada com fundo suave do tom (success/warning)."""
+        return ft.Container(
+            content=icon,
+            bgcolor=self.T[f"{tone}Bg"],
+            border=ft.Border.all(1, self.T[f"{tone}Border"]),
+            border_radius=8,
+            width=28,
+            height=28,
+            alignment=ft.Alignment.CENTER,
+        )
+
+    def _build_empty_icon_tile(self) -> ft.Container:
+        self.empty_icon = ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=30, color=self.T["accent"])
+        self.empty_icon_tile = ft.Container(
+            content=self.empty_icon,
+            bgcolor=self.T["successBg"],
+            border=ft.Border.all(1, self.T["successBorder"]),
+            border_radius=18,
+            width=64,
+            height=64,
+            alignment=ft.Alignment.CENTER,
+        )
+        return self.empty_icon_tile
+
+    def _theme_icon_tile(self, tile: ft.Container, tone: str) -> None:
+        tile.bgcolor = self.T[f"{tone}Bg"]
+        tile.border = ft.Border.all(1, self.T[f"{tone}Border"])
 
     def _build_action_button(self, label: str, icon: str, on_click: Callable[[], None] | None) -> ft.IconButton:
         return ft.IconButton(
@@ -1495,8 +1526,8 @@ class DashboardView(ft.Container):
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
             bgcolor=self.T["pageBg"],
-            border_radius=6,
-            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+            border_radius=10,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
             tooltip="Toque para alterar vencimento no calendário" if not self.selected_expense_ids else "Selecionar despesa",
             on_click=on_venc_click,
         )
@@ -1510,8 +1541,8 @@ class DashboardView(ft.Container):
             content=ft.Text(cat_name, size=11, weight=ft.FontWeight.W_600, color=cat_fg),
             bgcolor=cat_bg,
             border=ft.Border.all(1, cat_border) if cat_border else None,
-            border_radius=6,
-            padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+            border_radius=10,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
             on_click=on_cat_click,
         )
 
@@ -1522,7 +1553,12 @@ class DashboardView(ft.Container):
                 self._start_inline_edit(exp_id, "amount")
 
         amount_container = ft.Container(
-            content=ft.Text(self._format_money(amount), size=15, weight=ft.FontWeight.BOLD, color=self.T["textPrimary"]),
+            content=ft.Text(
+                self._format_money(amount),
+                size=16,
+                weight=ft.FontWeight.BOLD,
+                color=self.T["textMuted"] if is_pago else self.T["textPrimary"],
+            ),
             tooltip="Clique para alterar valor" if not self.selected_expense_ids else "Selecionar despesa",
             on_click=on_amount_click,
         )
@@ -1647,8 +1683,8 @@ class DashboardView(ft.Container):
             ),
             bgcolor=self.T["successBg"] if is_pago else self.T["warningBg"],
             border=ft.Border.all(1, self.T["successBorder"] if is_pago else self.T["warningBorder"]),
-            border_radius=6,
-            padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+            border_radius=14,
+            padding=ft.Padding.symmetric(horizontal=10, vertical=6),
             on_click=lambda _, eid=exp_id, st=status: self._toggle_status(eid, st),
             tooltip="Alternar status pago/pendente",
         )
@@ -1657,8 +1693,8 @@ class DashboardView(ft.Container):
             icon=ft.Icons.COPY_ALL_OUTLINED,
             icon_color=self.T["accent"],
             icon_size=18,
-            width=32,
-            height=32,
+            width=40,
+            height=40,
             padding=0,
             tooltip="Duplicar despesa",
             on_click=lambda _, item=exp: self._open_expense_dialog(item, is_duplicate=True),
@@ -1667,8 +1703,8 @@ class DashboardView(ft.Container):
             icon=ft.Icons.EDIT_OUTLINED,
             icon_color=self.T["textMuted"],
             icon_size=18,
-            width=32,
-            height=32,
+            width=40,
+            height=40,
             padding=0,
             tooltip="Editar completo",
             on_click=lambda _, item=exp: self._open_expense_dialog(item),
@@ -1677,8 +1713,8 @@ class DashboardView(ft.Container):
             icon=ft.Icons.DELETE_OUTLINE,
             icon_color=self.T["danger"],
             icon_size=18,
-            width=32,
-            height=32,
+            width=40,
+            height=40,
             padding=0,
             tooltip="Excluir",
             on_click=lambda _, eid=exp_id, d=description: self._confirm_delete(eid, d),
@@ -1714,8 +1750,8 @@ class DashboardView(ft.Container):
             content=ft.Column(card_controls, spacing=6),
             bgcolor=card_bgcolor,
             border=ft.Border.all(1.5, self.T["accent"]) if is_selected else ft.Border.all(1, self.T["borderSubtle"]),
-            border_radius=10,
-            padding=ft.Padding.all(10),
+            border_radius=12,
+            padding=ft.Padding.only(left=12, right=6, top=10, bottom=6),
             ink=True,
             on_click=on_card_click,
             on_long_press=on_card_long_press,
@@ -2030,14 +2066,16 @@ class DashboardView(ft.Container):
         self.card_total.bgcolor = self.T["surfaceSolid"]
         self.card_total.border = ft.Border.all(1, self.T["border"])
         self.card_total_title.color = self.T["textMuted"]
-        self.card_total_val.color = self.T["accent"]
+        self.card_total_val.color = self.T["textPrimary"]
         self.card_total_icon.color = self.T["accent"]
+        self._theme_icon_tile(self.card_total_icon_tile, "success")
 
         self.card_pago.bgcolor = self.T["surfaceSolid"]
         self.card_pago.border = ft.Border.all(1, self.T["border"])
         self.card_pago_title.color = self.T["textMuted"]
         self.card_pago_val.color = self.T["success"]
         self.card_pago_icon.color = self.T["success"]
+        self._theme_icon_tile(self.card_pago_icon_tile, "success")
         if hasattr(self, "progress_ring") and self.progress_ring:
             self.progress_ring.apply_theme(self.T)
 
@@ -2046,6 +2084,7 @@ class DashboardView(ft.Container):
         self.card_pendente_title.color = self.T["textMuted"]
         self.card_pendente_val.color = self.T["warning"]
         self.card_pendente_icon.color = self.T["warning"]
+        self._theme_icon_tile(self.card_pendente_icon_tile, "warning")
         self.card_pendente_badge.color = self.T["warning"]
 
         self.search_field.bgcolor = self.T["surfaceSolid"]
@@ -2090,6 +2129,9 @@ class DashboardView(ft.Container):
             self.active_filters_banner.border = ft.Border.all(1, self.T["warningBorder"])
             self.active_filter_text.color = self.T["warning"]
             self.btn_clear_all_filters.style.bgcolor = self.T["warning"]
+        if hasattr(self, "empty_icon_tile"):
+            self.empty_icon.color = self.T["accent"]
+            self._theme_icon_tile(self.empty_icon_tile, "success")
         if hasattr(self, "btn_empty_clear_filters") and self.btn_empty_clear_filters:
             self.btn_empty_clear_filters.style.bgcolor = self.T["warning"]
         if hasattr(self, "btn_clear_search") and self.btn_clear_search:
