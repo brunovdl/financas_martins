@@ -1,13 +1,13 @@
 """
-auth_view.py — Tela de Autenticação (Login e Cadastro) do MAI Finance.
+auth_view.py — Tela de Autenticação (Login) do MAI Finance.
 
 Paridade visual com AuthPage.tsx e Design System MAI Finance:
 - Dark theme com tons #151B2E, #0B1120 e destaque #3FD6C4
-- Alternância entre abas 'Entrar' e 'Criar Conta'
+- Somente login: o cadastro de novas contas é desativado (acesso restrito aos membros)
 - Validações inline com feedback em tempo real
 - Medidor dinâmico de força de senha
 - Submissão com tecla ENTER em todos os campos de entrada
-- Opção para salvar e lembrar e-mail e senha no dispositivo
+- Opção para lembrar o e-mail no dispositivo (a senha nunca é salva)
 - Alvos de toque otimizados (mínimo 48px)
 - Salva token e dados do usuário com persistência garantida
 """
@@ -16,32 +16,31 @@ from __future__ import annotations
 from typing import Callable
 import flet as ft
 
-from services.auth_service import login_user, register_user
-from ui.storage_util import get_local_item, set_local_item, set_local_items, remove_local_item
+from services.auth_service import login_user
+from ui.storage_util import get_local_item, set_local_items, remove_local_item
 from ui.components.mai_loading import MaiLoading
 
 
 class AuthView(ft.Container):
-    """Componente de tela cheia para Login e Cadastro."""
+    """Componente de tela cheia para Login."""
 
     def __init__(
         self,
         page: ft.Page,
         on_login_success: Callable[[str, dict], None] | None = None,
+        notice: str | None = None,
     ) -> None:
         super().__init__()
         self.page_ref = page
         self.on_login_success = on_login_success
-        self.current_tab = "login"  # 'login' ou 'register'
 
         self.expand = True
         self.bgcolor = "#0B1120"
         self.alignment = ft.Alignment.CENTER
         self.padding = 20
 
-        # Carrega credenciais salvas do armazenamento local / disco
+        # Carrega o e-mail lembrado do armazenamento local
         saved_email = get_local_item(page, "saved_email") or ""
-        saved_password = get_local_item(page, "saved_password") or ""
         remember_login = get_local_item(page, "remember_login")
         if remember_login is None:
             remember_login = True
@@ -53,18 +52,6 @@ class AuthView(ft.Container):
         }
 
         # Controles de formulário com submissão por ENTER
-        self.name_field = ft.TextField(
-            label="Nome de usuário",
-            hint_text="Seu nome ou apelido",
-            prefix_icon=ft.Icons.PERSON,
-            bgcolor="#151B2E",
-            border=input_border,
-            color="#F1F5F9",
-            visible=False,
-            height=56,
-            on_submit=self._on_name_submit,
-        )
-
         self.email_field = ft.TextField(
             label="Endereço de E-mail",
             value=saved_email,
@@ -80,7 +67,6 @@ class AuthView(ft.Container):
 
         self.password_field = ft.TextField(
             label="Senha (Mínimo 8 caracteres)",
-            value=saved_password,
             hint_text="••••••••",
             password=True,
             can_reveal_password=True,
@@ -93,9 +79,9 @@ class AuthView(ft.Container):
             on_submit=self._handle_submit,
         )
 
-        # Checkbox para salvar e-mail e senha
+        # Checkbox para lembrar apenas o e-mail
         self.remember_checkbox = ft.Checkbox(
-            label="Lembrar e-mail e senha neste dispositivo",
+            label="Lembrar meu e-mail neste dispositivo",
             value=bool(remember_login),
             check_color="#08090F",
             active_color="#3FD6C4",
@@ -183,51 +169,6 @@ class AuthView(ft.Container):
             on_click=self._handle_submit,
         )
 
-        # Abas 'Entrar' e 'Criar Conta'
-        self.tab_login_btn = ft.Container(
-            content=ft.Text(
-                "Entrar",
-                size=14,
-                weight=ft.FontWeight.BOLD,
-                color="#FFFFFF",
-                text_align=ft.TextAlign.CENTER,
-            ),
-            alignment=ft.Alignment.CENTER,
-            bgcolor="#3FD6C4",
-            border_radius=10,
-            padding=ft.Padding.symmetric(vertical=10),
-            expand=True,
-            on_click=lambda _: self._switch_tab("login"),
-            ink=True,
-        )
-        self.tab_register_btn = ft.Container(
-            content=ft.Text(
-                "Criar Conta",
-                size=14,
-                weight=ft.FontWeight.W_500,
-                color="#94A3B8",
-                text_align=ft.TextAlign.CENTER,
-            ),
-            alignment=ft.Alignment.CENTER,
-            bgcolor=None,
-            border_radius=10,
-            padding=ft.Padding.symmetric(vertical=10),
-            expand=True,
-            on_click=lambda _: self._switch_tab("register"),
-            ink=True,
-        )
-
-        tab_selector = ft.Container(
-            content=ft.Row(
-                [self.tab_login_btn, self.tab_register_btn],
-                spacing=4,
-            ),
-            bgcolor="#151B2E",
-            border=ft.Border.all(1, "#1E293B"),
-            border_radius=12,
-            padding=4,
-        )
-
         # Card Principal de Autenticação
         card_content = ft.Column(
             [
@@ -267,9 +208,7 @@ class AuthView(ft.Container):
                     spacing=2,
                 ),
                 ft.Divider(color="transparent", height=6),
-                tab_selector,
                 self.error_box,
-                self.name_field,
                 self.email_field,
                 self.password_field,
                 self.remember_checkbox,
@@ -335,8 +274,9 @@ class AuthView(ft.Container):
             ),
         )
 
-        if saved_password:
-            self._update_password_meter(saved_password)
+        if notice:
+            self.error_text.value = notice
+            self.error_box.visible = True
 
     def _on_email_submit(self, _: ft.ControlEvent | None = None) -> None:
         """Pressionar Enter no e-mail foca na senha se vazia, ou submete."""
@@ -344,29 +284,6 @@ class AuthView(ft.Container):
             self.password_field.focus()
         else:
             self._handle_submit(None)
-
-    def _on_name_submit(self, _: ft.ControlEvent | None = None) -> None:
-        """Pressionar Enter no nome foca no e-mail."""
-        self.email_field.focus()
-
-    def _switch_tab(self, tab: str) -> None:
-        """Alterna entre as abas 'login' e 'register'."""
-        self.current_tab = tab
-        self._clear_error()
-
-        is_login = tab == "login"
-        self.name_field.visible = not is_login
-        self.remember_checkbox.visible = is_login
-        self.tab_login_btn.bgcolor = "#3FD6C4" if is_login else None
-        self.tab_login_btn.content.color = "#0B1120" if is_login else "#94A3B8"
-        self.tab_login_btn.content.weight = ft.FontWeight.BOLD if is_login else ft.FontWeight.W_500
-
-        self.tab_register_btn.bgcolor = "#3FD6C4" if not is_login else None
-        self.tab_register_btn.content.color = "#0B1120" if not is_login else "#94A3B8"
-        self.tab_register_btn.content.weight = ft.FontWeight.BOLD if not is_login else ft.FontWeight.W_500
-
-        self.submit_btn_text.value = "Acessar Conta" if is_login else "Concluir Cadastro"
-        self.page_ref.update()
 
     def _update_password_meter(self, val: str) -> None:
         length = len(val)
@@ -416,12 +333,11 @@ class AuthView(ft.Container):
         self.page_ref.update()
 
     def _handle_submit(self, _: ft.ControlEvent | None = None) -> None:
-        """Validação inline e envio de login/registro."""
+        """Validação inline e envio do login."""
         self._clear_error()
 
         email = (self.email_field.value or "").strip()
         password = self.password_field.value or ""
-        name = (self.name_field.value or "").strip()
 
         # Validações locais inline
         if not email or "@" not in email or "." not in email:
@@ -432,19 +348,11 @@ class AuthView(ft.Container):
             self._show_error("A senha deve conter no mínimo 8 caracteres.")
             return
 
-        if self.current_tab == "register" and not name:
-            self._show_error("Por favor, insira o seu nome de usuário.")
-            return
-
         self._set_loading(True)
 
         try:
-            if self.current_tab == "login":
-                print(f"[AuthView] Tentando login para: {email}")
-                success, result = login_user(email=email, password=password)
-            else:
-                print(f"[AuthView] Tentando cadastro para: {email}")
-                success, result = register_user(name=name, email=email, password=password)
+            print(f"[AuthView] Tentando login para: {email}")
+            success, result = login_user(email=email, password=password)
         except Exception as exc:
             import traceback
             traceback.print_exc()
@@ -459,7 +367,7 @@ class AuthView(ft.Container):
 
         print(f"[AuthView] Autenticação bem-sucedida para: {email}")
 
-        # Login/Registro bem-sucedido
+        # Login bem-sucedido
         data = result if isinstance(result, dict) else {}
         token = data.get("token", "")
         user = data.get("user", {})
@@ -473,10 +381,8 @@ class AuthView(ft.Container):
         }
         if self.remember_checkbox.value:
             batch_items["saved_email"] = email
-            batch_items["saved_password"] = password
         else:
             remove_local_item(self.page_ref, "saved_email")
-            remove_local_item(self.page_ref, "saved_password")
 
         set_local_items(self.page_ref, batch_items)
 

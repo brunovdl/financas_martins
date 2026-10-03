@@ -7,8 +7,10 @@ Execução local:
 Execução em Docker:
     CMD ["python", "app.py"]
 """
+import asyncio
 import os
 import sys
+import time
 import warnings
 
 # Suprime avisos de depreciação de bibliotecas de terceiros (Flet 1.0 e Supabase)
@@ -37,10 +39,14 @@ from ui.dashboard_view import DashboardView
 from ui.shopping_view import ShoppingView
 from ui.shopping_market_mode import ShoppingMarketModeView
 from ui.theme import month_label
-from ui.storage_util import get_local_item, remove_local_item
+from ui.storage_util import get_local_item, load_local_storage, remove_local_item
+
+SESSION_CHECK_INTERVAL_SECONDS = 30
+SESSION_EXPIRED_MESSAGE = "Sua sessão de 24 horas expirou. Faça login novamente."
 
 
-def main(page: ft.Page) -> None:
+async def main(page: ft.Page) -> None:
+    await load_local_storage(page)
     page.title = "MAI Finance"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#08090F"
@@ -52,7 +58,7 @@ def main(page: ft.Page) -> None:
 
     current_dashboard: DashboardView | None = None
 
-    def show_auth() -> None:
+    def show_auth(notice: str | None = None) -> None:
         nonlocal current_dashboard
         if current_dashboard is not None:
             try:
@@ -66,7 +72,8 @@ def main(page: ft.Page) -> None:
         page.controls.clear()
         auth_view = AuthView(
             page=page,
-            on_login_success=lambda token, user: show_dashboard(),
+            on_login_success=lambda token, user: _on_login_success(),
+            notice=notice,
         )
         page.add(
             ft.SafeArea(
@@ -78,8 +85,9 @@ def main(page: ft.Page) -> None:
         )
         page.update()
 
-    def handle_logout() -> None:
-        nonlocal current_dashboard
+    def handle_logout(notice: str | None = None) -> None:
+        nonlocal current_dashboard, session_generation
+        session_generation += 1
         if current_dashboard is not None:
             try:
                 current_dashboard.will_unmount()
@@ -90,8 +98,46 @@ def main(page: ft.Page) -> None:
             page.floating_action_button = None
         page.on_resize = None
         remove_local_item(page, "auth_token")
+        remove_local_item(page, "user")
         remove_local_item(page, "user_data")
-        show_auth()
+        # Fecha qualquer modal aberto (ex.: sessão expirou com um formulário na tela)
+        try:
+            for _ in range(10):
+                if page.pop_dialog() is None:
+                    break
+        except Exception:
+            pass
+        if hasattr(page, "overlay"):
+            page.overlay.clear()
+        show_auth(notice)
+
+    # ------------------------------------------------------------------
+    # Sessão de 24h: expira a partir do login e desloga na hora, em qualquer tela
+    # ------------------------------------------------------------------
+    session_generation = 0
+
+    async def _watch_session(generation: int) -> None:
+        while generation == session_generation:
+            try:
+                page.session  # aba fechada: a sessão do Flet foi destruída, encerra o vigia
+            except RuntimeError:
+                return
+            payload = verify_token(get_local_item(page, "auth_token") or "")
+            if payload is None:
+                if generation == session_generation:
+                    handle_logout(SESSION_EXPIRED_MESSAGE)
+                return
+            remaining = payload.get("exp", 0) - time.time()
+            await asyncio.sleep(max(1.0, min(remaining, SESSION_CHECK_INTERVAL_SECONDS)))
+
+    def _start_session_watch() -> None:
+        nonlocal session_generation
+        session_generation += 1
+        page.run_task(_watch_session, session_generation)
+
+    def _on_login_success() -> None:
+        _start_session_watch()
+        show_dashboard()
 
     def show_dashboard() -> None:
         nonlocal current_dashboard
@@ -199,39 +245,16 @@ def main(page: ft.Page) -> None:
         msg = f"{count} despesa(s) clonada(s) para {month_label(clean_target)} com sucesso!" if count else f"Despesas clonadas para {month_label(clean_target)} com sucesso!"
         dashboard._show_snack(msg)
 
-    # Verifica sessão existente e auto-login
+    # Sessão existente ainda dentro das 24h: entra direto; senão, tela de login
     token = get_local_item(page, "auth_token")
     if token:
-        payload = verify_token(token)
-        if payload:
+        if verify_token(token):
+            _start_session_watch()
             show_dashboard()
             return
-
-    # Auto-login com credenciais salvas se "Lembrar de mim" estiver ativo
-    remember_login = get_local_item(page, "remember_login")
-    saved_email = get_local_item(page, "saved_email")
-    saved_password = get_local_item(page, "saved_password")
-
-    if remember_login and saved_email and saved_password:
-        try:
-            from services.auth_service import login_user
-            success, result = login_user(email=saved_email, password=saved_password)
-            if success and isinstance(result, dict) and result.get("token"):
-                new_token = result["token"]
-                user = result.get("user", {})
-                from ui.storage_util import set_local_items
-                set_local_items(page, {
-                    "auth_token": new_token,
-                    "user": user,
-                    "user_data": user,
-                    "remember_login": True,
-                    "saved_email": saved_email,
-                    "saved_password": saved_password,
-                })
-                show_dashboard()
-                return
-        except Exception as exc:
-            print(f"[app.py] Auto-login com credenciais salvas falhou: {exc}")
+        remove_local_item(page, "auth_token")
+        show_auth(SESSION_EXPIRED_MESSAGE)
+        return
 
     show_auth()
 
@@ -266,6 +289,9 @@ def _close_dialog(page: ft.Page, dlg: ft.AlertDialog) -> None:
 
 
 if __name__ == "__main__":
+    # Na web o token fica no navegador: sem um segredo próprio, qualquer um poderia forjar uma sessão
+    if not os.getenv("JWT_SECRET"):
+        raise SystemExit("JWT_SECRET não configurado. Defina a variável de ambiente antes de iniciar a versão web.")
     assets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
     ft.run(
         main,

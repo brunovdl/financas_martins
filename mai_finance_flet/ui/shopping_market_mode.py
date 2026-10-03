@@ -245,9 +245,7 @@ class ShoppingMarketModeView(ft.Container):
             bgcolor=self.T["accent"],
             duration=3000,
         )
-        self.page_ref.snack_bar = snack
-        snack.open = True
-        self.page_ref.update()
+        self.page_ref.show_dialog(snack)
 
     def _update_metrics_and_list(self) -> None:
         """Recalcula totais do carrinho e recarrega os cards agrupados."""
@@ -333,9 +331,7 @@ class ShoppingMarketModeView(ft.Container):
                 content=ft.Text("Marque pelo menos um item com 'OK' antes de finalizar!", color="#08090F"),
                 bgcolor=self.T["warning"],
             )
-            self.page_ref.snack_bar = snack
-            snack.open = True
-            self.page_ref.update()
+            self.page_ref.show_dialog(snack)
             return
 
         metrics = calculate_cart_metrics(self.items)

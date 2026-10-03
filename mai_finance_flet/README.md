@@ -22,7 +22,7 @@ Aplicação web moderna de gestão financeira pessoal para Bruno e sua esposa, m
 2. **Atualização em Tempo Real vs. Polling:** Em substituição às subscriptions realtime do client TypeScript (que possuem limitações no wrapper Python do Supabase em certos ambientes web), foi implementado um polling leve e assíncrono de 30 segundos no `DashboardView` para manter a sincronização com o banco.
 3. **Escopo Limpo de Produção:** Remoção completa dos módulos não necessários nesta versão (Importação de planilhas e Chat IA), mantendo a base de código 100% limpa, leve e segura.
 4. **Arquitetura de Diálogos Flet 1.0:** Todos os modais ("Nova Despesa", "Categorias", "Clonar Mês", "Backups" e "Pendências Anteriores") migrados para a API moderna `page.show_dialog()` e `page.pop_dialog()`.
-5. **Armazenamento de Sessão:** Abstração de persistência em `storage_util.py`, garantindo compatibilidade entre `shared_preferences`, `session` e `client_storage` do Flet.
+5. **Armazenamento de Sessão:** `storage_util.py` mantém os dados em memória por sessão; na web persiste no navegador via `ft.SharedPreferences` (nunca no disco do servidor) e no app nativo em cache JSON local. A sessão expira 24h após o login e o `app.py` desloga na hora.
 6. **Categorias no Banco:** Uso estrito da coluna `color` (hex) conforme definido em `schema.sql`, omitindo colunas legadas como `type` e `icon`.
 
 ---

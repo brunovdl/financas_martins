@@ -249,7 +249,6 @@ class TestUpdateModalUI:
         mock_page_web.web = True
         mock_page_web.width = 1200
         mock_page_web.theme_mode = ft.ThemeMode.DARK
-        mock_page_web.snack_bar = None
         mock_page_web.update = MagicMock()
 
         view_web = DashboardView(page=mock_page_web)
@@ -259,8 +258,9 @@ class TestUpdateModalUI:
 
         # Chamada manual em ambiente Web exibe aviso amigável sem chamar a API do GitHub
         view_web._manual_check_update()
-        assert mock_page_web.snack_bar is not None
-        assert "Web" in mock_page_web.snack_bar.content.value
+        snack = mock_page_web.show_dialog.call_args[0][0]
+        assert isinstance(snack, ft.SnackBar)
+        assert "Web" in snack.content.value
 
         # Cenário 2: Ambiente Nativo / Mobile / Desktop (page.web = False)
         mock_page_native = MagicMock(spec=ft.Page)

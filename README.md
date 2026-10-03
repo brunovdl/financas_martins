@@ -33,13 +33,15 @@
 
 ### 🔐 Arquitetura de Autenticação e Criptografia
 * **Criptografia de Senhas (PBKDF2 + Salt):** Senhas armazenadas no banco utilizando o padrão de derivação de chave **PBKDF2** com *Salt* aleatório de 16 bytes e 1000 iterações em SHA-512.
-* **Validação Estrita de Senha:** Imposição de senha mínima de 8 caracteres no cadastro e autenticação.
+* **Validação Estrita de Senha:** Imposição de senha mínima de 8 caracteres na autenticação.
 * **Proteção Contra Injeção e Manipulação:** Consultas parametrizadas via cliente Supabase prevenindo falhas de SQL Injection (CWE-89) e Acesso Indevido (CWE-284).
 
 ### ⏳ Gerenciamento de Sessão de 24 Horas & Tokens Criptografados
-* **Cookies HTTP-Only & SameSite:** Armazenamento do token de sessão em cookies seguros com as diretivas `HttpOnly`, `SameSite=Lax` e `Path=/`, tornando o token inacessível para scripts maliciosos de terceiros no navegador (proteção contra XSS).
-* **Expiração Rígida de 24 Horas:** O token de autenticação JWT assinado possui validade temporal de exatas 24 horas (`maxAge: 86400s`).
-* **Deslogamento Automático:** Monitoramento contínuo da sessão. Ao atingir o limite de 24 horas, o sistema invalida a sessão, limpa os estados locais e exige nova autenticação.
+* **Sessão por Navegador/Dispositivo:** Na web, o token fica no armazenamento do próprio navegador (`SharedPreferences`), nunca em disco no servidor; no Android, no armazenamento do app. A versão web não inicia sem `JWT_SECRET` definido.
+* **Expiração Rígida de 24 Horas:** O token JWT assinado vale exatas 24 horas a partir do login, sem renovação automática.
+* **Deslogamento Automático:** Ao atingir 24 horas, o app desloga na hora (mesmo em uso, em qualquer tela), fecha modais abertos e volta ao login com o aviso de sessão expirada.
+* **Sem Senha Salva:** "Lembrar meu e-mail" guarda apenas o e-mail; não há login automático com senha.
+* **Cadastro Desativado:** Apenas as contas existentes acessam o sistema.
 
 ---
 

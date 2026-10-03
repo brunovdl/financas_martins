@@ -3055,9 +3055,7 @@ class DashboardView(ft.Container):
             bgcolor=self.T["danger"] if is_error else self.T["successBg"],
             action="OK",
         )
-        self.page_ref.snack_bar = snack
-        snack.open = True
-        self.page_ref.update()
+        self.page_ref.show_dialog(snack)
 
     def _is_web(self) -> bool:
         """Retorna True se estiver executando no navegador Web (servidor)."""

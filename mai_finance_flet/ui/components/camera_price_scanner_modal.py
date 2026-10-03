@@ -449,9 +449,7 @@ def _fallback_file_picker_scan(
                 bgcolor=T["accent"],
                 duration=4000,
             )
-            page.snack_bar = loading_snack
-            loading_snack.open = True
-            page.update()
+            page.show_dialog(loading_snack)
 
             def _process():
                 import base64
@@ -478,9 +476,7 @@ def _fallback_file_picker_scan(
                             bgcolor=T["success"],
                             duration=3500,
                         )
-                        page.snack_bar = snack
-                        snack.open = True
-                        page.update()
+                        page.show_dialog(snack)
                     else:
                         err_msg = res.get("error") or "Preço não identificado na foto"
                         snack = ft.SnackBar(
@@ -488,9 +484,7 @@ def _fallback_file_picker_scan(
                             bgcolor=T["warning"],
                             duration=3500,
                         )
-                        page.snack_bar = snack
-                        snack.open = True
-                        page.update()
+                        page.show_dialog(snack)
 
                 if hasattr(page, "run_thread"):
                     page.run_thread(_update)
@@ -504,9 +498,7 @@ def _fallback_file_picker_scan(
                 bgcolor=T["danger"],
                 duration=3000,
             )
-            page.snack_bar = snack
-            snack.open = True
-            page.update()
+            page.show_dialog(snack)
 
     if hasattr(page, "run_task"):
         page.run_task(_pick_and_scan)

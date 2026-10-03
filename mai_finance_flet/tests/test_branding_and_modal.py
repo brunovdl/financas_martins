@@ -106,8 +106,8 @@ class TestBrandingAndLoading:
         assert dlg.open is False
 
         # Valida que uma notificação SnackBar foi exibida
-        assert page.snack_bar is not None
-        assert page.snack_bar.open is True
+        snacks = [c.args[0] for c in page.show_dialog.call_args_list if isinstance(c.args[0], ft.SnackBar)]
+        assert snacks
 
 
 class TestStandardizedModals:

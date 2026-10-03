@@ -13,7 +13,7 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-key-32-bytes-long!")
 
 import db.auth as auth_util
-from services.auth_service import login_user, register_user
+from services.auth_service import login_user
 
 
 class TestAuthServiceValidation:
@@ -26,21 +26,6 @@ class TestAuthServiceValidation:
 
     def test_login_short_password(self):
         ok, msg = login_user("user@example.com", "123")
-        assert not ok
-        assert "mínimo 8 caracteres" in msg
-
-    def test_register_empty_name(self):
-        ok, msg = register_user("", "user@example.com", "senha1234")
-        assert not ok
-        assert "nome de usuário" in msg
-
-    def test_register_invalid_email(self):
-        ok, msg = register_user("Bruno", "email_sem_arroba", "senha1234")
-        assert not ok
-        assert "e-mail válido" in msg
-
-    def test_register_short_password(self):
-        ok, msg = register_user("Bruno", "user@example.com", "curta")
         assert not ok
         assert "mínimo 8 caracteres" in msg
 
@@ -118,59 +103,3 @@ class TestLoginUser:
         assert payload is not None
         assert payload["userId"] == "123e4567-e89b-12d3-a456-426614174000"
         assert payload["name"] == "Bruno"
-
-
-class TestRegisterUser:
-    """Testa o fluxo de cadastro com mock do Supabase (AC-004)."""
-
-    def test_register_duplicate_email(self):
-        """AC-004: e-mail existente retorna erro de duplicidade amigável."""
-        mock_client = MagicMock()
-        mock_query = MagicMock()
-        mock_client.table.return_value = mock_query
-        mock_query.select.return_value = mock_query
-        mock_query.eq.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        # Simula que já existe um usuário
-        mock_query.execute.return_value = MagicMock(data=[{"id": "uuid-1"}])
-
-        ok, msg = register_user("Bruno", "bruno@exemplo.com", "senha12345", client=mock_client)
-        assert not ok
-        assert msg == "Este e-mail já está cadastrado."
-
-    def test_register_success(self):
-        """AC-004: novos dados geram hash PBKDF2 e token de 24h."""
-        mock_client = MagicMock()
-        mock_query = MagicMock()
-        mock_client.table.return_value = mock_query
-        mock_query.select.return_value = mock_query
-        mock_query.eq.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.insert.return_value = mock_query
-
-        # Primeira chamada (check): retorna []
-        # Segunda chamada (insert): retorna [new_user]
-        mock_query.execute.side_effect = [
-            MagicMock(data=[]),  # check email
-            MagicMock(data=[{
-                "id": "new-uuid-999",
-                "name": "Maria",
-                "email": "maria@exemplo.com",
-            }]),  # insert
-        ]
-
-        ok, result = register_user("Maria", "maria@exemplo.com", "senhaNovaSegura123", client=mock_client)
-        assert ok
-        assert isinstance(result, dict)
-        assert "token" in result
-        assert result["user"]["name"] == "Maria"
-
-        # Verifica se o insert foi chamado com hash PBKDF2 (formato salt:hash)
-        insert_calls = mock_query.insert.call_args_list
-        assert len(insert_calls) == 1
-        inserted_payload = insert_calls[0][0][0]
-        assert inserted_payload["email"] == "maria@exemplo.com"
-        assert ":" in inserted_payload["password_hash"]
-        salt, h = inserted_payload["password_hash"].split(":")
-        assert len(salt) == 32  # 16 bytes em hex
-        assert len(h) == 128    # 64 bytes em hex (sha512)

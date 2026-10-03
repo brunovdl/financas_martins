@@ -1,4 +1,4 @@
 -r requirements.txt
-flet-web>=1.0.0
+flet-web==1.0.3
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

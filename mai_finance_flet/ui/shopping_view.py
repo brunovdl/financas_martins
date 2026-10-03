@@ -749,6 +749,4 @@ class ShoppingView(ft.Container):
             bgcolor=self.T["accent"],
             duration=3000,
         )
-        self.page_ref.snack_bar = snack
-        snack.open = True
-        self.page_ref.update()
+        self.page_ref.show_dialog(snack)
