@@ -6,6 +6,7 @@ abstraindo diferenças entre shared_preferences, session, client_storage e cache
 """
 from __future__ import annotations
 
+import inspect
 import json
 import os
 from typing import Any
@@ -92,37 +93,150 @@ def _write_disk_cache(data: dict[str, Any]) -> None:
         print(f"[storage_util] Erro ao gravar cache em disco: {exc}")
 
 
-def set_local_items(page: ft.Page, items: dict[str, Any]) -> None:
-    """Salva múltiplos itens em lote na sessão e em cache persistente de forma atômica."""
-    is_testing = "PYTEST_CURRENT_TEST" in os.environ or "Mock" in type(page).__name__
-    cache = {} if is_testing else _read_disk_cache()
-    if not hasattr(page, "_mai_storage") or not isinstance(page._mai_storage, dict):
+def _is_web(page: ft.Page) -> bool:
+    """True quando a página roda no navegador (Flet Web): o Python executa no servidor."""
+    return getattr(page, "web", False) is True
+
+
+def _is_testing(page: ft.Page) -> bool:
+    return "PYTEST_CURRENT_TEST" in os.environ or "Mock" in type(page).__name__
+
+
+def _use_disk_cache(page: ft.Page) -> bool:
+    """
+    O cache em disco só é seguro em app nativo (Android/Desktop), onde o disco é do
+    próprio usuário. No modo web o disco é do SERVIDOR e seria compartilhado entre
+    todos os navegadores conectados — por isso nunca é usado lá.
+    """
+    return not _is_web(page) and not _is_testing(page)
+
+
+def _get_prefs(page: ft.Page) -> Any | None:
+    """Retorna o armazenamento persistente do cliente (no web: localStorage do navegador)."""
+    prefs = getattr(page, "shared_preferences", None)
+    if prefs:
+        return prefs
+    if _is_web(page):
+        prefs = getattr(page, "_mai_prefs", None)
+        if prefs is None:
+            try:
+                prefs = ft.SharedPreferences()
+                page._mai_prefs = prefs
+            except Exception as exc:
+                print(f"[storage_util] SharedPreferences indisponível: {exc}")
+                return None
+        return prefs
+    return None
+
+
+def _run_in_background(page: ft.Page, awaitable: Any) -> None:
+    """Agenda uma chamada assíncrona (ex.: SharedPreferences do Flet 1.0) sem bloquear a UI."""
+    async def _runner() -> None:
+        try:
+            await awaitable
+        except Exception as exc:
+            print(f"[storage_util] Falha ao persistir no cliente: {exc}")
+
+    run_task = getattr(page, "run_task", None)
+    try:
+        if callable(run_task):
+            run_task(_runner)
+            return
+    except Exception:
+        pass
+    if hasattr(awaitable, "close"):
+        awaitable.close()
+
+
+def _call_store(page: ft.Page, store: Any, method: str, *args: Any) -> Any:
+    """Chama um método de armazenamento síncrono ou assíncrono, sem nunca lançar exceção."""
+    if not store:
+        return None
+    try:
+        result = getattr(store, method)(*args)
+    except Exception:
+        return None
+    if inspect.isawaitable(result):
+        if method == "get":
+            # Leitura assíncrona não cabe numa chamada síncrona; use preload_local_items
+            if hasattr(result, "close"):
+                result.close()
+            return None
+        _run_in_background(page, result)
+        return None
+    return result
+
+
+def _storage_sources(page: ft.Page) -> list[Any]:
+    return [
+        _get_prefs(page),
+        getattr(page, "session", None),
+        getattr(page, "client_storage", None),
+    ]
+
+
+def _decode(val: Any) -> Any:
+    if isinstance(val, (dict, list, int, float, bool)):
+        return val
+    try:
+        return json.loads(val)
+    except Exception:
+        return val
+
+
+def _page_memory(page: ft.Page) -> dict[str, Any]:
+    if not isinstance(getattr(page, "_mai_storage", None), dict):
         page._mai_storage = {}
+    return page._mai_storage
+
+
+async def preload_local_items(page: ft.Page, keys: list[str]) -> None:
+    """
+    Carrega para a memória da sessão os valores salvos no cliente (no web, o
+    localStorage do navegador), cuja leitura no Flet 1.0 é assíncrona.
+    Deve ser aguardado antes de get_local_item no início da sessão web.
+    """
+    prefs = _get_prefs(page)
+    if prefs is None:
+        return
+    memory = _page_memory(page)
+    for key in keys:
+        try:
+            res = prefs.get(key)
+            if inspect.isawaitable(res):
+                res = await res
+        except Exception:
+            continue
+        if _is_valid_storage_val(res):
+            memory[key] = res
+
+
+def purge_disk_cache() -> None:
+    """Apaga o cache de sessão em disco (usado no servidor web para remover dados legados)."""
+    legacy_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".mai_session_cache.json")
+    for path in (_get_cache_file(), legacy_file):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as exc:
+            print(f"[storage_util] Não foi possível remover {path}: {exc}")
+
+
+def set_local_items(page: ft.Page, items: dict[str, Any]) -> None:
+    """Salva múltiplos itens em lote na sessão e no armazenamento persistente do cliente."""
+    use_disk = _use_disk_cache(page)
+    cache = _read_disk_cache() if use_disk else {}
+    memory = _page_memory(page)
+    sources = _storage_sources(page)
 
     for key, value in items.items():
         val_str = json.dumps(value) if not isinstance(value, str) else value
         cache[key] = val_str
-        page._mai_storage[key] = val_str
+        memory[key] = val_str
+        for store in sources:
+            _call_store(page, store, "set", key, val_str)
 
-        if hasattr(page, "shared_preferences") and page.shared_preferences:
-            try:
-                page.shared_preferences.set(key, val_str)
-            except Exception:
-                pass
-
-        if hasattr(page, "session") and page.session:
-            try:
-                page.session.set(key, val_str)
-            except Exception:
-                pass
-
-        if hasattr(page, "client_storage") and page.client_storage:
-            try:
-                page.client_storage.set(key, val_str)
-            except Exception:
-                pass
-
-    if not is_testing:
+    if use_disk:
         _write_disk_cache(cache)
 
 
@@ -140,87 +254,39 @@ def _is_valid_storage_val(val: Any) -> bool:
 
 
 def get_local_item(page: ft.Page, key: str) -> Any | None:
-    """Recupera um item da sessão/armazenamento da página ou cache persistente."""
-    val_str = None
+    """Recupera um item da memória da sessão, do armazenamento do cliente ou (nativo) do disco."""
+    val = None
 
-    if hasattr(page, "shared_preferences") and page.shared_preferences:
-        try:
-            res = page.shared_preferences.get(key)
+    memory = getattr(page, "_mai_storage", None)
+    if isinstance(memory, dict) and _is_valid_storage_val(memory.get(key)):
+        val = memory[key]
+
+    if val is None:
+        for store in _storage_sources(page):
+            res = _call_store(page, store, "get", key)
             if _is_valid_storage_val(res):
-                val_str = res
-        except Exception:
-            pass
+                val = res
+                break
 
-    if val_str is None and hasattr(page, "session") and page.session:
-        try:
-            res = page.session.get(key)
-            if _is_valid_storage_val(res):
-                val_str = res
-        except Exception:
-            pass
+    if val is None and _use_disk_cache(page):
+        val = _read_disk_cache().get(key)
 
-    if val_str is None and hasattr(page, "client_storage") and page.client_storage:
-        try:
-            res = page.client_storage.get(key)
-            if _is_valid_storage_val(res):
-                val_str = res
-        except Exception:
-            pass
-
-    mai_storage = getattr(page, "_mai_storage", None)
-    if mai_storage is not None and isinstance(mai_storage, dict):
-        val_str = mai_storage.get(key)
-        if val_str is None:
-            return None
-        if isinstance(val_str, (dict, list, int, float, bool)):
-            return val_str
-        try:
-            return json.loads(val_str)
-        except Exception:
-            return val_str
-
-    is_testing = "PYTEST_CURRENT_TEST" in os.environ or "Mock" in type(page).__name__
-    if val_str is None and not is_testing:
-        # Fallback no cache em disco local apenas fora de testes
-        cache = _read_disk_cache()
-        val_str = cache.get(key)
-
-    if val_str is None:
+    if val is None:
         return None
-
-    if isinstance(val_str, (dict, list, int, float, bool)):
-        return val_str
-
-    try:
-        return json.loads(val_str)
-    except Exception:
-        return val_str
+    return _decode(val)
 
 
 def remove_local_item(page: ft.Page, key: str) -> None:
     """Remove um item da sessão/armazenamento da página e do cache persistente."""
-    cache = _read_disk_cache()
-    if key in cache:
-        del cache[key]
-        _write_disk_cache(cache)
+    if not _is_web(page):
+        cache = _read_disk_cache()
+        if key in cache:
+            del cache[key]
+            _write_disk_cache(cache)
 
-    if hasattr(page, "shared_preferences") and page.shared_preferences:
-        try:
-            page.shared_preferences.remove(key)
-        except Exception:
-            pass
+    for store in _storage_sources(page):
+        _call_store(page, store, "remove", key)
 
-    if hasattr(page, "session") and page.session:
-        try:
-            page.session.remove(key)
-        except Exception:
-            pass
-
-    if hasattr(page, "client_storage") and page.client_storage:
-        try:
-            page.client_storage.remove(key)
-        except Exception:
-            pass
-
-    if hasattr(page, "_mai_storage") and isinstance(page._mai_storage, dict) and key in page._mai_storage:
-        del page._mai_storage[key]
+    memory = getattr(page, "_mai_storage", None)
+    if isinstance(memory, dict):
+        memory.pop(key, None)

@@ -15,6 +15,7 @@ os.environ.setdefault("JWT_SECRET", "test-jwt-secret-key-32-bytes-long!")
 
 from ui.auth_view import AuthView
 from ui.storage_util import get_local_item
+from db.auth import verify_remember_token, verify_token
 
 
 @pytest.fixture
@@ -131,13 +132,34 @@ class TestAuthView:
 
         view._handle_submit(None)
 
-        # Verifica se salvou
+        # Salva o e-mail e um token de "Lembrar de mim" — nunca a senha
         assert get_local_item(mock_page, "saved_email") == "lembrar@exemplo.com"
-        assert get_local_item(mock_page, "saved_password") == "segredo123"
+        assert get_local_item(mock_page, "saved_password") is None
+        remember_token = get_local_item(mock_page, "remember_token")
+        assert verify_remember_token(remember_token) is not None
+        assert verify_token(remember_token) is None  # não vale como sessão
 
-        # Novo AuthView deve inicializar já preenchido
+        # Novo AuthView inicializa só com o e-mail preenchido
         new_view = AuthView(mock_page)
         assert new_view.email_field.value == "lembrar@exemplo.com"
-        assert new_view.password_field.value == "segredo123"
+        assert not new_view.password_field.value
         assert new_view.remember_checkbox.value is True
+
+    @patch("ui.auth_view.login_user")
+    def test_unchecked_remember_clears_saved_session(self, mock_login, mock_page):
+        mock_login.return_value = (True, {"token": "tok123", "user": {"id": "u1", "name": "Bruno"}})
+        view = AuthView(mock_page)
+        view.email_field.value = "lembrar@exemplo.com"
+        view.password_field.value = "segredo123"
+        view.remember_checkbox.value = True
+        view._handle_submit(None)
+
+        other = AuthView(mock_page)
+        other.email_field.value = "lembrar@exemplo.com"
+        other.password_field.value = "segredo123"
+        other.remember_checkbox.value = False
+        other._handle_submit(None)
+
+        assert get_local_item(mock_page, "remember_token") is None
+        assert get_local_item(mock_page, "saved_email") is None
 

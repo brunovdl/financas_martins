@@ -10,6 +10,7 @@ Cobre:
 """
 from __future__ import annotations
 
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import flet as ft
@@ -313,12 +314,22 @@ class TestDEC026CameraPriceScanner:
 class TestDEC032To034CameraAndHeaderEnhancements:
     """Valida as correções e melhorias de DEC-032 a DEC-034."""
 
-    def test_dec_032_groq_api_key_configured_in_config(self):
-        """Valida que o config.py possui fallback seguro para GROQ_API_KEY no APK nativo."""
+    def test_dec_032_groq_api_key_not_hardcoded_in_config(self):
+        """A chave Groq não fica no código: o fonte traz o placeholder vazio que o CI preenche no build."""
+        import re
+        from pathlib import Path
+        source = (Path(__file__).resolve().parent.parent / "config.py").read_text(encoding="utf-8")
+        assert re.search(r'^DEFAULT_GROQ_API_KEY = ""$', source, re.MULTILINE)
+        assert "b64decode" not in source
+        assert "gsk_" not in source
+
+    def test_dec_032_groq_api_key_read_from_environment(self):
+        import importlib
         import config
-        assert hasattr(config, "DEFAULT_GROQ_API_KEY")
-        assert len(config.DEFAULT_GROQ_API_KEY) > 10
-        assert getattr(config, "GROQ_API_KEY", "") != ""
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_teste_ambiente"}):
+            importlib.reload(config)
+            assert config.GROQ_API_KEY == "gsk_teste_ambiente"
+        importlib.reload(config)
 
     def test_dec_033_modal_header_prevents_overflow_with_long_title(self):
         """Valida que o cabeçalho modal padronizado trunca títulos longos com ellipsis e não espreme o botão fechar."""

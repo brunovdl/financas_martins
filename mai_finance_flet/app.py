@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import flet as ft
 
 import config  # noqa: F401
-from db.auth import verify_token
+from db.auth import create_remember_token, verify_token
 from ui.auth_view import AuthView
 from ui.categories_modal import open_categories_modal
 from ui.clone_month_modal import open_clone_month_modal
@@ -37,7 +37,24 @@ from ui.dashboard_view import DashboardView
 from ui.shopping_view import ShoppingView
 from ui.shopping_market_mode import ShoppingMarketModeView
 from ui.theme import month_label
-from ui.storage_util import get_local_item, remove_local_item
+from ui.storage_util import (
+    get_local_item,
+    preload_local_items,
+    purge_disk_cache,
+    remove_local_item,
+    set_local_items,
+)
+
+# Chaves de sessão persistidas no cliente (lidas no início de cada sessão)
+SESSION_KEYS = [
+    "auth_token",
+    "user",
+    "user_data",
+    "remember_login",
+    "remember_token",
+    "saved_email",
+    "saved_password",  # legado: só é lido para migrar e apagar
+]
 
 
 def main(page: ft.Page) -> None:
@@ -89,8 +106,8 @@ def main(page: ft.Page) -> None:
         if hasattr(page, "floating_action_button"):
             page.floating_action_button = None
         page.on_resize = None
-        remove_local_item(page, "auth_token")
-        remove_local_item(page, "user_data")
+        for key in ("auth_token", "user", "user_data", "remember_token", "saved_password"):
+            remove_local_item(page, key)
         show_auth()
 
     def show_dashboard() -> None:
@@ -199,41 +216,93 @@ def main(page: ft.Page) -> None:
         msg = f"{count} despesa(s) clonada(s) para {month_label(clean_target)} com sucesso!" if count else f"Despesas clonadas para {month_label(clean_target)} com sucesso!"
         dashboard._show_snack(msg)
 
-    # Verifica sessão existente e auto-login
-    token = get_local_item(page, "auth_token")
-    if token:
-        payload = verify_token(token)
-        if payload:
-            show_dashboard()
-            return
+    def _save_session(result: dict) -> None:
+        user = result.get("user", {})
+        set_local_items(page, {
+            "auth_token": result["token"],
+            "user": user,
+            "user_data": user,
+            "remember_login": True,
+            "remember_token": result["remember_token"],
+        })
 
-    # Auto-login com credenciais salvas se "Lembrar de mim" estiver ativo
-    remember_login = get_local_item(page, "remember_login")
-    saved_email = get_local_item(page, "saved_email")
-    saved_password = get_local_item(page, "saved_password")
+    def boot() -> None:
+        # Versões anteriores guardavam a senha em texto puro: ela só é usada aqui,
+        # uma única vez, para migrar ao token de "Lembrar de mim", e então é apagada.
+        legacy_password = get_local_item(page, "saved_password")
+        saved_email = get_local_item(page, "saved_email")
+        remember_login = bool(get_local_item(page, "remember_login"))
+        remember_token = get_local_item(page, "remember_token")
 
-    if remember_login and saved_email and saved_password:
         try:
-            from services.auth_service import login_user
-            success, result = login_user(email=saved_email, password=saved_password)
-            if success and isinstance(result, dict) and result.get("token"):
-                new_token = result["token"]
-                user = result.get("user", {})
-                from ui.storage_util import set_local_items
-                set_local_items(page, {
-                    "auth_token": new_token,
-                    "user": user,
-                    "user_data": user,
-                    "remember_login": True,
-                    "saved_email": saved_email,
-                    "saved_password": saved_password,
-                })
+            # 1. Sessão de 24h ainda válida
+            token = get_local_item(page, "auth_token")
+            payload = verify_token(token) if token else None
+            if payload:
+                if remember_login and not remember_token:
+                    set_local_items(page, {"remember_token": create_remember_token(
+                        user_id=str(payload.get("userId", "")),
+                        name=payload.get("name", ""),
+                        email=payload.get("email", ""),
+                    )})
                 show_dashboard()
                 return
-        except Exception as exc:
-            print(f"[app.py] Auto-login com credenciais salvas falhou: {exc}")
 
-    show_auth()
+            if not remember_login:
+                show_auth()
+                return
+
+            # 2. "Lembrar de mim": renova a sessão pelo token de longa duração
+            if remember_token:
+                from services.auth_service import (
+                    REMEMBER_TOKEN_INVALID,
+                    REMEMBER_USER_NOT_FOUND,
+                    refresh_session_with_remember_token,
+                )
+                success, result = refresh_session_with_remember_token(remember_token)
+                if success and isinstance(result, dict):
+                    _save_session(result)
+                    show_dashboard()
+                    return
+                if result in (REMEMBER_TOKEN_INVALID, REMEMBER_USER_NOT_FOUND):
+                    remove_local_item(page, "remember_token")
+                else:
+                    print(f"[app.py] Renovação da sessão adiada: {result}")
+
+            # 3. Migração única de quem tinha a senha salva por versões anteriores
+            elif legacy_password and saved_email:
+                from services.auth_service import login_user
+                success, result = login_user(email=saved_email, password=legacy_password)
+                if success and isinstance(result, dict) and result.get("token"):
+                    user = result.get("user", {})
+                    result["remember_token"] = create_remember_token(
+                        user_id=str(user.get("id", "")),
+                        name=user.get("name", ""),
+                        email=user.get("email", saved_email),
+                    )
+                    _save_session(result)
+                    show_dashboard()
+                    return
+        except Exception as exc:
+            print(f"[app.py] Auto-login falhou: {exc}")
+        finally:
+            if legacy_password:
+                remove_local_item(page, "saved_password")
+
+        show_auth()
+
+    if getattr(page, "web", False) is True:
+        # No modo web o Python roda no servidor: o disco não pertence ao usuário.
+        # Remove qualquer cache de sessão legado e lê a sessão do navegador.
+        purge_disk_cache()
+
+        async def _boot_web() -> None:
+            await preload_local_items(page, SESSION_KEYS)
+            boot()
+
+        page.run_task(_boot_web)
+    else:
+        boot()
 
 
 def _open_placeholder_modal(page: ft.Page, feature_name: str) -> None:

@@ -72,6 +72,10 @@ jobs:
       - name: Executar Build do APK Android
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           cd mai_finance_flet
           BUILD_NUMBER="${{ github.event.inputs.build_number || github.run_number }}"
@@ -94,7 +98,29 @@ jobs:
           if [ -n "${GROQ_API_KEY}" ]; then
             sed -i "s|DEFAULT_GROQ_API_KEY = .*|DEFAULT_GROQ_API_KEY = \"${GROQ_API_KEY}\"|g" config.py
             echo "Chave GROQ_API_KEY injetada com sucesso dos GitHub Secrets."
+          else
+            echo "::warning::Secret GROQ_API_KEY ausente: recursos de IA usarão apenas os preços de referência."
           fi
+
+          # Keystore de assinatura: preferir GitHub Secrets (fora do repositório)
+          if [ -n "${ANDROID_KEYSTORE_BASE64}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD}" ]; then
+            KEYSTORE_PATH="${RUNNER_TEMP}/mai_finance_release.jks"
+            echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "${KEYSTORE_PATH}"
+            KEYSTORE_PASSWORD="${ANDROID_KEYSTORE_PASSWORD}"
+            KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+            KEY_ALIAS="${ANDROID_KEY_ALIAS:-maifinance}"
+            echo "Keystore de assinatura carregada dos GitHub Secrets."
+          else
+            # LEGADO: keystore versionada no repositório público. Cadastre os secrets
+            # ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD e remova este fallback.
+            echo "::warning::Secrets da keystore ausentes: usando a keystore legada do repositório (exposta publicamente)."
+            KEYSTORE_PATH="$(pwd)/keystore/mai_finance.jks"
+            KEYSTORE_PASSWORD="mai_finance_release_key_2026"
+            KEY_PASSWORD="mai_finance_release_key_2026"
+            KEY_ALIAS="maifinance"
+          fi
+          echo "::add-mask::${KEYSTORE_PASSWORD}"
+          echo "::add-mask::${KEY_PASSWORD}"
 
           # Configurar timeouts generosos para o Gradle para evitar falhas transitórias em downloads de rede
           mkdir -p ~/.gradle
@@ -122,10 +148,10 @@ jobs:
               --android-adaptive-icon-background "#121828" \
               --splash-color "#121828" \
               --splash-dark-color "#121828" \
-              --android-signing-key-store "$(pwd)/keystore/mai_finance.jks" \
-              --android-signing-key-store-password "mai_finance_release_key_2026" \
-              --android-signing-key-password "mai_finance_release_key_2026" \
-              --android-signing-key-alias "maifinance" \
+              --android-signing-key-store "${KEYSTORE_PATH}" \
+              --android-signing-key-store-password "${KEYSTORE_PASSWORD}" \
+              --android-signing-key-password "${KEY_PASSWORD}" \
+              --android-signing-key-alias "${KEY_ALIAS}" \
               --android-permissions android.permission.INTERNET=true android.permission.REQUEST_INSTALL_PACKAGES=true android.permission.CAMERA=true android.permission.ACCESS_FINE_LOCATION=true android.permission.ACCESS_COARSE_LOCATION=true android.permission.READ_EXTERNAL_STORAGE=true android.permission.WRITE_EXTERNAL_STORAGE=true \
               --exclude "tests/*" "Mai Finance QA.pdf" \
               --verbose; then

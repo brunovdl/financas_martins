@@ -89,12 +89,43 @@ def _b64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s)
 
 
+REMEMBER_PURPOSE = "remember"
+
+
 def create_token(user_id: str, name: str, email: str) -> str:
     """
     Cria um JWT HS256 com expiração de 24h.
     Campos: userId, name, email, iat, exp — idênticos ao payload do Next.js.
     Implementação HMAC manual compatível com lib/auth.ts createToken().
     """
+    return _sign_token(user_id, name, email, config.SESSION_DURATION_SECONDS)
+
+
+def create_remember_token(user_id: str, name: str, email: str) -> str:
+    """
+    Cria o token de longa duração do "Lembrar de mim" (substitui guardar a senha).
+    Só serve para emitir uma nova sessão de 24h — verify_token o rejeita como sessão.
+    """
+    return _sign_token(
+        user_id, name, email, config.REMEMBER_DURATION_SECONDS, purpose=REMEMBER_PURPOSE
+    )
+
+
+def verify_remember_token(token: str) -> dict | None:
+    """Valida um token de "Lembrar de mim". Retorna o payload ou None."""
+    payload = _decode_token(token)
+    if payload is None or payload.get("purpose") != REMEMBER_PURPOSE:
+        return None
+    return payload
+
+
+def _sign_token(
+    user_id: str,
+    name: str,
+    email: str,
+    duration_seconds: int,
+    purpose: str | None = None,
+) -> str:
     now = int(time.time())
     header = {"alg": "HS256", "typ": "JWT"}
     payload = {
@@ -102,8 +133,10 @@ def create_token(user_id: str, name: str, email: str) -> str:
         "name": name,
         "email": email,
         "iat": now,
-        "exp": now + config.SESSION_DURATION_SECONDS,
+        "exp": now + duration_seconds,
     }
+    if purpose:
+        payload["purpose"] = purpose
     encoded_header = _b64url_encode(json.dumps(header, separators=(",", ":")))
     encoded_payload = _b64url_encode(json.dumps(payload, separators=(",", ":")))
     signing_input = f"{encoded_header}.{encoded_payload}"
@@ -117,10 +150,17 @@ def create_token(user_id: str, name: str, email: str) -> str:
 
 def verify_token(token: str) -> dict | None:
     """
-    Verifica e decodifica um JWT.
+    Verifica e decodifica um JWT de sessão.
     Retorna o payload se válido e não expirado, None caso contrário.
     Implementação compatível com lib/auth.ts verifyToken().
     """
+    payload = _decode_token(token)
+    if payload is None or payload.get("purpose"):
+        return None  # tokens de "Lembrar de mim" não valem como sessão
+    return payload
+
+
+def _decode_token(token: str) -> dict | None:
     try:
         parts = token.split(".")
         if len(parts) != 3:

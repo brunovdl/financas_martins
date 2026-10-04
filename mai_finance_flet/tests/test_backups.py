@@ -80,24 +80,11 @@ class TestRestoreBackup:
         with pytest.raises(ValueError, match="não encontrado"):
             restore_backup("inexistente-id", client=mock_client)
 
-    def test_restore_backup_clears_and_repopulates_tables(self):
+    def test_restore_backup_upserts_snapshot_and_removes_only_extras(self):
         mock_client = MagicMock()
-        mock_backups_query = MagicMock()
-        mock_expenses_query = MagicMock()
-        mock_categories_query = MagicMock()
+        queries = {"backups": MagicMock(), "expenses": MagicMock(), "categories": MagicMock()}
+        mock_client.table.side_effect = lambda name: queries.get(name, MagicMock())
 
-        def table_router(table_name: str):
-            if table_name == "backups":
-                return mock_backups_query
-            elif table_name == "expenses":
-                return mock_expenses_query
-            elif table_name == "categories":
-                return mock_categories_query
-            return MagicMock()
-
-        mock_client.table.side_effect = table_router
-
-        # Snapshot mock
         snapshot_data = {
             "categories": [
                 {"id": "cat-1", "name": "Aluguel", "color": "#F2B84B"},
@@ -118,45 +105,40 @@ class TestRestoreBackup:
             ],
         }
 
-        mock_backups_query.select.return_value = mock_backups_query
-        mock_backups_query.eq.return_value = mock_backups_query
-        mock_backups_query.limit.return_value = mock_backups_query
-        mock_backups_query.execute.return_value = MagicMock(
-            data=[{"id": "backup-123", "data": snapshot_data}]
-        )
+        backups_q = queries["backups"]
+        backups_q.select.return_value = backups_q
+        backups_q.eq.return_value = backups_q
+        backups_q.limit.return_value = backups_q
+        backups_q.execute.return_value = MagicMock(data=[{"id": "backup-123", "data": snapshot_data}])
 
-        # Configura deletes
-        mock_expenses_query.delete.return_value = mock_expenses_query
-        mock_expenses_query.neq.return_value = mock_expenses_query
-        mock_expenses_query.execute.return_value = MagicMock(data=[])
-
-        mock_categories_query.delete.return_value = mock_categories_query
-        mock_categories_query.neq.return_value = mock_categories_query
-        mock_categories_query.execute.return_value = MagicMock(data=[])
-
-        # Configura inserts
-        mock_categories_query.insert.return_value = mock_categories_query
-        mock_categories_query.execute.return_value = MagicMock(data=[{"id": "cat-1"}, {"id": "cat-2"}])
-
-        mock_expenses_query.insert.return_value = mock_expenses_query
-        mock_expenses_query.execute.return_value = MagicMock(data=[{"id": "exp-1"}])
+        # Estado atual: exp-1 (no snapshot) + exp-extra; cat-1 (no snapshot) + cat-extra
+        current = {
+            "expenses": [{"id": "exp-1"}, {"id": "exp-extra"}],
+            "categories": [{"id": "cat-1"}, {"id": "cat-extra"}],
+        }
+        upserted = {"categories": [{"id": "cat-1"}, {"id": "cat-2"}], "expenses": [{"id": "exp-1"}]}
+        for name in ("expenses", "categories"):
+            q = queries[name]
+            q.select.return_value.execute.return_value = MagicMock(data=current[name])
+            q.delete.return_value.in_.return_value.execute.return_value = MagicMock(data=[])
+            q.upsert.return_value.execute.return_value = MagicMock(data=upserted[name])
 
         res = restore_backup("backup-123", client=mock_client)
 
         assert res["categories_restored"] == 2
         assert res["expenses_restored"] == 1
 
-        # Verifica limpeza prévia
-        mock_expenses_query.delete.assert_called_once()
-        mock_categories_query.delete.assert_called_once()
+        # Só remove o que não está no snapshot — nunca limpa a tabela inteira
+        queries["expenses"].delete.return_value.in_.assert_called_once_with("id", ["exp-extra"])
+        queries["categories"].delete.return_value.in_.assert_called_once_with("id", ["cat-extra"])
+        queries["expenses"].delete.return_value.neq.assert_not_called()
+        queries["categories"].delete.return_value.neq.assert_not_called()
 
-        # Verifica repovoamento de categorias
-        cat_inserted = mock_categories_query.insert.call_args[0][0]
-        assert len(cat_inserted) == 2
-        assert cat_inserted[0]["name"] == "Aluguel"
-        assert cat_inserted[0]["color"] == "#F2B84B"
+        cat_upserted, cat_kwargs = queries["categories"].upsert.call_args
+        assert [c["id"] for c in cat_upserted[0]] == ["cat-1", "cat-2"]
+        assert cat_upserted[0][0]["color"] == "#F2B84B"
+        assert cat_kwargs["on_conflict"] == "id"
 
-        # Verifica repovoamento de despesas
-        exp_inserted = mock_expenses_query.insert.call_args[0][0]
-        assert len(exp_inserted) == 1
-        assert exp_inserted[0]["description"] == "Supermercado"
+        exp_upserted, exp_kwargs = queries["expenses"].upsert.call_args
+        assert exp_upserted[0][0]["description"] == "Supermercado"
+        assert exp_kwargs["on_conflict"] == "id"

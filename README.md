@@ -26,20 +26,24 @@
 
 ## 🛡️ Características de Segurança & Proteção de Dados
 
-### 🔒 Controle de Acesso e Isolamento no Banco de Dados (Row Level Security - RLS)
-* **RLS Habilitado em Produção:** Todas as tabelas públicas (`mai_finance_users`, `categories`, `expenses`, `backups`) possuem **Row Level Security (RLS)** obrigatoriamente ativo no PostgreSQL/Supabase.
-* **Políticas Estritas de Acesso (Policies):** Restrição total de acesso anônimo, permitindo operações de leitura e escrita apenas para requisições autenticadas (`TO authenticated`).
-* **Isolamento de Aplicações:** Utilização de tabela exclusiva (`mai_finance_users`) para impedir qualquer interferência ou conflito de identidade com outras aplicações no mesmo projeto Supabase.
+### 🔒 Banco de Dados (Supabase) — estado atual
+* **RLS habilitado** em todas as tabelas públicas, porém com políticas abertas (`TO public USING (true)`): o app acessa o Supabase com a *anon key* e não usa o Supabase Auth, então o isolamento real depende de quem conhece essa chave. Ver "Pendências de segurança" abaixo.
+* **Isolamento de Aplicações:** tabela exclusiva (`mai_finance_users`) para não conflitar com outras aplicações no mesmo projeto Supabase.
+* **Consultas parametrizadas** via cliente Supabase (sem SQL montado à mão).
 
-### 🔐 Arquitetura de Autenticação e Criptografia
-* **Criptografia de Senhas (PBKDF2 + Salt):** Senhas armazenadas no banco utilizando o padrão de derivação de chave **PBKDF2** com *Salt* aleatório de 16 bytes e 1000 iterações em SHA-512.
-* **Validação Estrita de Senha:** Imposição de senha mínima de 8 caracteres no cadastro e autenticação.
-* **Proteção Contra Injeção e Manipulação:** Consultas parametrizadas via cliente Supabase prevenindo falhas de SQL Injection (CWE-89) e Acesso Indevido (CWE-284).
+### 🔐 Autenticação e Sessão
+* **Senhas com PBKDF2-HMAC-SHA512** + salt aleatório de 16 bytes (compatível com os hashes do antigo Next.js). Senha mínima de 8 caracteres.
+* **Sessão de 24 horas** com JWT HS256 assinado com `JWT_SECRET` (variável de ambiente; sem ela, um segredo aleatório é gerado e guardado no diretório de dados do app — nunca hard-coded).
+* **"Manter conectado":** guarda apenas o e-mail e um token de 30 dias, que só serve para emitir uma nova sessão após confirmar que o usuário ainda existe. **A senha nunca é armazenada.** Logout apaga o token.
+* **Isolamento de sessões no modo web:** no navegador a sessão fica no `localStorage` do próprio usuário; o servidor nunca grava sessões em disco (no Android/desktop o cache local fica no armazenamento do aparelho).
 
-### ⏳ Gerenciamento de Sessão de 24 Horas & Tokens Criptografados
-* **Cookies HTTP-Only & SameSite:** Armazenamento do token de sessão em cookies seguros com as diretivas `HttpOnly`, `SameSite=Lax` e `Path=/`, tornando o token inacessível para scripts maliciosos de terceiros no navegador (proteção contra XSS).
-* **Expiração Rígida de 24 Horas:** O token de autenticação JWT assinado possui validade temporal de exatas 24 horas (`maxAge: 86400s`).
-* **Deslogamento Automático:** Monitoramento contínuo da sessão. Ao atingir o limite de 24 horas, o sistema invalida a sessão, limpa os estados locais e exige nova autenticação.
+### 🔑 Segredos
+* Nenhuma chave no código-fonte: `GROQ_API_KEY` vem do ambiente (web) ou é injetada pelo CI a partir de GitHub Secrets no build do APK.
+* A keystore de assinatura do APK é lida dos secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` e `ANDROID_KEY_ALIAS`. Enquanto eles não existirem, o CI usa a keystore legada do repositório e emite um aviso.
+
+### ⚠️ Pendências de segurança
+* As políticas RLS abertas permitem que qualquer pessoa com a *anon key* (presente no APK público) leia e altere os dados, inclusive os hashes de senha em `mai_finance_users`. Corrigir exige mover o acesso ao banco para trás de um backend (ex.: Edge Functions com a service role) ou migrar para o Supabase Auth com políticas por usuário.
+* Credenciais que já estiveram no histórico público do repositório (chave Groq, keystore e sua senha) devem ser consideradas comprometidas e rotacionadas.
 
 ---
 
@@ -49,7 +53,7 @@
   - *Mobile (< 768px):* Coluna única, cabeçalho de 2 linhas, resumo em 2 níveis, botão flutuante (FAB) e cards de despesas.
   - *Compacto / Tablet (< 1024px):* Ações secundárias reunidas no menu de 3 pontinhos, busca adaptativa e lista em cards fluidos (sem esmagamento de colunas).
   - *Desktop Amplo (>= 1024px):* Tabela horizontal de 8 colunas com proteção contra quebra vertical de texto (`no_wrap=True`) e botões de atalho visíveis.
-* **Autenticação:** PBKDF2-HMAC-SHA512 e JWT HS256 (compatibilidade com usuários existentes).
+* **Autenticação:** PBKDF2-HMAC-SHA512, JWT HS256 de 24h e token de "manter conectado" de 30 dias.
 * **Inteligência Artificial:** Groq SDK (`llama-3.3-70b-versatile`) com cache de respostas em memória.
 * **Banco de Dados & Storage:** Supabase (PostgreSQL), `pg_cron`, RLS Policies.
 * **Deploy:** Docker multi-stage com usuário não-root (`appuser`), porta 8550.

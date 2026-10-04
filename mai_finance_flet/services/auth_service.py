@@ -156,3 +156,54 @@ def register_user(
         }
     except Exception as exc:  # noqa: BLE001
         return False, f"Erro ao criar conta: {exc}"
+
+
+# Falhas definitivas do "Lembrar de mim" (o token salvo deve ser descartado).
+# Erros de comunicação não entram aqui: o token continua válido para a próxima tentativa.
+REMEMBER_TOKEN_INVALID = "Sessão salva expirada ou inválida."
+REMEMBER_USER_NOT_FOUND = "Usuário não encontrado."
+
+
+def refresh_session_with_remember_token(
+    remember_token: str,
+    client: Any = None,
+) -> tuple[bool, str | dict[str, Any]]:
+    """
+    Emite uma nova sessão de 24h a partir do token de "Lembrar de mim",
+    confirmando que o usuário ainda existe no banco. Também renova o próprio
+    token de "Lembrar de mim" (janela deslizante).
+
+    Retorna:
+        (True, {"token": str, "remember_token": str, "user": {...}}) em caso de sucesso.
+        (False, "motivo") se o token for inválido/expirado ou o usuário não existir.
+    """
+    payload = auth_util.verify_remember_token(remember_token or "")
+    if payload is None:
+        return False, REMEMBER_TOKEN_INVALID
+
+    if client is None:
+        client = get_client()
+
+    try:
+        response = (
+            client.table("mai_finance_users")
+            .select("id, name, email")
+            .eq("id", payload.get("userId"))
+            .limit(1)
+            .execute()
+        )
+        rows = response.data if hasattr(response, "data") else []
+        if not rows:
+            return False, REMEMBER_USER_NOT_FOUND
+
+        user = rows[0]
+        user_id = str(user["id"])
+        name = user.get("name", "")
+        email = user.get("email", "")
+        return True, {
+            "token": auth_util.create_token(user_id=user_id, name=name, email=email),
+            "remember_token": auth_util.create_remember_token(user_id=user_id, name=name, email=email),
+            "user": {"id": user_id, "name": name, "email": email},
+        }
+    except Exception as exc:  # noqa: BLE001
+        return False, f"Erro de comunicação com o servidor: {exc}"
