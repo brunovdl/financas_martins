@@ -1113,7 +1113,7 @@ class TestDashboardPrivacyAndHideValues:
 
         assert view.hide_values is False
         assert view.btn_toggle_hide_values in view.month_selector_box.content.controls
-        card_total_header = view.card_total.content.controls[0]
+        card_total_header = view.card_total.content.controls[0].content
         assert view.btn_toggle_hide_values not in card_total_header.controls
         assert view.btn_toggle_hide_values.icon == ft.Icons.VISIBILITY_OUTLINED
         assert view.btn_toggle_hide_values.tooltip == "Ocultar valores"
@@ -1351,3 +1351,30 @@ class TestMobileLongPressSelection:
 
 
 
+
+
+class TestSummaryCardsSymmetry:
+    """Cards de resumo com a mesma estrutura, altura e tipografia."""
+
+    @patch("ui.dashboard_view.list_expenses")
+    @patch("ui.dashboard_view.get_monthly_summary")
+    def test_cards_share_height_structure_and_font(self, mock_summary, mock_expenses):
+        mock_expenses.return_value = [
+            {"id": "1", "description": "Aluguel", "amount": 100.0, "status": "pago", "due_date": "2026-09-05"},
+            {"id": "2", "description": "Luz", "amount": 50.0, "status": "pendente", "due_date": "2026-09-10"},
+        ]
+        mock_summary.return_value = {
+            "total_despesas": 150.0, "total_pago": 100.0, "total_pendente": 50.0, "qtd_pendente": 1, "percent_pago": 66.7,
+        }
+        mock_page = MagicMock(spec=ft.Page)
+        mock_page.width = 1366
+        view = DashboardView(page=mock_page)
+        view.load_data(silent=True)
+
+        cards = [view.card_total, view.card_pago, view.card_pendente]
+        assert len({c.height for c in cards}) == 1
+        assert all(len(c.content.controls) == 3 for c in cards)
+        assert len({v.size for v in (view.card_total_val, view.card_pago_val, view.card_pendente_val)}) == 1
+        assert view.card_total_badge.value == "2 despesas"
+        assert view.card_pago_badge.value == "1 paga · 67%"
+        assert view.card_pendente_badge.value == "1 pendência"
