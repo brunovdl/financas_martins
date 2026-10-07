@@ -71,6 +71,9 @@ def create_category(name: str, color: str = "#94A3B8", client: Any = None) -> di
     payload = {
         "name": clean_name,
         "color": clean_color,
+        # A tabela é compartilhada com outro app e exige `type` (enum transaction_type);
+        # as categorias do MAI Finance são sempre de despesa.
+        "type": "DESPESA",
     }
 
     try:

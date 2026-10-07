@@ -72,11 +72,11 @@ class TestCategoryUniqueness:
         assert result["name"] == "Educação"
         assert result["color"] == "#5EA8F2"
 
-        # Garante que o payload usa 'color' (não color_hex, type ou icon)
+        # Garante que o payload usa 'color' e envia o `type` obrigatório da tabela compartilhada
         insert_payload = mock_query.insert.call_args[0][0]
         assert "color" in insert_payload
         assert insert_payload["color"] == "#5EA8F2"
-        assert "type" not in insert_payload
+        assert insert_payload["type"] == "DESPESA"
         assert "icon" not in insert_payload
 
     def test_update_category_duplicate_name_raises(self):
